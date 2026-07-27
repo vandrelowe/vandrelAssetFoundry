@@ -43,6 +43,31 @@ Batch preview rendering is sequential and selects only processed, review, or
 approved candidates without an existing local preview. It skips all other
 states and never replaces a preview.
 
+Local shader experiments are derived review evidence, not material edits.
+They render a hash-verified processed GLB through bounded Blender into new
+baseline, tint, matte, and polished previews plus a contact sheet and measured
+material report. Variants are whole-material changes only; they must not claim
+that regions inside one atlas can be independently recolored without reliable
+mask or material assignments. Experiments preserve workflow and approval state
+and never replace the source model or textures.
+
+Same-skeleton animation grafting is an explicit local processor. It requires
+the target and donor processed GLBs to have exactly the same unique joint names
+and joint-parent relationships, plus numerically matching local joint rest
+transforms. A rest-transform mismatch requires actual humanoid retargeting and
+must fail before an output is created. The graft replaces the target animation
+array with the donor library, copying only donor animation samplers, channels,
+their accessors, and referenced embedded buffer views; animation targets are
+remapped to unique target nodes by exact name. Sparse accessors, external or
+multiple buffers, unsupported channel targets, missing node names, and
+duplicate donor clip names fail closed.
+
+The graft creates a new immutable processed GLB plus a hash-bound report and
+log. It preserves both inputs, resets technical/Godot validation and approval,
+and returns the target to processed state. A structurally valid graft still
+requires renewed inspection, Godot import, and visual playback review because
+local rest equality alone does not prove inverse-bind or deformation quality.
+
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.

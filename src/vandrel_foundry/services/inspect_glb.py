@@ -133,6 +133,11 @@ def inspect_processed_glb(
 
 
 def inspect_glb(path: Path) -> GlbInspection:
+    return _measure(load_glb_document(path))
+
+
+def load_glb_document(path: Path) -> dict[str, Any]:
+    """Load and validate the bounded JSON document from a GLB 2.0 container."""
     try:
         with path.open("rb") as stream:
             header = stream.read(12)
@@ -163,7 +168,7 @@ def inspect_glb(path: Path) -> GlbInspection:
         raise FoundryError(f"GLB JSON is invalid: {exc}") from exc
     if not isinstance(document, dict) or document.get("asset", {}).get("version") != "2.0":
         raise FoundryError("GLB JSON does not declare glTF 2.0.")
-    return _measure(document)
+    return document
 
 
 def _measure(document: dict[str, Any]) -> GlbInspection:

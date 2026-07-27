@@ -53,10 +53,13 @@
 | Bounded Blender cleanup/export | `src/vandrel_foundry/services/process_blender.py` |
 | In-Blender deterministic operations | `src/vandrel_foundry/blender/process_glb.py` |
 | Local Blender review preview rendering | `src/vandrel_foundry/services/render_preview.py` |
+| Local Blender shader/material comparison evidence | `src/vandrel_foundry/services/experiment_shaders.py` |
 | Missing-preview batch selection | `src/vandrel_foundry/services/render_missing_previews.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |
+| Versioned humanoid mapping and retarget compatibility evidence | `src/vandrel_foundry/services/validate_humanoid_retarget.py` plus `src/vandrel_foundry/data/rig_profiles/` |
+| Deterministic exact-skeleton animation grafting | `src/vandrel_foundry/services/graft_animations.py` |
 | Manual approval and rejection | `src/vandrel_foundry/services/review_asset.py` |
 | Read-only release planning | `src/vandrel_foundry/services/plan_release.py` |
 | Explicit immutable library publication | `src/vandrel_foundry/services/publish_release.py` |

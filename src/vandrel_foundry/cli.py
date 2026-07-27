@@ -19,6 +19,8 @@ from vandrel_foundry.services.build_review_gallery import build_review_gallery
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
+from vandrel_foundry.services.experiment_shaders import experiment_shader_variants
+from vandrel_foundry.services.graft_animations import graft_animations
 from vandrel_foundry.services.init_library import initialize_asset_library
 from vandrel_foundry.services.inspect_assets import discover_assets, initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_processed_glb
@@ -48,6 +50,7 @@ from vandrel_foundry.services.submit_preview import (
     submit_text_refine,
 )
 from vandrel_foundry.services.validate_godot import validate_godot_sandbox
+from vandrel_foundry.services.validate_humanoid_retarget import validate_humanoid_retarget
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath
 
@@ -789,6 +792,20 @@ def render_preview(
         fail(exc)
 
 
+@app.command("experiment-shaders")
+def experiment_shaders(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Render immutable local PBR shader variants for visual comparison."""
+    try:
+        settings = load_config(config)
+        artifact = experiment_shader_variants(settings, asset_id)
+        console.print(f"[green]Shader experiment created[/green] {artifact.path}")
+    except FoundryError as exc:
+        fail(exc)
+
+
 @app.command("render-missing-previews")
 def render_missing(
     config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
@@ -829,6 +846,62 @@ def validate_godot(
             raise FoundryError("Godot sandbox validation failed; inspect its report.")
         console.print(f"[green]Godot validation passed[/green] {asset_id}")
     except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("validate-humanoid-rig")
+def validate_humanoid_rig(
+    asset_id: str,
+    animation_donor: Annotated[
+        str,
+        typer.Option(
+            "--animation-donor",
+            help="Asset ID containing the processed GLB animation library to compare.",
+        ),
+    ],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Record local Meshy-to-Godot humanoid and shared-animation evidence."""
+    try:
+        foundry_config, _ = configured(config)
+        result = validate_humanoid_retarget(foundry_config, asset_id, animation_donor)
+        console.print(f"[green]Retarget evidence:[/green] {result.report.path}")
+        console.print(
+            "Direct skeleton match: "
+            f"{'yes' if result.direct_skeleton_match else 'no'}; "
+            "rest transforms match: "
+            f"{'yes' if result.direct_rest_transform_match else 'no'}; "
+            "humanoid retarget candidate: "
+            f"{'yes' if result.humanoid_retarget_candidate else 'no'}; "
+            "direct animation transfer candidate: "
+            f"{'yes' if result.shared_animation_transfer_candidate else 'no'}"
+        )
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("graft-animations")
+def graft_animation_library(
+    asset_id: str,
+    animation_donor: Annotated[
+        str,
+        typer.Option(
+            "--animation-donor",
+            help="Asset ID containing the exact-skeleton processed GLB animation donor.",
+        ),
+    ],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Create a new target GLB with exact-skeleton donor animations."""
+    try:
+        settings = load_config(config)
+        result = graft_animations(settings, asset_id, animation_donor)
+        console.print(
+            f"[green]Grafted {result.facts.donor_animation_count} animations[/green] "
+            f"into {result.model.path}"
+        )
+        console.print(f"Evidence: {result.report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 
 

@@ -90,6 +90,14 @@ foundry render-preview stone_knife_001
 foundry render-missing-previews
 foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
+# Offline material-response evidence for a processed character or prop.
+foundry experiment-shaders stone_knife_001
+# Compare a processed character and animation donor against the bundled
+# Meshy-to-Godot humanoid profile.
+foundry validate-humanoid-rig character_001 --animation-donor animation_library_001
+# Raw copying is intentionally narrower than retargeting and fails unless
+# joint names, hierarchy, and local rest transforms match.
+foundry graft-animations character_001 --animation-donor animation_library_001
 foundry approve stone_knife_001 --reviewer "Reviewer Name" --all-required-checks
 # Read-only plan:
 foundry release stone_knife_001
