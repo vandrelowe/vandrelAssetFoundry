@@ -69,8 +69,10 @@ returned exit code 0 without timing out or exceeding the output limit.
 - Blender warned that more than one image-texture shader node contributed to a
   texture sampler. The export remained valid, but material-node ambiguity
   should become a recorded Blender validation check.
-- Static props should be exercised before humanoids because the humanoid lane
-  remains release-disabled and requires a future canonical skeleton contract.
+- Static props were exercised before humanoids. The humanoid lane now permits
+  candidate-only publication when the exact approved model has passing,
+  hash-bound `meshy_humanoid/v1` compatibility evidence. This does not establish
+  a canonical Vandrel skeleton or runtime acceptance.
 - Native FBX package intake now copies the FBX and same-directory texture
   sidecars into immutable provenance storage before converting the copy.
 - A second Meshy berry-basket package passed native intake, Blender conversion,
@@ -85,7 +87,7 @@ returned exit code 0 without timing out or exceeding the output limit.
 ## Humanoid preservation probe
 
 Two existing Meshy biped FBXs were processed through native package intake to
-test the still-release-disabled humanoid lane. Both preserved one skin and 24
+test the then-release-disabled humanoid lane. Both preserved one skin and 24
 joints. The character export contained one animation; the merged-animation
 export contained 14 animations. The character GLB also passed a real Godot
 headless import.

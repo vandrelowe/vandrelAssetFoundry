@@ -6,7 +6,7 @@ from typing import Any
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
-from vandrel_foundry.domain.manifest import Artifact
+from vandrel_foundry.domain.manifest import Artifact, AssetManifest
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import contained_path
@@ -15,6 +15,8 @@ RELEASE_ROLES = {
     "processed_model": ("model.glb", "model"),
     "godot_wrapper_scene": ("godot/wrapper.tscn", "godot_wrapper_scene"),
 }
+HUMANOID_LANE = "humanoid"
+HUMANOID_COMPATIBILITY_CHECK = "humanoid_retarget_compatibility"
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,7 @@ def plan_release(
     lane = lanes.lanes.get(manifest.asset.lane)
     if lane is None or not lane.release_enabled:
         raise FoundryError(f"Release is disabled for lane: {manifest.asset.lane}")
+    humanoid_compatibility = _humanoid_release_evidence(manifest)
     library_asset_root = config.foundry.asset_library_root / "assets" / asset_id
     revision = _next_revision(library_asset_root)
     asset_root = config.foundry.workspace_root / "assets" / asset_id
@@ -77,6 +80,11 @@ def plan_release(
             **manifest.quality.observed,
             "collision_recommendation": lane.collision_policy,
         },
+        **(
+            {"humanoid_compatibility": humanoid_compatibility}
+            if humanoid_compatibility is not None
+            else {}
+        ),
         "provenance": {
             "foundry_manifest_revision": manifest.revision,
             "approval_reviewer": manifest.approval.reviewer,
@@ -90,6 +98,39 @@ def plan_release(
         destination=library_asset_root / f"r{revision:03d}",
         descriptor=descriptor,
     )
+
+
+def _humanoid_release_evidence(manifest: AssetManifest) -> dict[str, Any] | None:
+    if manifest.asset.lane != HUMANOID_LANE:
+        return None
+    checks = [
+        check
+        for check in manifest.validation.checks
+        if check.get("name") == HUMANOID_COMPATIBILITY_CHECK
+    ]
+    if not checks:
+        raise FoundryError(
+            "Humanoid release requires hash-bound humanoid retarget compatibility evidence."
+        )
+    check = checks[-1]
+    if not check.get("passed") or not check.get("humanoid_retarget_candidate"):
+        raise FoundryError(
+            "Humanoid release requires a passing humanoid retarget candidate check."
+        )
+    report = check.get("report")
+    mapping_profile = check.get("mapping_profile")
+    if not isinstance(report, str) or not report or not isinstance(mapping_profile, str):
+        raise FoundryError("Humanoid release compatibility evidence is incomplete.")
+    return {
+        "candidate_only": True,
+        "vandrel_runtime_accepted": False,
+        "mapping_profile": mapping_profile,
+        "report": report,
+        "animation_donor_asset_id": check.get("animation_donor_asset_id"),
+        "direct_skeleton_match": bool(check.get("direct_skeleton_match")),
+        "direct_rest_transform_match": bool(check.get("direct_rest_transform_match")),
+        "humanoid_retarget_candidate": True,
+    }
 
 
 def _next_revision(root: Path) -> int:

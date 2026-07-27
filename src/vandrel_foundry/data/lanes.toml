@@ -30,7 +30,7 @@ wrapper_template = "humanoid_candidate"
 collision_policy = "manual_review"
 requires_materials = true
 requires_skeleton = true
-release_enabled = false
+release_enabled = true
 
 [lanes.creature]
 wrapper_template = "creature_candidate"
