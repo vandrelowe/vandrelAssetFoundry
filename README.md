@@ -44,6 +44,7 @@ foundry show stone_knife_001
 foundry status stone_knife_001
 foundry audit stone_knife_001
 foundry audit-all
+foundry review-gallery
 foundry scan-sources C:\Dev\outsideassets
 foundry scan-sources C:\Dev\outsideassets --json
 

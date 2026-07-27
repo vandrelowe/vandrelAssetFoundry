@@ -38,6 +38,11 @@ approval bindings. It also checks that the bounded JSONL event history has one
 well-formed, asset-matching event for every manifest revision in order.
 Reporting `submit` as a next action does not authorize or implement submission.
 
+`review-gallery` creates a new numbered, offline HTML snapshot under the
+configured workspace `review_reports` directory. It embeds the latest recorded
+local preview and presents manifest-owned technical facts. It never mutates a
+candidate, grants approval, or loads network content.
+
 ## Failure policy
 
 Corrupt manifests, unknown lanes, missing prompts, unsafe paths, duplicate IDs,

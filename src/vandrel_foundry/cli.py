@@ -14,6 +14,7 @@ from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
 from vandrel_foundry.services.audit_asset import audit_asset
+from vandrel_foundry.services.build_review_gallery import build_review_gallery
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
@@ -348,6 +349,19 @@ def audit_all(
             )
         )
     console.print(f"[green]Workspace audit passed[/green] {len(results)} candidates")
+
+
+@app.command("review-gallery")
+def review_gallery(
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Create a new offline HTML snapshot of all review candidates."""
+    try:
+        settings = load_config(config)
+        destination = build_review_gallery(settings)
+    except FoundryError as exc:
+        fail(exc)
+    console.print(f"[green]Review gallery created[/green] {destination}")
 
 
 @app.command()
