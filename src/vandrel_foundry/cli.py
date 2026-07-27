@@ -9,7 +9,7 @@ from rich.table import Table
 from vandrel_foundry.config import FoundryConfig, load_config, load_lanes
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
-from vandrel_foundry.domain.states import next_actions
+from vandrel_foundry.domain.states import WorkflowState, next_actions
 from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
@@ -23,7 +23,12 @@ from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.process_blender import process_with_blender
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
-from vandrel_foundry.services.review_asset import approve_asset, reject_asset
+from vandrel_foundry.services.review_asset import (
+    approval_checks_pass,
+    approve_asset,
+    reject_asset,
+)
+from vandrel_foundry.services.scan_sources import scan_source_directory
 from vandrel_foundry.services.select_output import select_output
 from vandrel_foundry.services.stage_godot import prepare_godot_sandbox
 from vandrel_foundry.services.submit_preview import (
@@ -157,6 +162,36 @@ def list_assets(
         error_console.print(f"[yellow]Warning:[/yellow] {warning}")
 
 
+@app.command("scan-sources")
+def scan_sources(
+    root: Path,
+    limit: Annotated[int, typer.Option("--limit", min=1, max=10_000)] = 1000,
+) -> None:
+    """Inventory supported external models without copying or converting them."""
+    try:
+        candidates = scan_source_directory(root, limit)
+    except FoundryError as exc:
+        fail(exc)
+    table = Table("Format", "MiB", "Sidecars", "Family", "Lane", "Suggested ID", "Path")
+    for candidate in candidates:
+        table.add_row(
+            candidate.format,
+            f"{candidate.size_bytes / 1024 / 1024:.2f}",
+            str(candidate.sidecar_count),
+            candidate.source_family,
+            candidate.suggested_lane,
+            candidate.suggested_asset_id,
+            candidate.relative_path,
+            style="yellow" if candidate.warning else None,
+        )
+    console.print(table)
+    warnings = sum(candidate.warning is not None for candidate in candidates)
+    console.print(
+        f"[green]Found[/green] {len(candidates)} supported models"
+        + (f"; {warnings} warnings" if warnings else "")
+    )
+
+
 @app.command("add-reference")
 def add_reference(
     asset_id: str,
@@ -216,6 +251,8 @@ def status(
     except FoundryError as exc:
         fail(exc)
     actions = next_actions(manifest.workflow.state)
+    if manifest.workflow.state is WorkflowState.REVIEW and not approval_checks_pass(manifest):
+        actions = ["reject"]
     table = Table(show_header=False)
     table.add_row("Asset", manifest.asset.asset_id)
     table.add_row("State", manifest.workflow.state.value)

@@ -322,6 +322,7 @@ def test_select_and_passthrough_processing_creates_distinct_verified_artifact(
         {"name": "glb_structure", "passed": True},
         {"name": "triangle_budget", "passed": True},
         {"name": "materials_required", "passed": True},
+        {"name": "skeleton_required", "passed": True},
     ]
     inspection_ready.revision += 1
     ManifestRepository(config.foundry.workspace_root).save(

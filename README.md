@@ -38,6 +38,7 @@ foundry create --id stone_knife_001 --lane static_prop `
 foundry list
 foundry show stone_knife_001
 foundry status stone_knife_001
+foundry scan-sources C:\Dev\outsideassets
 
 # Skip Meshy entirely with GLB, FBX-plus-textures, or glTF packages.
 foundry add-source stone_knife_001 --model .\models\stone_knife.glb
@@ -49,6 +50,9 @@ foundry add-source anvil_001 --model .\kit\Anvil.gltf
 inputs before creating an asset workspace, copies the prompt to
 `input/prompt.txt`, and creates a draft manifest plus an event log. `status`
 reports the current workflow and valid next actions.
+`scan-sources` performs a read-only recursive inventory of supported model
+packages and suggests static-prop or humanoid intake lanes; it does not copy,
+convert, submit, or create asset records.
 
 Phase 2 adds guarded Meshy commands:
 

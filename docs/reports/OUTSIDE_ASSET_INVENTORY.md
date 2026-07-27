@@ -4,7 +4,13 @@
 
 **Inspection mode:** Read-only
 
-**Last verified:** 2026-07-26
+**Last verified:** 2026-07-27
+
+The Foundry scanner found 963 supported model sources: 869 FBX and 94 glTF.
+Its path-based first-pass classification identified 61 Meshy, 651 Mixamo, and
+251 Quaternius files, with 298 suggested static-prop candidates and 665
+suggested humanoid candidates. The scan completed with no warnings and did not
+copy or modify source files.
 
 ## Format inventory
 
@@ -74,3 +80,19 @@ returned exit code 0 without timing out or exceeding the output limit.
 - Both Meshy FBX and Quaternius glTF conversion exposed Blender's
   multiple-image-texture-node sampler warning. It is now retained in structured
   conversion evidence instead of only console text.
+
+## Humanoid preservation probe
+
+Two existing Meshy biped FBXs were processed through native package intake to
+test the still-release-disabled humanoid lane. Both preserved one skin and 24
+joints. The character export contained one animation; the merged-animation
+export contained 14 animations. The character GLB also passed a real Godot
+headless import.
+
+Both candidates correctly failed the required-material check because their
+source FBXs contained no materials. Neither was approved. Blender reported
+that some vertices had more than four joint influences and retained the four
+highest weights during GLB export; the warning is preserved in each candidate's
+conversion evidence. These results validate basic rig and animation
+preservation, but do not establish a canonical Vandrel humanoid skeleton
+contract.

@@ -13,8 +13,20 @@ REQUIRED_CHECKS = {
     "glb_structure",
     "triangle_budget",
     "materials_required",
+    "skeleton_required",
     "godot_sandbox_import",
 }
+
+
+def approval_checks_pass(manifest: AssetManifest) -> bool:
+    checks_by_name = {
+        str(check.get("name")): bool(check.get("passed")) for check in manifest.validation.checks
+    }
+    return (
+        manifest.validation.result == "passed"
+        and REQUIRED_CHECKS.issubset(checks_by_name)
+        and all(checks_by_name[name] for name in REQUIRED_CHECKS)
+    )
 
 
 def approve_asset(
@@ -27,14 +39,7 @@ def approve_asset(
     manifest = repository.load(asset_id)
     if manifest.workflow.state is not WorkflowState.REVIEW:
         raise FoundryError(f"Approval requires review state: {asset_id}")
-    checks_by_name = {
-        str(check.get("name")): bool(check.get("passed")) for check in manifest.validation.checks
-    }
-    if (
-        manifest.validation.result != "passed"
-        or not REQUIRED_CHECKS.issubset(checks_by_name)
-        or any(not checks_by_name[name] for name in REQUIRED_CHECKS)
-    ):
+    if not approval_checks_pass(manifest):
         raise FoundryError("Approval requires every recorded validation check to pass.")
     reviewer = reviewer.strip()
     if not reviewer:

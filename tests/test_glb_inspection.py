@@ -43,6 +43,8 @@ def test_inspection_counts_indexed_triangles_and_materials(tmp_path: Path) -> No
             "materials": [{}],
             "textures": [{}, {}],
             "images": [{}],
+            "skins": [{"joints": [0, 1, 2]}],
+            "animations": [{}, {}],
         },
     )
     result = inspect_glb(path)
@@ -52,6 +54,9 @@ def test_inspection_counts_indexed_triangles_and_materials(tmp_path: Path) -> No
     assert result.material_count == 1
     assert result.texture_count == 2
     assert result.image_count == 1
+    assert result.skin_count == 1
+    assert result.joint_count == 3
+    assert result.animation_count == 2
 
 
 @pytest.mark.parametrize(

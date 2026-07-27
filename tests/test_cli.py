@@ -7,6 +7,8 @@ from tests.conftest import write_config
 from vandrel_foundry import cli
 from vandrel_foundry.cli import app
 from vandrel_foundry.domain.errors import ConfigurationError
+from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.storage.manifests import ManifestRepository
 
 runner = CliRunner()
 
@@ -92,6 +94,39 @@ def test_doctor_rejects_write_enabled(tmp_path: Path, config_data: dict) -> None
     result = invoke(["doctor"], path)
     assert result.exit_code != 0
     assert "must be false" in result.output
+
+
+def test_status_does_not_offer_approval_when_validation_failed(
+    cli_config: Path, prompt: Path, config_data: dict
+) -> None:
+    created = invoke(
+        [
+            "create",
+            "--id",
+            "failed_review_001",
+            "--lane",
+            "static_prop",
+            "--display-name",
+            "Failed Review",
+            "--prompt-file",
+            str(prompt),
+        ],
+        cli_config,
+    )
+    assert created.exit_code == 0, created.output
+    repository = ManifestRepository(Path(config_data["foundry"]["workspace_root"]))
+    manifest = repository.load("failed_review_001")
+    manifest.workflow.state = WorkflowState.REVIEW
+    manifest.validation.result = "failed"
+    manifest.validation.checks = [{"name": "materials_required", "passed": False}]
+    manifest.revision += 1
+    repository.save(manifest, "test.review_failed", expected_revision=manifest.revision - 1)
+
+    status = invoke(["status", "failed_review_001"], cli_config)
+
+    assert status.exit_code == 0
+    assert "reject" in status.output
+    assert "approve" not in status.output
 
 
 @pytest.mark.parametrize(

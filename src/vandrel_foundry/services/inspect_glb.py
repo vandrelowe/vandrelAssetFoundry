@@ -26,6 +26,9 @@ class GlbInspection:
     material_count: int
     texture_count: int
     image_count: int
+    skin_count: int
+    joint_count: int
+    animation_count: int
 
 
 def inspect_processed_glb(
@@ -49,6 +52,7 @@ def inspect_processed_glb(
     maximum = lane.maximum_triangles
     triangle_ok = maximum is None or inspection.triangle_count <= maximum
     materials_ok = not lane.requires_materials or inspection.material_count > 0
+    skeleton_ok = not lane.requires_skeleton or inspection.skin_count > 0
     checks = [
         {
             "name": "glb_structure",
@@ -67,6 +71,13 @@ def inspect_processed_glb(
             "observed": inspection.material_count,
             "required": lane.requires_materials,
         },
+        {
+            "name": "skeleton_required",
+            "passed": skeleton_ok,
+            "observed_skins": inspection.skin_count,
+            "observed_joints": inspection.joint_count,
+            "required": lane.requires_skeleton,
+        },
     ]
     report = {
         "schema_version": 1,
@@ -80,7 +91,9 @@ def inspect_processed_glb(
     report_relative = _next_report_path(asset_root)
     write_new_json_evidence(contained_path(asset_root, report_relative), report)
     manifest.quality.observed.update(inspection.__dict__)
-    manifest.validation.result = "passed" if triangle_ok and materials_ok else "failed"
+    manifest.validation.result = (
+        "passed" if triangle_ok and materials_ok and skeleton_ok else "failed"
+    )
     manifest.validation.checks = checks
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
@@ -160,6 +173,9 @@ def _measure(document: dict[str, Any]) -> GlbInspection:
         material_count=_array_length(document, "materials"),
         texture_count=_array_length(document, "textures"),
         image_count=_array_length(document, "images"),
+        skin_count=_array_length(document, "skins"),
+        joint_count=_joint_count(document),
+        animation_count=_array_length(document, "animations"),
     )
 
 
@@ -178,6 +194,21 @@ def _array_length(document: dict[str, Any], key: str) -> int:
     if not isinstance(value, list):
         raise FoundryError(f"GLB {key} must be an array.")
     return len(value)
+
+
+def _joint_count(document: dict[str, Any]) -> int:
+    skins = document.get("skins", [])
+    if not isinstance(skins, list):
+        raise FoundryError("GLB skins must be an array.")
+    joints: set[int] = set()
+    for skin in skins:
+        values = skin.get("joints", []) if isinstance(skin, dict) else None
+        if not isinstance(values, list) or any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in values
+        ):
+            raise FoundryError("GLB skin joints must be nonnegative integer arrays.")
+        joints.update(values)
+    return len(joints)
 
 
 def _next_report_path(asset_root: Path) -> RelativeManifestPath:

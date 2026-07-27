@@ -1,0 +1,1 @@
+A humanoid biped character previously generated outside the Foundry, used to validate rig, skin, and animation preservation through the zero-credit intake pipeline.
