@@ -128,3 +128,9 @@ The Meshy Hide Sleeping Mat subsequently passed native intake at 2,912
 triangles with one embedded material/texture, passed Godot import and integrity
 audit, and was approved after delegated visual review found coherent layered
 hide geometry and no obvious mesh failure.
+
+The Meshy Hide Lean-To passed technical validation at 4,803 triangles and
+imported into Godot, but delegated visual review rejected it. Its hide surface
+showed severe triangular tearing/artifact patterns, the shelter silhouette was
+unclear, and one support appeared detached. No decimation was attempted because
+optimization would not repair the flawed source.
