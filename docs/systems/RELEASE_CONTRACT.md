@@ -19,8 +19,9 @@
   mod authority.
 - A humanoid release is a candidate package, not canonical Vandrel rig,
   animation, deformation, root-motion, or runtime acceptance.
-- Humanoid release planning requires a passing, hash-bound humanoid-retarget
-  compatibility check for the exact approved processed model.
+- Humanoid release planning requires either a passing, hash-bound
+  humanoid-retarget compatibility check or passing, hash-bound provider-native
+  same-task playback evidence for the exact approved processed model.
 - Publication requires the asset library to be an existing Git worktree with
   no unrelated changes.
 - Binary model paths must resolve to the Git LFS `filter=lfs` attribute before
@@ -53,21 +54,22 @@ selects the next unused `rNNN` directory, and prints schema-versioned
 - portable release paths, roles, hashes, sizes, and source artifact IDs;
 - Godot import-validation result and declared wrapper-template intent;
 - observed technical facts and collision recommendation;
-- for humanoids, the mapping profile, compatibility-report path, donor
-  identity, direct-transfer facts, and explicit candidate-only/runtime-
-  unaccepted markers;
+- for humanoids, either mapping/donor compatibility facts or provider-native
+  same-task playback facts, plus explicit candidate-only/runtime-unaccepted
+  markers;
 - Foundry manifest revision and approval provenance.
 
 The plan does not create a directory, mutate the manifest or catalog, run Git,
 or claim a Vandrel runtime destination.
 
 The `humanoid` lane may publish only with the `humanoid_candidate` wrapper
-intent and passing `humanoid_retarget_compatibility` evidence. A compatible
-mapped hierarchy permits candidate packaging even when rest transforms differ,
-but the descriptor must preserve that mismatch and state
-`vandrel_runtime_accepted: false`. It must not package an unsafe raw animation
-graft, emit semantic runtime clip keys, or claim consumer-side playback
-validation.
+intent and one ratified evidence route. The mapping route requires passing
+`humanoid_retarget_compatibility`. The provider-native route requires the
+approved FBX model and approved compact walk/run resources to derive from one
+Meshy rigging task and pass bounded Godot playback. Its descriptor states
+`shared_animation_pool_compatible: false` and
+`vandrel_runtime_accepted: false`. Neither route may claim consumer-side
+runtime acceptance.
 
 ## Publication transaction
 

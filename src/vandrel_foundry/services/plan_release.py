@@ -12,8 +12,18 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import contained_path
 
 RELEASE_ROLES = {
-    "processed_model": ("model.glb", "model"),
     "godot_wrapper_scene": ("godot/wrapper.tscn", "godot_wrapper_scene"),
+    "godot_animation_loader_script": (
+        "godot/animation_loader.gd",
+        "godot_animation_loader_script",
+    ),
+    "processed_animation_walk": ("animations/walk.res", "animation_walk"),
+    "processed_animation_run": ("animations/run.res", "animation_run"),
+}
+OPTIONAL_RELEASE_ROLES = {
+    "godot_animation_loader_script",
+    "processed_animation_walk",
+    "processed_animation_run",
 }
 HUMANOID_LANE = "humanoid"
 HUMANOID_COMPATIBILITY_CHECK = "humanoid_retarget_compatibility"
@@ -42,8 +52,20 @@ def plan_release(
     revision = _next_revision(library_asset_root)
     asset_root = config.foundry.workspace_root / "assets" / asset_id
     files: list[dict[str, Any]] = []
+    model = _approved_artifact(manifest, asset_root, "processed_model")
+    files.append(
+        {
+            "role": "model",
+            "path": f"model.{model.format}",
+            "sha256": model.sha256,
+            "size_bytes": model.size_bytes,
+            "source_artifact_id": model.artifact_id,
+        }
+    )
     for source_role, (release_path, release_role) in RELEASE_ROLES.items():
         approved_hash = manifest.approval.approved_artifact_hashes.get(source_role)
+        if approved_hash is None and source_role in OPTIONAL_RELEASE_ROLES:
+            continue
         candidates = [
             item
             for item in manifest.artifacts
@@ -103,6 +125,37 @@ def plan_release(
 def _humanoid_release_evidence(manifest: AssetManifest) -> dict[str, Any] | None:
     if manifest.asset.lane != HUMANOID_LANE:
         return None
+    native_checks = [
+        check
+        for check in manifest.validation.checks
+        if check.get("name") == "provider_native_character_playback"
+    ]
+    if native_checks:
+        check = native_checks[-1]
+        approved_model_hash = manifest.approval.approved_artifact_hashes.get("processed_model")
+        approved_walk_hash = manifest.approval.approved_artifact_hashes.get(
+            "processed_animation_walk"
+        )
+        approved_run_hash = manifest.approval.approved_artifact_hashes.get(
+            "processed_animation_run"
+        )
+        if (
+            not check.get("passed")
+            or not check.get("same_provider_task")
+            or check.get("processed_model_sha256") != approved_model_hash
+            or check.get("walk_sha256") != approved_walk_hash
+            or check.get("run_sha256") != approved_run_hash
+        ):
+            raise FoundryError(
+                "Humanoid release requires passing hash-bound provider-native playback evidence."
+            )
+        return {
+            "candidate_only": True,
+            "vandrel_runtime_accepted": False,
+            "provider_native_same_task": True,
+            "shared_animation_pool_compatible": False,
+            "report": check.get("report"),
+        }
     checks = [
         check
         for check in manifest.validation.checks
@@ -114,9 +167,7 @@ def _humanoid_release_evidence(manifest: AssetManifest) -> dict[str, Any] | None
         )
     check = checks[-1]
     if not check.get("passed") or not check.get("humanoid_retarget_candidate"):
-        raise FoundryError(
-            "Humanoid release requires a passing humanoid retarget candidate check."
-        )
+        raise FoundryError("Humanoid release requires a passing humanoid retarget candidate check.")
     report = check.get("report")
     mapping_profile = check.get("mapping_profile")
     if not isinstance(report, str) or not report or not isinstance(mapping_profile, str):
@@ -164,3 +215,19 @@ def _verify_artifact(asset_root: Path, artifact: Artifact) -> None:
         ) from exc
     if digest.hexdigest() != artifact.sha256 or size != artifact.size_bytes:
         raise FoundryError(f"Approved release artifact changed: {artifact.artifact_id}")
+
+
+def _approved_artifact(
+    manifest: AssetManifest,
+    asset_root: Path,
+    role: str,
+) -> Artifact:
+    approved_hash = manifest.approval.approved_artifact_hashes.get(role)
+    candidates = [
+        item for item in manifest.artifacts if item.role == role and item.sha256 == approved_hash
+    ]
+    if approved_hash is None or not candidates:
+        raise FoundryError(f"Approved release artifact is unavailable: {role}")
+    artifact = candidates[-1]
+    _verify_artifact(asset_root, artifact)
+    return artifact

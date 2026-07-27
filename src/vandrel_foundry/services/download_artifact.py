@@ -57,11 +57,7 @@ def download_text_preview_glb(
         )
     rigging_result = response.result if task.operation == "rigging" else None
     if task.operation == "rigging":
-        model_url = (
-            rigging_result.rigged_character_glb_url
-            if rigging_result is not None
-            else None
-        )
+        model_url = rigging_result.rigged_character_glb_url if rigging_result is not None else None
     else:
         model_url = response.model_urls.get("glb")
     if not model_url:
@@ -97,17 +93,17 @@ def download_text_preview_glb(
         )
     if rigging_result is not None:
         basic_animations = rigging_result.basic_animations or {}
-        for key, file_format in (
-            ("walking_glb_url", "glb"),
-            ("running_glb_url", "glb"),
-            ("walking_fbx_url", "fbx"),
-            ("running_fbx_url", "fbx"),
+        for key, role, file_format in (
+            ("walking_glb_url", "source_animation_walk", "glb"),
+            ("running_glb_url", "source_animation_run", "glb"),
+            ("walking_fbx_url", "source_animation_walk", "fbx"),
+            ("running_fbx_url", "source_animation_run", "fbx"),
         ):
             animation_url = basic_animations.get(key)
             if animation_url:
                 candidate_outputs.append(
                     (
-                        "source_animation_model",
+                        role,
                         "source",
                         file_format,
                         animation_url,
@@ -206,16 +202,16 @@ def _download_output(
     prefixes = {
         ("source_model", "glb"): "source_glb",
         ("source_model", "fbx"): "source_fbx",
-        ("source_animation_model", "glb"): "source_animation_glb",
-        ("source_animation_model", "fbx"): "source_animation_fbx",
+        ("source_animation_walk", "glb"): "source_animation_walk_glb",
+        ("source_animation_walk", "fbx"): "source_animation_walk_fbx",
+        ("source_animation_run", "glb"): "source_animation_run_glb",
+        ("source_animation_run", "fbx"): "source_animation_run_fbx",
         "preview_thumbnail": "thumbnail",
         "semantic_mask_source": "semantic_mask_source",
     }
     prefix = prefixes.get((role, file_format), prefixes.get(role))
     if prefix is None:
-        raise DownloadError(
-            f"Unsupported provider output role and format: {role}/{file_format}"
-        )
+        raise DownloadError(f"Unsupported provider output role and format: {role}/{file_format}")
     artifact_id = f"{prefix}_{number:03d}"
     final_relative = RelativeManifestPath(f"{stage}/{task_key}/{artifact_id}.{file_format}")
     asset_root = config.foundry.workspace_root / "assets" / asset_id

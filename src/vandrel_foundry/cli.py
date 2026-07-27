@@ -28,6 +28,9 @@ from vandrel_foundry.services.inspect_assets import discover_assets, initialize_
 from vandrel_foundry.services.inspect_glb import inspect_processed_glb
 from vandrel_foundry.services.plan_release import plan_release
 from vandrel_foundry.services.poll_task import poll_text_task
+from vandrel_foundry.services.prepare_native_character import (
+    prepare_provider_native_character,
+)
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.process_blender import process_with_blender
 from vandrel_foundry.services.publish_release import publish_release
@@ -794,9 +797,7 @@ def apply_masked_texture_color(
         settings = load_config(config)
         result = apply_texture_mask(settings, asset_id, mask, color)
         console.print(f"[green]Applied texture mask[/green] {result.model.path}")
-        console.print(
-            f"Recorded {result.mask.path}; coverage {result.coverage_fraction:.2%}"
-        )
+        console.print(f"Recorded {result.mask.path}; coverage {result.coverage_fraction:.2%}")
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 
@@ -899,6 +900,23 @@ def prepare_godot(
         _, wrapper = prepare_godot_sandbox(settings, lane_config, asset_id)
         console.print(f"[green]Staged Godot sandbox[/green] {wrapper.path}")
     except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("prepare-native-character")
+def prepare_native_character(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Extract and validate same-task Meshy FBX locomotion without Blender."""
+    try:
+        settings = load_config(config)
+        result = prepare_provider_native_character(settings, asset_id)
+        console.print(f"[green]Provider-native character prepared[/green] {result.model.path}")
+        console.print(f"Walk: {result.walk.path}")
+        console.print(f"Run: {result.run.path}")
+        console.print(f"Evidence: {result.report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 
 

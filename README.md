@@ -90,6 +90,8 @@ foundry render-preview stone_knife_001
 foundry render-missing-previews
 foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
+# Extract and validate Meshy's same-rigging-task FBX walk/run clips without Blender.
+foundry prepare-native-character character_001
 # Offline material-response evidence for a processed character or prop.
 foundry experiment-shaders stone_knife_001
 # Record a strict four-color mask and render offline per-region isolation evidence.

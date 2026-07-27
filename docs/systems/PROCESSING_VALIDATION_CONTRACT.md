@@ -121,6 +121,28 @@ Godot imports those files directly and may load their animations into the
 matching character's `AnimationPlayer`; this route performs no Blender bake
 and must still receive continuous playback and visual validation.
 
+`prepare-native-character` automates that route in an asset-scoped temporary
+Godot project. It requires the rigged character, walking, and running FBX
+artifacts to share one provider task. New downloads carry distinct walk/run
+roles; the one legacy downloader layout is accepted only when exactly two FBX
+animation artifacts exist in its documented walk-then-run order, and that
+fallback is recorded in evidence.
+
+The bounded validator imports the three provider-native FBXs, extracts compact
+looping walk/run `Animation` resources, loads them onto the character's own
+`AnimationPlayer`, and checks geometry, triangle count, textured material
+presence, humanoid skeleton size, required clip aliases, and finite sampled
+bone scales. It then discards duplicate animation meshes, extracted textures,
+import caches, and its temporary validation script before promoting the
+candidate.
+
+The promoted wrapper is validation and release-template evidence. It does not
+choose a Vandrel `res://` destination, establish gameplay clip semantics, or
+prove compatibility with a different character or shared animation pool.
+Consumer integration should set the character FBX's embedded-texture handling
+to `Embed as Basis Universal`; this preserves the working material while
+avoiding an unpacked duplicate PNG in the consumer source tree.
+
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.

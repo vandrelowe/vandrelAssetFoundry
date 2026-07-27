@@ -59,6 +59,7 @@
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |
+| Provider-native FBX character preparation and same-task playback evidence | `src/vandrel_foundry/services/prepare_native_character.py` |
 | Versioned humanoid mapping and retarget compatibility evidence | `src/vandrel_foundry/services/validate_humanoid_retarget.py` plus `src/vandrel_foundry/data/rig_profiles/` |
 | Deterministic exact-skeleton animation grafting | `src/vandrel_foundry/services/graft_animations.py` |
 | Manual approval and rejection | `src/vandrel_foundry/services/review_asset.py` |

@@ -217,24 +217,26 @@ def test_direct_character_retexture_mask_and_rigging_corridor(config, lanes, pro
         rig.task_key,
         environment,
     )
-    downloaded_manifest = ManifestRepository(config.foundry.workspace_root).load(
-        "character_001"
-    )
+    downloaded_manifest = ManifestRepository(config.foundry.workspace_root).load("character_001")
     assert downloaded_rig.role == "source_model"
     animation_sources = [
         artifact
         for artifact in downloaded_manifest.artifacts
-        if artifact.role == "source_animation_model"
+        if artifact.role in {"source_animation_walk", "source_animation_run"}
     ]
     assert [artifact.artifact_id for artifact in animation_sources] == [
-        "source_animation_glb_001",
-        "source_animation_glb_002",
-        "source_animation_fbx_003",
-        "source_animation_fbx_004",
+        "source_animation_walk_glb_001",
+        "source_animation_run_glb_001",
+        "source_animation_walk_fbx_002",
+        "source_animation_run_fbx_002",
     ]
-    assert all(
-        artifact.source_task_key == rig.task_key for artifact in animation_sources
-    )
+    assert [artifact.role for artifact in animation_sources] == [
+        "source_animation_walk",
+        "source_animation_run",
+        "source_animation_walk",
+        "source_animation_run",
+    ]
+    assert all(artifact.source_task_key == rig.task_key for artifact in animation_sources)
     assert any(
         artifact.role == "source_model" and artifact.format == "fbx"
         for artifact in downloaded_manifest.artifacts
@@ -249,11 +251,7 @@ def test_direct_character_retexture_mask_and_rigging_corridor(config, lanes, pro
             environment,
         )
     assert (
-        len(
-            ManifestRepository(config.foundry.workspace_root)
-            .load("character_001")
-            .artifacts
-        )
+        len(ManifestRepository(config.foundry.workspace_root).load("character_001").artifacts)
         == artifact_count
     )
 

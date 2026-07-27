@@ -159,8 +159,10 @@ must not be silently promoted or retried.
 
 For a succeeded rigging task, the download operation retains the provider's
 rigged-character GLB and FBX plus any available walking and running `withSkin`
-GLB and FBX outputs as separate immutable source artifacts. Repeated retrieval
-skips already recorded role/format outputs instead of downloading duplicates.
+GLB and FBX outputs as separate immutable source artifacts. Walking and running
+use distinct artifact roles so downstream preparation never guesses clip
+semantics from filenames or list order. Repeated retrieval skips already
+recorded role/format outputs instead of downloading duplicates.
 These animation files are target-native evidence: they may be tested directly
 against the rigged character without Blender conversion. Armature-only
 variants are not downloaded by default. Availability does not imply
