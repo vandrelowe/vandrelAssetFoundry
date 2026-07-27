@@ -66,6 +66,24 @@ def test_atomic_update_preserves_previous_and_appends_event(config, lanes, promp
     assert len((root / "events.jsonl").read_text(encoding="utf-8").splitlines()) == 2
 
 
+def test_revision_check_prevents_stale_manifest_overwrite(config, lanes, prompt: Path) -> None:
+    initialize_workspace(config.foundry.workspace_root)
+    create_asset(config, lanes, "stone_knife_001", "static_prop", "Stone Knife", prompt)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    first = repository.load("stone_knife_001")
+    stale = repository.load("stone_knife_001")
+    first.revision += 1
+    first.notes = "first writer"
+    repository.save(first, expected_revision=1)
+    stale.revision += 1
+    stale.notes = "stale writer"
+
+    with pytest.raises(FoundryError, match="revision conflict"):
+        repository.save(stale, expected_revision=1)
+
+    assert repository.load("stone_knife_001").notes == "first writer"
+
+
 def test_manifest_repository_uses_injected_lock_factory(config, lanes, prompt: Path) -> None:
     initialize_workspace(config.foundry.workspace_root)
     manifest = create_asset(config, lanes, "stone_knife_001", "static_prop", "Stone Knife", prompt)

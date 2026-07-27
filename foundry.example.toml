@@ -13,6 +13,9 @@ write_enabled = false
 [providers.meshy]
 api_base = "https://api.meshy.ai"
 api_key_environment_variable = "MESHY_API_KEY"
+poll_interval_seconds = 10
+request_timeout_seconds = 60
+maximum_download_bytes = 4000000000
 
 [release]
 default_dry_run = true

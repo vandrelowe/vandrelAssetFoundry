@@ -32,6 +32,21 @@
 | Asset creation workflow | `src/vandrel_foundry/services/create_asset.py` |
 | Workspace discovery and initialization | `src/vandrel_foundry/services/inspect_assets.py` |
 | Health checks | `src/vandrel_foundry/services/doctor.py` |
+| Provider task status vocabulary | `src/vandrel_foundry/domain/provider.py` |
+| Recursive provider evidence redaction | `src/vandrel_foundry/providers/redaction.py` |
+| Meshy request/response shapes | `src/vandrel_foundry/providers/meshy/models.py` |
+| Local Meshy preview request preparation | `src/vandrel_foundry/services/prepare_submission.py` |
+| Reference-image validation and intake | `src/vandrel_foundry/services/add_reference.py` |
+| Paid text and image submission orchestration | `src/vandrel_foundry/services/submit_preview.py` |
+| Provider transport interface | `src/vandrel_foundry/providers/base.py` |
+| Provider evidence snapshots | `src/vandrel_foundry/storage/provider_evidence.py` |
+| Bounded Meshy HTTP operations | `src/vandrel_foundry/providers/meshy/http.py` |
+| Provider task polling | `src/vandrel_foundry/services/poll_task.py` |
+| Source GLB download and promotion | `src/vandrel_foundry/services/download_artifact.py` |
+| Ambiguous submission reconciliation | `src/vandrel_foundry/services/reconcile_submission.py` |
+| Provider output selection | `src/vandrel_foundry/services/select_output.py` |
+| Immutable pass-through processing | `src/vandrel_foundry/services/process_asset.py` |
+| GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
 
 The Pydantic model is the source for
 `schemas/asset-manifest-v1.schema.json`; the checked-in schema is the portable

@@ -46,6 +46,25 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     assert shown.exit_code == 0 and '"schema_version": 1' in shown.output
     status = invoke(["status", "stone_knife_001"], cli_config)
     assert status.exit_code == 0 and "submit" in status.output
+    guarded_submit = invoke(["submit", "stone_knife_001"], cli_config)
+    assert guarded_submit.exit_code != 0
+    assert "--confirm-spend" in guarded_submit.output
+    guarded_image_submit = invoke(["submit-image", "stone_knife_001"], cli_config)
+    assert guarded_image_submit.exit_code != 0
+    assert "--confirm-spend" in guarded_image_submit.output
+    poll = invoke(["poll", "stone_knife_001"], cli_config)
+    assert poll.exit_code != 0 and "Provider task not found" in poll.output
+    guarded_refine = invoke(
+        ["refine", "stone_knife_001", "--from", "meshy_preview_001"],
+        cli_config,
+    )
+    assert guarded_refine.exit_code != 0
+    assert "--confirm-spend" in guarded_refine.output
+    guarded_remesh = invoke(["remesh", "stone_knife_001"], cli_config)
+    assert guarded_remesh.exit_code != 0
+    assert "--confirm-spend" in guarded_remesh.output
+    download = invoke(["download", "stone_knife_001"], cli_config)
+    assert download.exit_code != 0 and "Provider task not found" in download.output
 
     marker = Path(config_data["vandrel"]["reference_repo_root"]) / "project.godot"
     marker.parent.mkdir(parents=True)

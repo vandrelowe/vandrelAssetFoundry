@@ -10,10 +10,25 @@ from vandrel_foundry.config import FoundryConfig, load_config, load_lanes
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.states import next_actions
+from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
+from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
+from vandrel_foundry.services.download_artifact import download_text_preview_glb
 from vandrel_foundry.services.inspect_assets import discover_assets, initialize_workspace
+from vandrel_foundry.services.inspect_glb import inspect_processed_glb
+from vandrel_foundry.services.poll_task import poll_text_task
+from vandrel_foundry.services.process_asset import process_passthrough
+from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
+from vandrel_foundry.services.select_output import select_output
+from vandrel_foundry.services.submit_preview import (
+    submit_image_to_3d,
+    submit_remesh,
+    submit_text_preview,
+    submit_text_refine,
+)
 from vandrel_foundry.storage.manifests import ManifestRepository
+from vandrel_foundry.storage.paths import RelativeManifestPath
 
 app = typer.Typer(help="Vandrel Asset Foundry local manifest tools.", no_args_is_help=True)
 console = Console()
@@ -136,6 +151,21 @@ def list_assets(
         error_console.print(f"[yellow]Warning:[/yellow] {warning}")
 
 
+@app.command("add-reference")
+def add_reference(
+    asset_id: str,
+    image: Annotated[Path, typer.Option("--image", help="Local PNG or JPEG file.")],
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Copy a local reference image into a draft asset workspace."""
+    try:
+        settings = load_config(config)
+        relative = add_reference_image(settings, asset_id, image)
+        console.print(f"[green]Added reference[/green] {relative}")
+    except FoundryError as exc:
+        fail(exc)
+
+
 @app.command()
 def show(
     asset_id: str,
@@ -168,6 +198,279 @@ def status(
     table.add_row("Revision", str(manifest.revision))
     table.add_row("Next actions", ", ".join(actions) if actions else "none")
     console.print(table)
+
+
+@app.command()
+def submit(
+    asset_id: str,
+    confirm_spend: Annotated[
+        bool,
+        typer.Option(
+            "--confirm-spend",
+            help="Confirm this paid Meshy generation request.",
+        ),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Submit one paid Meshy Text to 3D preview request."""
+    if not confirm_spend:
+        fail(FoundryError("Paid submission requires --confirm-spend."))
+    try:
+        settings = load_config(config)
+        task = submit_text_preview(
+            settings,
+            asset_id,
+            _meshy_transport(settings),
+        )
+        console.print(
+            f"[green]Submitted[/green] {task.task_key} (provider task {task.provider_task_id})"
+        )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("submit-image")
+def submit_image(
+    asset_id: str,
+    reference: Annotated[
+        str | None,
+        typer.Option("--reference", help="Recorded asset-relative reference path."),
+    ] = None,
+    confirm_spend: Annotated[
+        bool,
+        typer.Option(
+            "--confirm-spend",
+            help="Confirm this paid Meshy Image to 3D request.",
+        ),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Submit one paid Meshy Image to 3D request."""
+    if not confirm_spend:
+        fail(FoundryError("Paid image submission requires --confirm-spend."))
+    try:
+        settings = load_config(config)
+        selected = RelativeManifestPath(reference) if reference is not None else None
+        task = submit_image_to_3d(
+            settings,
+            asset_id,
+            _meshy_transport(settings),
+            reference=selected,
+        )
+        console.print(
+            f"[green]Submitted image[/green] {task.task_key} "
+            f"(provider task {task.provider_task_id})"
+        )
+    except (FoundryError, ValueError) as exc:
+        fail(FoundryError(str(exc)))
+
+
+@app.command()
+def poll(
+    asset_id: str,
+    task: Annotated[str | None, typer.Option("--task")] = None,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Retrieve one Meshy task status update."""
+    try:
+        settings = load_config(config)
+        updated = poll_text_task(
+            settings,
+            asset_id,
+            _meshy_transport(settings),
+            task_key=task,
+        )
+        console.print(
+            f"[green]Polled[/green] {updated.task_key}: "
+            f"{updated.status.value} ({updated.progress or 0}%)"
+        )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def refine(
+    asset_id: str,
+    from_task: Annotated[str, typer.Option("--from", help="Succeeded preview task key.")],
+    confirm_spend: Annotated[
+        bool,
+        typer.Option(
+            "--confirm-spend",
+            help="Confirm this paid Meshy refine request.",
+        ),
+    ] = False,
+    enable_pbr: Annotated[
+        bool,
+        typer.Option("--enable-pbr/--no-enable-pbr"),
+    ] = True,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Submit one paid Meshy refinement from a succeeded text preview."""
+    if not confirm_spend:
+        fail(FoundryError("Paid refinement requires --confirm-spend."))
+    try:
+        settings = load_config(config)
+        task = submit_text_refine(
+            settings,
+            asset_id,
+            from_task,
+            _meshy_transport(settings),
+            enable_pbr=enable_pbr,
+        )
+        console.print(
+            f"[green]Submitted refine[/green] {task.task_key} "
+            f"(provider task {task.provider_task_id})"
+        )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def remesh(
+    asset_id: str,
+    target_triangles: Annotated[
+        int | None,
+        typer.Option("--target-triangles", min=1),
+    ] = None,
+    confirm_spend: Annotated[
+        bool,
+        typer.Option("--confirm-spend", help="Confirm this paid Meshy remesh request."),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Submit a paid Meshy triangle-remesh task for a succeeded generation."""
+    if not confirm_spend:
+        fail(FoundryError("Paid remesh requires --confirm-spend."))
+    try:
+        settings, lane_config = configured(config)
+        manifest = ManifestRepository(settings.foundry.workspace_root).load(asset_id)
+        lane = lane_config.lanes.get(manifest.asset.lane)
+        if lane is None:
+            raise FoundryError(f"Lane policy is unavailable: {manifest.asset.lane}")
+        target = target_triangles or lane.target_triangles
+        if target is None:
+            raise FoundryError("No remesh target is configured; use --target-triangles.")
+        task = submit_remesh(
+            settings,
+            asset_id,
+            target,
+            _meshy_transport(settings),
+        )
+        console.print(
+            f"[green]Submitted remesh[/green] {task.task_key} "
+            f"(provider task {task.provider_task_id})"
+        )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def download(
+    asset_id: str,
+    task: Annotated[str | None, typer.Option("--task")] = None,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Download and checksum a succeeded Meshy generation GLB."""
+    try:
+        settings = load_config(config)
+        artifact = download_text_preview_glb(
+            settings,
+            asset_id,
+            _meshy_transport(settings),
+            task_key=task,
+        )
+        console.print(
+            f"[green]Downloaded[/green] {artifact.artifact_id}: {artifact.path} "
+            f"({artifact.size_bytes} bytes)"
+        )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("select-output")
+def select_provider_output(
+    asset_id: str,
+    task: Annotated[str, typer.Option("--task")],
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Select a succeeded, downloaded provider task for processing."""
+    try:
+        settings = load_config(config)
+        selected = select_output(settings, asset_id, task)
+        console.print(f"[green]Selected[/green] {selected.task_key}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def process(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Create an immutable pass-through processed artifact."""
+    try:
+        settings = load_config(config)
+        artifact = process_passthrough(settings, asset_id)
+        console.print(f"[green]Processed[/green] {artifact.artifact_id}: {artifact.path}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def inspect(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Inspect a processed GLB and evaluate its lane triangle budget."""
+    try:
+        settings, lane_config = configured(config)
+        result = inspect_processed_glb(settings, lane_config, asset_id)
+        console.print(
+            f"[green]Inspected[/green] {asset_id}: {result.triangle_count} triangles, "
+            f"{result.material_count} materials"
+        )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def reconcile(
+    asset_id: str,
+    task: Annotated[str, typer.Option("--task")],
+    provider_task_id: Annotated[str | None, typer.Option("--provider-task-id")] = None,
+    confirm_not_created: Annotated[
+        bool,
+        typer.Option(
+            "--confirm-not-created",
+            help="Confirm from provider records that no paid task was created.",
+        ),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Resolve an ambiguous submission using a user-verified provider outcome."""
+    try:
+        settings = load_config(config)
+        reconciled = reconcile_ambiguous_submission(
+            settings,
+            asset_id,
+            task,
+            provider_task_id=provider_task_id,
+            confirm_not_created=confirm_not_created,
+        )
+        console.print(f"[green]Reconciled[/green] {reconciled.task_key}: {reconciled.status.value}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+def _meshy_transport(settings: FoundryConfig) -> MeshyHttpTransport:
+    try:
+        return MeshyHttpTransport(
+            settings.providers.meshy.api_base,
+            settings.providers.meshy.request_timeout_seconds,
+            maximum_download_bytes=settings.providers.meshy.maximum_download_bytes,
+        )
+    except ValueError as exc:
+        raise FoundryError(f"Invalid Meshy configuration: {exc}") from exc
 
 
 def main() -> None:

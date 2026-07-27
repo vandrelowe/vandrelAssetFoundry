@@ -29,6 +29,9 @@ class MeshySettings(ConfigModel):
     model_config = ConfigDict(extra="allow")
     api_base: str
     api_key_environment_variable: str = Field(min_length=1)
+    request_timeout_seconds: float = Field(default=60.0, gt=0, le=300)
+    poll_interval_seconds: float = Field(default=10.0, gt=0, le=300)
+    maximum_download_bytes: int = Field(default=4_000_000_000, gt=0)
 
 
 class Providers(ConfigModel):

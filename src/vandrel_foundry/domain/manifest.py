@@ -4,6 +4,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from vandrel_foundry.domain.ids import validate_asset_id
+from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.storage.paths import RelativeManifestPath
 
@@ -34,7 +35,7 @@ class Workflow(StrictModel):
 
 
 class Input(StrictModel):
-    kind: Literal["text"] = "text"
+    kind: Literal["text", "image"] = "text"
     prompt_file: RelativeManifestPath = RelativeManifestPath("input/prompt.txt")
     reference_images: list[RelativeManifestPath] = Field(default_factory=list)
 
@@ -49,12 +50,14 @@ class ProviderTask(StrictModel):
     task_key: str
     provider: str
     operation: str
-    provider_task_id: str | None = None
+    provider_task_id: str | None = Field(default=None, min_length=1, max_length=1024)
     attempt: int = Field(ge=1)
-    status: str
+    status: ProviderTaskStatus
     progress: int | None = Field(default=None, ge=0, le=100)
+    request_fingerprint: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     request_path: RelativeManifestPath | None = None
     response_path: RelativeManifestPath | None = None
+    response_snapshots: list[RelativeManifestPath] = Field(default_factory=list)
     submitted_at: datetime | None = None
     completed_at: datetime | None = None
     error: str | None = None
@@ -74,6 +77,7 @@ class Artifact(StrictModel):
     sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     size_bytes: int = Field(ge=0)
     derived_from: list[str] = Field(default_factory=list)
+    source_task_key: str | None = None
     processor: Processor | None = None
 
 

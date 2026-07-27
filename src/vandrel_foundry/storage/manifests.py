@@ -32,7 +32,12 @@ class ManifestRepository:
         except (OSError, ValidationError) as exc:
             raise FoundryError(f"Invalid manifest for {asset_id}: {exc}") from exc
 
-    def save(self, manifest: AssetManifest, event_type: str = "manifest.updated") -> None:
+    def save(
+        self,
+        manifest: AssetManifest,
+        event_type: str = "manifest.updated",
+        expected_revision: int | None = None,
+    ) -> None:
         asset_id = manifest.asset.asset_id
         directory = self.asset_directory(asset_id)
         if not directory.is_dir():
@@ -42,6 +47,22 @@ class ManifestRepository:
             with self.lock_factory(lock_path):
                 validated = AssetManifest.model_validate(manifest.model_dump(mode="python"))
                 destination = directory / "manifest.json"
+                if expected_revision is not None:
+                    try:
+                        current = AssetManifest.model_validate_json(
+                            destination.read_text(encoding="utf-8")
+                        )
+                    except FileNotFoundError as exc:
+                        raise FoundryError(f"Manifest disappeared while saving {asset_id}") from exc
+                    except (OSError, ValidationError) as exc:
+                        raise FoundryError(
+                            f"Could not verify current revision for {asset_id}: {exc}"
+                        ) from exc
+                    if current.revision != expected_revision:
+                        raise FoundryError(
+                            f"Manifest revision conflict for {asset_id}: expected "
+                            f"{expected_revision}, found {current.revision}"
+                        )
                 previous = directory / "manifest.previous.json"
                 temporary = write_json_temp(
                     directory,

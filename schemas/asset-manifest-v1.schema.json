@@ -91,6 +91,18 @@
           "title": "Derived From",
           "type": "array"
         },
+        "source_task_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Task Key"
+        },
         "processor": {
           "anyOf": [
             {
@@ -190,8 +202,11 @@
       "additionalProperties": false,
       "properties": {
         "kind": {
-          "const": "text",
           "default": "text",
+          "enum": [
+            "text",
+            "image"
+          ],
           "title": "Kind",
           "type": "string"
         },
@@ -252,6 +267,8 @@
         "provider_task_id": {
           "anyOf": [
             {
+              "maxLength": 1024,
+              "minLength": 1,
               "type": "string"
             },
             {
@@ -267,8 +284,7 @@
           "type": "integer"
         },
         "status": {
-          "title": "Status",
-          "type": "string"
+          "$ref": "#/$defs/ProviderTaskStatus"
         },
         "progress": {
           "anyOf": [
@@ -283,6 +299,19 @@
           ],
           "default": null,
           "title": "Progress"
+        },
+        "request_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Fingerprint"
         },
         "request_path": {
           "anyOf": [
@@ -311,6 +340,15 @@
           ],
           "default": null,
           "title": "Response Path"
+        },
+        "response_snapshots": {
+          "items": {
+            "description": "Forward-slash workspace-relative path without traversal",
+            "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+            "type": "string"
+          },
+          "title": "Response Snapshots",
+          "type": "array"
         },
         "submitted_at": {
           "anyOf": [
@@ -360,6 +398,22 @@
       ],
       "title": "ProviderTask",
       "type": "object"
+    },
+    "ProviderTaskStatus": {
+      "description": "Foundry-local and provider-reported task states.",
+      "enum": [
+        "READY",
+        "SUBMITTING",
+        "SUBMISSION_FAILED",
+        "AMBIGUOUS",
+        "PENDING",
+        "IN_PROGRESS",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELED"
+      ],
+      "title": "ProviderTaskStatus",
+      "type": "string"
     },
     "Quality": {
       "additionalProperties": false,
@@ -477,7 +531,13 @@
     },
     "WorkflowState": {
       "enum": [
-        "draft"
+        "draft",
+        "submitted",
+        "generating",
+        "source_ready",
+        "downloaded",
+        "processed",
+        "blocked"
       ],
       "title": "WorkflowState",
       "type": "string"
