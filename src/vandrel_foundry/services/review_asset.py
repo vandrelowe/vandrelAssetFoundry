@@ -17,6 +17,9 @@ REQUIRED_CHECKS = {
     "skeleton_required",
     "godot_sandbox_import",
 }
+SUSPENDED_APPROVAL_PROCESSORS = {
+    "blender_rest_pose_retarget",
+}
 
 
 def approval_checks_pass(manifest: AssetManifest) -> bool:
@@ -29,6 +32,13 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
         and all(checks_by_name[name] for name in REQUIRED_CHECKS)
     )
     processed = [item for item in manifest.artifacts if item.role == "processed_model"]
+    processor_name = (
+        processed[-1].processor.name
+        if processed and processed[-1].processor is not None
+        else None
+    )
+    if processor_name in SUSPENDED_APPROVAL_PROCESSORS:
+        return False
     requires_animation_review = bool(
         processed
         and processed[-1].processor

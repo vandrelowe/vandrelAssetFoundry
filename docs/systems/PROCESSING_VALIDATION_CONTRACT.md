@@ -107,6 +107,20 @@ GLB for gross-deformation, limb-orientation, root-displacement, and foot-contact
 review before approval. Sampling evidence does not itself grant visual
 acceptance or assign Vandrel clip semantics.
 
+**Production approval suspension (2026-07-27):** output from
+`blender_rest_pose_retarget` cannot currently pass Foundry approval. A live
+Meshy-character test exposed a unit-sensitive hips-translation bake and a
+Godot skin/import failure that representative Blender stills did not catch.
+The processor may remain available for bounded forensic experiments, but its
+output must not be approved, released, or copied into Vandrel until a later
+ratified revision proves continuous Godot deformation and fixed-camera motion.
+
+For Meshy-rigged characters, the preferred current corridor preserves the
+provider-native FBX character and its same-task `withSkin` animation FBXs.
+Godot imports those files directly and may load their animations into the
+matching character's `AnimationPlayer`; this route performs no Blender bake
+and must still receive continuous playback and visual validation.
+
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.

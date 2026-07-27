@@ -172,4 +172,4 @@ def test_animation_samples_record_images_contact_sheet_and_evidence(
         "sample_character_001"
     )
     assert review.role == "animation_visual_review"
-    assert approval_checks_pass(accepted)
+    assert not approval_checks_pass(accepted)

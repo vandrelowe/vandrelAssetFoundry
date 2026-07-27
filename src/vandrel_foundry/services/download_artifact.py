@@ -55,9 +55,12 @@ def download_text_preview_glb(
         raise DownloadError(
             f"Provider task is no longer downloadable: {task.task_key} ({response.status})"
         )
+    rigging_result = response.result if task.operation == "rigging" else None
     if task.operation == "rigging":
         model_url = (
-            response.result.rigged_character_glb_url if response.result is not None else None
+            rigging_result.rigged_character_glb_url
+            if rigging_result is not None
+            else None
         )
     else:
         model_url = response.model_urls.get("glb")
@@ -80,9 +83,41 @@ def download_text_preview_glb(
         expected_revision=manifest.revision - 1,
     )
 
-    outputs = [
+    candidate_outputs = [
         ("source_model", "source", "glb", model_url),
     ]
+    if rigging_result is not None and rigging_result.rigged_character_fbx_url:
+        candidate_outputs.append(
+            (
+                "source_model",
+                "source",
+                "fbx",
+                rigging_result.rigged_character_fbx_url,
+            )
+        )
+    if rigging_result is not None:
+        basic_animations = rigging_result.basic_animations or {}
+        for key, file_format in (
+            ("walking_glb_url", "glb"),
+            ("running_glb_url", "glb"),
+            ("walking_fbx_url", "fbx"),
+            ("running_fbx_url", "fbx"),
+        ):
+            animation_url = basic_animations.get(key)
+            if animation_url:
+                candidate_outputs.append(
+                    (
+                        "source_animation_model",
+                        "source",
+                        file_format,
+                        animation_url,
+                    )
+                )
+    outputs = _missing_outputs(
+        manifest.artifacts,
+        task.task_key,
+        candidate_outputs,
+    )
     thumbnail_url = getattr(response, "thumbnail_url", None)
     if thumbnail_url:
         outputs.append(
@@ -99,6 +134,8 @@ def download_text_preview_glb(
         if not base_color:
             raise DownloadError(f"Semantic retexture has no base-color texture: {task.task_key}")
         outputs.append(("semantic_mask_source", "masks", "png", base_color))
+    if not outputs:
+        raise DownloadError(f"All provider outputs are already downloaded: {task.task_key}")
     new_artifacts: list[Artifact] = []
     promoted_paths: list[Path] = []
     try:
@@ -133,6 +170,27 @@ def download_text_preview_glb(
     return new_artifacts[0]
 
 
+def _missing_outputs(
+    existing_artifacts: list[Artifact],
+    task_key: str,
+    candidates: list[tuple[str, str, str, str]],
+) -> list[tuple[str, str, str, str]]:
+    retained: list[tuple[str, str, str, str]] = []
+    seen: dict[tuple[str, str], int] = {}
+    existing: dict[tuple[str, str], int] = {}
+    for artifact in existing_artifacts:
+        if artifact.source_task_key != task_key:
+            continue
+        key = (artifact.role, artifact.format)
+        existing[key] = existing.get(key, 0) + 1
+    for candidate in candidates:
+        key = (candidate[0], candidate[2])
+        seen[key] = seen.get(key, 0) + 1
+        if seen[key] > existing.get(key, 0):
+            retained.append(candidate)
+    return retained
+
+
 def _download_output(
     config: FoundryConfig,
     existing_artifacts: list[Artifact],
@@ -146,11 +204,18 @@ def _download_output(
 ) -> tuple[Artifact, Path]:
     number = sum(artifact.role == role for artifact in existing_artifacts) + 1
     prefixes = {
-        "source_model": "source_glb",
+        ("source_model", "glb"): "source_glb",
+        ("source_model", "fbx"): "source_fbx",
+        ("source_animation_model", "glb"): "source_animation_glb",
+        ("source_animation_model", "fbx"): "source_animation_fbx",
         "preview_thumbnail": "thumbnail",
         "semantic_mask_source": "semantic_mask_source",
     }
-    prefix = prefixes[role]
+    prefix = prefixes.get((role, file_format), prefixes.get(role))
+    if prefix is None:
+        raise DownloadError(
+            f"Unsupported provider output role and format: {role}/{file_format}"
+        )
     artifact_id = f"{prefix}_{number:03d}"
     final_relative = RelativeManifestPath(f"{stage}/{task_key}/{artifact_id}.{file_format}")
     asset_root = config.foundry.workspace_root / "assets" / asset_id

@@ -3,8 +3,10 @@ import io
 import json
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
+from vandrel_foundry.domain.errors import DownloadError
 from vandrel_foundry.domain.manifest import Artifact
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.providers.meshy.models import (
@@ -74,7 +76,16 @@ class CharacterTransport:
             id=provider_task_id,
             status=ProviderTaskStatus.SUCCEEDED,
             progress=100,
-            result=RiggingResult(rigged_character_glb_url="https://assets.meshy.ai/rigged.glb"),
+            result=RiggingResult(
+                rigged_character_fbx_url="https://assets.meshy.ai/rigged.fbx",
+                rigged_character_glb_url="https://assets.meshy.ai/rigged.glb",
+                basic_animations={
+                    "walking_glb_url": "https://assets.meshy.ai/walking.glb",
+                    "running_glb_url": "https://assets.meshy.ai/running.glb",
+                    "walking_fbx_url": "https://assets.meshy.ai/walking.fbx",
+                    "running_fbx_url": "https://assets.meshy.ai/running.fbx",
+                },
+            ),
             consumed_credits=5,
         )
 
@@ -191,6 +202,60 @@ def test_direct_character_retexture_mask_and_rigging_corridor(config, lanes, pro
     assert transport.retexture_requests[0].enable_original_uv is True
     assert transport.rigging_requests[0].input_task_id == "beauty-provider-id"
     assert rig.provider_task_id == "rig-provider-id"
+
+    poll_text_task(
+        config,
+        "character_001",
+        transport,
+        rig.task_key,
+        environment,
+    )
+    downloaded_rig = download_text_preview_glb(
+        config,
+        "character_001",
+        transport,
+        rig.task_key,
+        environment,
+    )
+    downloaded_manifest = ManifestRepository(config.foundry.workspace_root).load(
+        "character_001"
+    )
+    assert downloaded_rig.role == "source_model"
+    animation_sources = [
+        artifact
+        for artifact in downloaded_manifest.artifacts
+        if artifact.role == "source_animation_model"
+    ]
+    assert [artifact.artifact_id for artifact in animation_sources] == [
+        "source_animation_glb_001",
+        "source_animation_glb_002",
+        "source_animation_fbx_003",
+        "source_animation_fbx_004",
+    ]
+    assert all(
+        artifact.source_task_key == rig.task_key for artifact in animation_sources
+    )
+    assert any(
+        artifact.role == "source_model" and artifact.format == "fbx"
+        for artifact in downloaded_manifest.artifacts
+    )
+    artifact_count = len(downloaded_manifest.artifacts)
+    with pytest.raises(DownloadError, match="already downloaded"):
+        download_text_preview_glb(
+            config,
+            "character_001",
+            transport,
+            rig.task_key,
+            environment,
+        )
+    assert (
+        len(
+            ManifestRepository(config.foundry.workspace_root)
+            .load("character_001")
+            .artifacts
+        )
+        == artifact_count
+    )
 
     with Image.open(asset_root / str(mask.path)) as image:
         rgb = image.convert("RGB")

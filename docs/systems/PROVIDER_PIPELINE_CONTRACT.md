@@ -33,7 +33,8 @@ The current official Text to 3D API uses:
   output discovery;
 - `POST /openapi/v1/rigging` with a succeeded beauty-retexture task ID and an
   explicit positive character height;
-- `GET /openapi/v1/rigging/:id` for rigged GLB discovery;
+- `GET /openapi/v1/rigging/:id` for rigged-character and target-native basic
+  animation output discovery;
 - asynchronous task states including `PENDING`, `IN_PROGRESS`, `SUCCEEDED`,
   `FAILED`, and `CANCELED`;
 - signed, time-limited model download URLs returned by succeeded tasks.
@@ -155,6 +156,15 @@ must not be silently promoted or retried.
 6. Move to a new immutable path; never overwrite an existing artifact.
 7. Update the manifest only after the final file exists.
 8. Remove only the operation's own incomplete `.part` file on a known failure.
+
+For a succeeded rigging task, the download operation retains the provider's
+rigged-character GLB and FBX plus any available walking and running `withSkin`
+GLB and FBX outputs as separate immutable source artifacts. Repeated retrieval
+skips already recorded role/format outputs instead of downloading duplicates.
+These animation files are target-native evidence: they may be tested directly
+against the rigged character without Blender conversion. Armature-only
+variants are not downloaded by default. Availability does not imply
+shared-pool compatibility with a different character rest skeleton.
 
 ## Error mapping
 
