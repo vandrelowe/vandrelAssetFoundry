@@ -92,7 +92,7 @@ class TextureUrls(BaseModel):
 
 
 class RetextureTaskResponse(TextTo3DTaskResponse):
-    texture_urls: list[TextureUrls] = Field(default_factory=list)
+    texture_urls: list[TextureUrls] | None = None
     consumed_credits: int | None = Field(default=None, ge=0)
 
 
@@ -101,7 +101,7 @@ class RiggingResult(BaseModel):
 
     rigged_character_fbx_url: str | None = None
     rigged_character_glb_url: str | None = None
-    basic_animations: dict[str, str] = Field(default_factory=dict)
+    basic_animations: dict[str, str] | None = None
 
 
 class RiggingTaskResponse(BaseModel):

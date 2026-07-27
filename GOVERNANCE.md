@@ -47,7 +47,7 @@ authority.
 |---|---|---|
 | Local manifests and workspace | `docs/systems/MANIFEST_WORKSPACE_CONTRACT.md` | Active, Phase 1 |
 | Configuration and CLI | `docs/systems/MANIFEST_WORKSPACE_CONTRACT.md` | Active, Phase 1 |
-| Provider jobs and downloads | `docs/systems/PROVIDER_PIPELINE_CONTRACT.md` | Active Phase 2 text-preview slice; live paid verification pending |
+| Provider jobs and downloads | `docs/systems/PROVIDER_PIPELINE_CONTRACT.md` | Active Phase 2; retexture/rigging live-verified, text-preview live verification pending |
 | Processing and technical inspection | `docs/systems/PROCESSING_VALIDATION_CONTRACT.md` | Stub; blocks processing integration |
 | Review, approval, and release | `docs/systems/RELEASE_CONTRACT.md` | Partial; design only, no publication yet |
 | Vandrel/library interoperability | `docs/systems/INTEROPERABILITY_CONTRACT.md` | Active boundary; import handshake remains versioned |

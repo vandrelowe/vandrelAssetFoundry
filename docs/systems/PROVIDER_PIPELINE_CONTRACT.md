@@ -1,7 +1,8 @@
 # Provider Pipeline Contract
 
 **Status:** Active — Phase 2 foundation
-**Live provider submission:** Guarded command implemented; live paid verification pending
+**Live provider submission:** Retexture and rigging verified 2026-07-27;
+text-preview live paid verification pending
 
 ## Scope
 
@@ -139,6 +140,10 @@ assignment. Foundry downloads its base-color texture and may quantize it to
 the exact palette red=skin, green=fur/hair, blue=cloth, white=accessories.
 The quantizer records class counts and ambiguity/error measurements. Neither
 the generated texture nor its quantized derivative is auto-approved.
+It also fails its material-authoring usability signal when mean source-to-
+palette error exceeds the documented threshold or any requested class has
+insufficient coverage. A failed semantic result remains immutable evidence and
+must not be silently promoted or retried.
 
 ## Download protocol
 

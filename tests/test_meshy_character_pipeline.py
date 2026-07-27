@@ -198,3 +198,46 @@ def test_direct_character_retexture_mask_and_rigging_corridor(config, lanes, pro
         assert {pixels[x, y] for y in range(rgb.height) for x in range(rgb.width)} == set(
             PALETTE.values()
         )
+    report = json.loads(
+        (asset_root / "reports/semantic_mask_report_001.json").read_text(encoding="utf-8")
+    )
+    assert report["palette_fidelity_passed"] is True
+    assert report["class_coverage_passed"] is True
+    assert report["usable_for_material_authoring"] is True
+
+
+def test_semantic_quantizer_rejects_low_fidelity_source(config, lanes, prompt: Path) -> None:
+    _create_character(config, lanes, prompt)
+    asset_root = config.foundry.workspace_root / "assets/character_001"
+    relative = RelativeManifestPath("masks/poor-semantic-source.png")
+    path = asset_root / str(relative)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (2, 2), (128, 128, 128)).save(path)
+    content = path.read_bytes()
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("character_001")
+    manifest.artifacts.append(
+        Artifact(
+            artifact_id="semantic_mask_source_001",
+            role="semantic_mask_source",
+            stage="masks",
+            format="png",
+            path=relative,
+            sha256=hashlib.sha256(content).hexdigest(),
+            size_bytes=len(content),
+        )
+    )
+    manifest.revision += 1
+    repository.save(
+        manifest,
+        "fixture.semantic_source_added",
+        expected_revision=manifest.revision - 1,
+    )
+
+    quantize_semantic_mask(config, "character_001")
+    report = json.loads(
+        (asset_root / "reports/semantic_mask_report_001.json").read_text(encoding="utf-8")
+    )
+    assert report["palette_fidelity_passed"] is False
+    assert report["class_coverage_passed"] is False
+    assert report["usable_for_material_authoring"] is False

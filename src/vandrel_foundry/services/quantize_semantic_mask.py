@@ -19,6 +19,8 @@ PALETTE = {
     "accessories": (255, 255, 255),
 }
 PROCESSOR_VERSION = "1"
+MAXIMUM_MEAN_RGB_ERROR = 32.0
+MINIMUM_CLASS_FRACTION = 0.001
 
 
 def quantize_semantic_mask(config: FoundryConfig, asset_id: str) -> Artifact:
@@ -79,6 +81,12 @@ def quantize_semantic_mask(config: FoundryConfig, asset_id: str) -> Artifact:
         _save_new_png(output, mask_path)
 
     pixel_count = sum(counts.values())
+    mean_rgb_error = total_error / pixel_count
+    class_fractions = {name: count / pixel_count for name, count in counts.items()}
+    palette_fidelity_passed = mean_rgb_error <= MAXIMUM_MEAN_RGB_ERROR
+    class_coverage_passed = all(
+        fraction >= MINIMUM_CLASS_FRACTION for fraction in class_fractions.values()
+    )
     report = {
         "schema_version": 1,
         "asset_id": asset_id,
@@ -87,8 +95,14 @@ def quantize_semantic_mask(config: FoundryConfig, asset_id: str) -> Artifact:
         "mask_artifact_id": mask_id,
         "palette": {name: list(color) for name, color in PALETTE.items()},
         "pixel_counts": counts,
+        "class_fractions": class_fractions,
         "ambiguous_pixel_fraction": ambiguous / pixel_count,
-        "mean_rgb_error": total_error / pixel_count,
+        "mean_rgb_error": mean_rgb_error,
+        "maximum_mean_rgb_error": MAXIMUM_MEAN_RGB_ERROR,
+        "minimum_class_fraction": MINIMUM_CLASS_FRACTION,
+        "palette_fidelity_passed": palette_fidelity_passed,
+        "class_coverage_passed": class_coverage_passed,
+        "usable_for_material_authoring": palette_fidelity_passed and class_coverage_passed,
         "interpretation": (
             "Nearest-palette quantization only. Inspect the source and mask before using "
             "the mask for material authoring."

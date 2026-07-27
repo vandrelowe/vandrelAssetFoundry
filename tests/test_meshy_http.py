@@ -155,6 +155,40 @@ def test_retexture_and_rigging_use_documented_v1_endpoints() -> None:
     assert rigging == {"input_task_id": "retexture-id", "height_meters": 1.8}
 
 
+def test_in_progress_retexture_accepts_null_texture_urls() -> None:
+    def opener(request: Request, timeout: float):
+        return FakeResponse(
+            b'{"id":"task-id","status":"IN_PROGRESS","progress":45,'
+            b'"model_urls":{},"texture_urls":null,"consumed_credits":10}'
+        )
+
+    response = MeshyHttpTransport(
+        "https://api.meshy.ai",
+        10,
+        opener,
+    ).retrieve_retexture_task("task-id", "secret")
+    assert response.texture_urls is None
+    assert response.consumed_credits == 10
+
+
+def test_in_progress_rigging_accepts_null_basic_animations() -> None:
+    def opener(request: Request, timeout: float):
+        return FakeResponse(
+            b'{"id":"task-id","status":"IN_PROGRESS","progress":57,'
+            b'"result":{"rigged_character_fbx_url":"","rigged_character_glb_url":"",'
+            b'"basic_animations":null},"consumed_credits":5}'
+        )
+
+    response = MeshyHttpTransport(
+        "https://api.meshy.ai",
+        10,
+        opener,
+    ).retrieve_rigging_task("task-id", "secret")
+    assert response.result is not None
+    assert response.result.basic_animations is None
+    assert response.consumed_credits == 5
+
+
 @pytest.mark.parametrize(
     ("status", "expected"),
     [
