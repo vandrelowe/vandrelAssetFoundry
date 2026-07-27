@@ -21,7 +21,11 @@ def cli_config(tmp_path: Path, config_data: dict) -> Path:
 
 
 def invoke(command: list[str], config: Path):
-    return runner.invoke(app, [*command, "--config", str(config)])
+    return runner.invoke(
+        app,
+        [*command, "--config", str(config)],
+        terminal_width=180,
+    )
 
 
 def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dict) -> None:
@@ -47,10 +51,12 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     assert create.exit_code == 0, create.output
     listing = invoke(["list"], cli_config)
     assert listing.exit_code == 0 and "stone_knife_001" in listing.output
+    assert "Release" in listing.output
     shown = invoke(["show", "stone_knife_001"], cli_config)
     assert shown.exit_code == 0 and '"schema_version": 1' in shown.output
     status = invoke(["status", "stone_knife_001"], cli_config)
     assert status.exit_code == 0 and "submit" in status.output
+    assert "not published" in status.output
     audit = invoke(["audit", "stone_knife_001"], cli_config)
     assert audit.exit_code == 0 and "Integrity audit passed" in audit.output
     audit_all = invoke(["audit-all"], cli_config)

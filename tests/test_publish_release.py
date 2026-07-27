@@ -4,8 +4,11 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
 import vandrel_foundry.services.publish_release as publication
+from tests.conftest import write_config
+from vandrel_foundry.cli import app
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, utc_now
 from vandrel_foundry.domain.states import WorkflowState
@@ -115,6 +118,32 @@ def test_publish_creates_immutable_release_catalog_and_manifest_record(
     manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
     assert manifest.release.released
     assert manifest.release.release_revision == 1
+
+
+def test_cli_list_and_status_show_published_revision(
+    config,
+    config_data: dict,
+    lanes,
+    prompt: Path,
+    tmp_path: Path,
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    _library(config)
+    publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
+    config_path = tmp_path / "foundry.toml"
+    write_config(config_path, config_data)
+    runner = CliRunner()
+
+    listing = runner.invoke(app, ["list", "--config", str(config_path)])
+    status = runner.invoke(
+        app,
+        ["status", "stone_knife_001", "--config", str(config_path)],
+    )
+
+    assert listing.exit_code == 0
+    assert "r001" in listing.output
+    assert status.exit_code == 0
+    assert "r001" in status.output
 
 
 def test_publish_rejects_unrelated_dirty_tree(config, lanes, prompt: Path) -> None:

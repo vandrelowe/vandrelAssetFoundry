@@ -70,6 +70,11 @@ lock, it:
 7. records the published revision in the Foundry manifest only after the
    library catalog is durable.
 
+Normal `list` and `status` output surface that recorded `rNNN` revision while
+retaining the approval workflow state. Publication does not invent a second
+workflow state or replace the immutable library descriptor as release
+authority.
+
 No existing revision, catalog release entry, or staged destination is
 overwritten. The catalog is the library discovery index; the release
 descriptor remains authoritative for files inside its revision.

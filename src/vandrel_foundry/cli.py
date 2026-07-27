@@ -178,13 +178,20 @@ def list_assets(
         assets, warnings = discover_assets(settings.foundry.workspace_root)
     except FoundryError as exc:
         fail(exc)
-    table = Table("Asset ID", "Display name", "Lane", "State", "Updated (UTC)")
+    table = Table("Asset ID", "Display name", "Lane", "State", "Release", "Updated (UTC)")
+    table.columns[0].no_wrap = True
     for manifest in assets:
+        release = (
+            f"r{manifest.release.release_revision:03d}"
+            if manifest.release.released and manifest.release.release_revision is not None
+            else "-"
+        )
         table.add_row(
             manifest.asset.asset_id,
             manifest.asset.display_name,
             manifest.asset.lane,
             manifest.workflow.state.value,
+            release,
             manifest.asset.updated_at.isoformat().replace("+00:00", "Z"),
         )
     console.print(table)
@@ -312,6 +319,14 @@ def status(
     table = Table(show_header=False)
     table.add_row("Asset", manifest.asset.asset_id)
     table.add_row("State", manifest.workflow.state.value)
+    table.add_row(
+        "Release",
+        (
+            f"r{manifest.release.release_revision:03d}"
+            if manifest.release.released and manifest.release.release_revision is not None
+            else "not published"
+        ),
+    )
     table.add_row("Revision", str(manifest.revision))
     table.add_row("Next actions", ", ".join(actions) if actions else "none")
     console.print(table)
