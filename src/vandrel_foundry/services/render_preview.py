@@ -40,8 +40,10 @@ def render_local_preview(
     number = sum(item.role == "local_preview" for item in manifest.artifacts) + 1
     image_relative = RelativeManifestPath(f"preview/local-preview-{number:03d}.png")
     report_relative = RelativeManifestPath(f"reports/local-preview-{number:03d}.json")
+    log_relative = RelativeManifestPath(f"reports/local-preview-{number:03d}.log")
     image_path = contained_path(asset_root, image_relative)
     report_path = contained_path(asset_root, report_relative)
+    log_path = contained_path(asset_root, log_relative)
     image_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     script = Path(__file__).parents[1] / "blender" / "render_preview.py"
@@ -87,13 +89,20 @@ def render_local_preview(
             raise FoundryError("Bounded Blender preview rendering failed.")
         if image_path.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n":
             raise FoundryError("Blender preview output is not a PNG.")
+        log_path.write_text(
+            f"--- stdout ---\n{result.stdout}\n--- stderr ---\n{result.stderr}\n",
+            encoding="utf-8",
+            newline="\n",
+        )
         report = json.loads(report_path.read_text(encoding="utf-8"))
         version = str(report["blender_version"])
         image_hash, image_size = _hash_file(image_path)
         report_hash, report_size = _hash_file(report_path)
+        log_hash, log_size = _hash_file(log_path)
     except BaseException:
         image_path.unlink(missing_ok=True)
         report_path.unlink(missing_ok=True)
+        log_path.unlink(missing_ok=True)
         raise
     processor = Processor(name="blender_preview", version=f"1+blender-{version}")
     image = Artifact(
@@ -118,7 +127,18 @@ def render_local_preview(
         derived_from=[source.artifact_id, image.artifact_id],
         processor=processor,
     )
-    manifest.artifacts.extend([image, evidence])
+    log = Artifact(
+        artifact_id=f"local_preview_log_{number:03d}",
+        role="local_preview_log",
+        stage="review",
+        format="log",
+        path=log_relative,
+        sha256=log_hash,
+        size_bytes=log_size,
+        derived_from=[source.artifact_id, image.artifact_id],
+        processor=processor,
+    )
+    manifest.artifacts.extend([image, evidence, log])
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(manifest, "preview.rendered", expected_revision=manifest.revision - 1)

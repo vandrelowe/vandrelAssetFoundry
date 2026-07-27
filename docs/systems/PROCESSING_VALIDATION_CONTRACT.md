@@ -33,7 +33,8 @@ decimation.
 
 Local review previews are derived evidence, not approval. Bounded Blender
 renders a hash-verified processed GLB into a new transparent PNG and JSON
-report. Rendering does not alter workflow state, approved hashes, release
+report, and retains bounded subprocess output as an immutable log artifact.
+Rendering does not alter workflow state, approved hashes, release
 state, or the source model.
 
 A pass-through processor still creates a physically distinct output. It may

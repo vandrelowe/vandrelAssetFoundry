@@ -221,6 +221,7 @@ def test_external_glb_enters_downloaded_workflow_without_provider(
     preview_manifest = ManifestRepository(config.foundry.workspace_root).load("external_prop_001")
     assert preview.role == "local_preview"
     assert preview_manifest.workflow.state is WorkflowState.PROCESSED
+    assert any(item.role == "local_preview_log" for item in preview_manifest.artifacts)
 
     def fake_decimate_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
         input_path, output_path, report_path = map(Path, arguments[-4:-1])
