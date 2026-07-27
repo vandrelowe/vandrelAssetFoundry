@@ -80,6 +80,21 @@ and returns the target to processed state. A structurally valid graft still
 requires renewed inspection, Godot import, and visual playback review because
 local rest equality alone does not prove inverse-bind or deformation quality.
 
+Rest-pose animation retargeting is a separate bounded Blender processor for
+humanoid rigs with exact joint names and hierarchy but differing rest
+transforms. It samples donor clips at 30 FPS, applies world-space rest
+correction to the hips, transfers child-bone local pose bases onto the target
+rest skeleton, uniformly scales translation channels by measured skeleton
+extent, and bakes new target actions. It preserves the target mesh, materials,
+skin, and rest skeleton; donor geometry is never exported.
+
+The processor creates a new immutable GLB plus a report and bounded process log
+bound to both input hashes and the output hash. It resets validation and
+approval. Representative animation samples must be rendered from the produced
+GLB for gross-deformation, limb-orientation, root-displacement, and foot-contact
+review before approval. Sampling evidence does not itself grant visual
+acceptance or assign Vandrel clip semantics.
+
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.

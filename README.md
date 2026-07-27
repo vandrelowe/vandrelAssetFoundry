@@ -200,10 +200,16 @@ are implemented. Publication uses an immutable staging/rename transaction,
 atomic catalog replacement, clean-worktree checks, and Git LFS verification;
 asset-library commit/push and Vandrel import remain separate. Explicit
 target-bound local decimation is implemented; automated target selection and
-general humanoid retargeting remain later work. Humanoid candidate publication
-is enabled only for exact approved model/wrapper hashes with passing,
+consumer runtime animation acceptance remain later work. Humanoid candidate
+publication is enabled only for exact approved model/wrapper hashes with passing,
 hash-bound `meshy_humanoid/v1` compatibility evidence. Its release descriptor
 explicitly records that Vandrel runtime acceptance remains false.
+
+The local character corridor includes bounded Blender rest-pose retargeting for
+exact-name/hierarchy Meshy rigs, 30 FPS action baking, representative animation
+sample sheets, renewed GLB/Godot validation, and immutable follow-up release
+revisions. Foundry still does not assign gameplay clip semantics or claim
+consumer-side animation acceptance.
 
 The optional Blender processor uses the absolute executable configured at
 `tools.blender_executable`. The current machine uses the Steam installation at

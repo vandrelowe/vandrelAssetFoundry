@@ -79,7 +79,7 @@ Only when exact joint names, hierarchy, and local rest transforms match may
 Foundry create a new candidate GLB by replacing its animation array with the
 donor's shared animation library. This is a format-level derivation, not
 general retargeting. A rest-transform mismatch must fail closed and route to a
-separate, consumer-validated retarget corridor. Grafted clip names and donor
-artifact hashes are technical evidence only; Vandrel retains authority over
-runtime clip promotion, semantic animation keys, root-motion handling, and
-visual acceptance.
+separate, baked retarget corridor with recorded visual samples. Grafted or
+retargeted clip names and donor artifact hashes are technical evidence only;
+Vandrel retains authority over runtime clip promotion, semantic animation
+keys, root-motion handling, and visual acceptance.

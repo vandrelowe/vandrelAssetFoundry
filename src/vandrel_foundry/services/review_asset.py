@@ -23,10 +23,29 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
     checks_by_name = {
         str(check.get("name")): bool(check.get("passed")) for check in manifest.validation.checks
     }
-    return (
+    standard_checks_pass = (
         manifest.validation.result == "passed"
         and REQUIRED_CHECKS.issubset(checks_by_name)
         and all(checks_by_name[name] for name in REQUIRED_CHECKS)
+    )
+    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
+    requires_animation_review = bool(
+        processed
+        and processed[-1].processor
+        and processed[-1].processor.name == "blender_rest_pose_retarget"
+    )
+    animation_review_passes = bool(
+        processed
+        and any(
+            check.get("name") == "animation_visual_review"
+            and check.get("passed")
+            and check.get("processed_model_sha256") == processed[-1].sha256
+            for check in manifest.validation.checks
+        )
+    )
+    return standard_checks_pass and (
+        not requires_animation_review
+        or animation_review_passes
     )
 
 

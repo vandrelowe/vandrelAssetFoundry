@@ -52,6 +52,23 @@ def lanes() -> LaneConfiguration:
 
 
 @pytest.fixture
+def humanoid_lanes() -> LaneConfiguration:
+    return LaneConfiguration.model_validate(
+        {
+            "lanes": {
+                "humanoid": {
+                    "wrapper_template": "humanoid_candidate",
+                    "collision_policy": "manual_review",
+                    "requires_materials": True,
+                    "requires_skeleton": True,
+                    "release_enabled": True,
+                }
+            }
+        }
+    )
+
+
+@pytest.fixture
 def prompt(tmp_path: Path) -> Path:
     path = tmp_path / "prompt.txt"
     path.write_text("a rough stone knife", encoding="utf-8")

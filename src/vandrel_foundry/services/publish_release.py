@@ -49,8 +49,6 @@ def publish_release(
     with AssetLock(lock):
         repository = ManifestRepository(config.foundry.workspace_root)
         manifest = repository.load(asset_id)
-        if manifest.release.released:
-            raise FoundryError(f"Asset is already recorded as released: {asset_id}")
         plan = plan_release(config, lanes, asset_id)
         recovery = _matching_uncataloged_release(root, plan)
         effective = recovery or plan

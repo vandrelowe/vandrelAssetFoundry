@@ -220,6 +220,51 @@ def test_publish_creates_immutable_release_catalog_and_manifest_record(
     assert manifest.release.release_revision == 1
 
 
+def test_publish_allows_new_approved_candidate_after_prior_release(
+    config,
+    lanes,
+    prompt: Path,
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    _library(config)
+    publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("stone_knife_001")
+    root = config.foundry.workspace_root / "assets" / "stone_knife_001"
+    model = b"second immutable candidate"
+    path = root / "processed/model-r002.glb"
+    path.write_bytes(model)
+    manifest.artifacts.append(
+        Artifact(
+            artifact_id="processed-model-002",
+            role="processed_model",
+            stage="processed",
+            format="glb",
+            path="processed/model-r002.glb",
+            sha256=_sha256(model),
+            size_bytes=len(model),
+        )
+    )
+    manifest.approval.approved = True
+    manifest.approval.approved_at = utc_now()
+    manifest.approval.approved_artifact_hashes["processed_model"] = _sha256(model)
+    manifest.workflow.state = WorkflowState.APPROVED
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+
+    result = publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
+
+    assert result.release_revision == 2
+    assert (result.destination / "model.glb").read_bytes() == model
+    catalog = json.loads(
+        (config.foundry.asset_library_root / "catalog.json").read_text()
+    )
+    assert [
+        item["revision"]
+        for item in catalog["assets"]["stone_knife_001"]["releases"]
+    ] == [1, 2]
+
+
 def test_cli_list_and_status_show_published_revision(
     config,
     config_data: dict,

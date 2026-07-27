@@ -32,8 +32,11 @@ from vandrel_foundry.services.process_blender import process_with_blender
 from vandrel_foundry.services.publish_release import publish_release
 from vandrel_foundry.services.quantize_semantic_mask import quantize_semantic_mask
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
+from vandrel_foundry.services.render_animation_samples import render_animation_samples
 from vandrel_foundry.services.render_missing_previews import render_missing_previews
 from vandrel_foundry.services.render_preview import render_local_preview
+from vandrel_foundry.services.retarget_animations import retarget_animations
+from vandrel_foundry.services.review_animation_samples import accept_animation_samples
 from vandrel_foundry.services.review_asset import (
     approval_checks_pass,
     approve_asset,
@@ -931,6 +934,70 @@ def graft_animation_library(
             f"into {result.model.path}"
         )
         console.print(f"Evidence: {result.report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("retarget-animations")
+def retarget_animation_library(
+    asset_id: str,
+    animation_donor: Annotated[
+        str,
+        typer.Option(
+            "--animation-donor",
+            help="Asset ID containing the compatible humanoid animation donor.",
+        ),
+    ],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Bake donor clips onto a compatible humanoid rig through bounded Blender."""
+    try:
+        settings = load_config(config)
+        result = retarget_animations(settings, asset_id, animation_donor)
+        console.print(
+            f"[green]Retargeted {result.animation_count} animations[/green] "
+            f"into {result.model.path}"
+        )
+        console.print(f"Evidence: {result.report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("render-animation-samples")
+def render_animation_sample_sheet(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Render representative frames from important clips for visual review."""
+    try:
+        settings = load_config(config)
+        result = render_animation_samples(settings, asset_id)
+        console.print(f"[green]Rendered animation sample sheet[/green] {result.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("accept-animation-samples")
+def accept_animation_sample_sheet(
+    asset_id: str,
+    reviewer: Annotated[str, typer.Option("--reviewer")],
+    all_samples_reviewed: Annotated[
+        bool,
+        typer.Option(
+            "--all-samples-reviewed",
+            help="Confirm representative animation samples were visually reviewed.",
+        ),
+    ] = False,
+    notes: Annotated[str, typer.Option("--notes")] = "",
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Bind visual acceptance to the current model and animation sample hashes."""
+    if not all_samples_reviewed:
+        fail(FoundryError("Animation sample acceptance requires --all-samples-reviewed."))
+    try:
+        settings = load_config(config)
+        result = accept_animation_samples(settings, asset_id, reviewer, notes)
+        console.print(f"[green]Accepted animation samples[/green] {result.path}")
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 

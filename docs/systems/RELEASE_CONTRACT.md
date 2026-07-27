@@ -12,6 +12,8 @@
 - Release is dry-run by default.
 - Release revisions are immutable and monotonically numbered.
 - Publication never overwrites an existing release revision.
+- A newly processed and explicitly re-approved candidate may publish the next
+  immutable revision after an earlier release.
 - Release creation and Git commit/push are separate user-controlled actions.
 - A release contains technical facts and provenance, not Vandrel gameplay or
   mod authority.
@@ -89,6 +91,11 @@ Normal `list` and `status` output surface that recorded `rNNN` revision while
 retaining the approval workflow state. Publication does not invent a second
 workflow state or replace the immutable library descriptor as release
 authority.
+
+Processing after publication preserves the prior release record as history but
+invalidates approval and returns the new candidate to the normal validation
+corridor. Once that candidate is explicitly approved, publication allocates the
+next unused revision and updates the manifest's latest-release pointer.
 
 No existing revision, catalog release entry, or staged destination is
 overwritten. The catalog is the library discovery index; the release
