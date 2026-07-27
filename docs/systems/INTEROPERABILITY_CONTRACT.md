@@ -41,14 +41,34 @@ The current source/runtime split means Foundry should package portable files and
 provenance while Vandrel chooses source placement, reviewed runtime wrappers,
 catalog registration, and active `res://game/**` paths.
 
+## Authorized consumer integration
+
+The standing downstream-integration exception in `GOVERNANCE.md` authorizes an
+AI development session to exercise the consumer side of this handshake for an
+approved, release-enabled, immutable library revision. It may copy the exact
+release into a new asset-scoped Vandrel runtime path, create or update the
+asset's Vandrel-owned wrapper and bounded debug scene, allow Godot to import the
+files, and run a finite bomb test.
+
+This is validation of a selected release, not authority transferred to Foundry.
+The session must preserve unrelated checkout changes and must not use this
+exception to edit gameplay catalogs, runtime registries, `Main.tscn`, ECS or
+gameplay behavior, or other assets. Commit, push, deletion, overwrite, and
+runtime promotion remain separate explicit actions. The validation result may
+report unit conversion, material, skeleton, skin-bind, animation, and visual
+playback findings, but only Vandrel can accept the wrapper or promote clips into
+its shared animation vocabulary.
+
 ## Compatibility strategy
 
 - Version manifest and release schemas.
 - Prefer additive optional fields within a schema version.
 - Never change field meaning silently.
 - Keep deterministic fixtures representing supported consumer contracts.
-- Detect incompatible consumer expectations and report them; do not mutate the
-  sibling repository to make a test pass.
+- Detect incompatible consumer expectations and report them. Asset-scoped
+  wrapper corrections may be made during an authorized consumer integration
+  test, but portable release evidence must retain the original artifact hashes
+  and must not conceal a release defect.
 - Record which external contract revision a compatibility decision used.
 
 ## Humanoid rig compatibility evidence

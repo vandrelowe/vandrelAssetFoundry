@@ -89,10 +89,13 @@ Foundry's future release descriptor is a technical handoff, not an instruction
 to mutate Vandrel. It may contain identity, hashes, provenance, formats,
 measured geometry/material/rig facts, preview files, and declared lane intent.
 
-Vandrel import remains a separate, explicit consumer operation. Current Vandrel
-rules distinguish raw/source assets from reviewed runtime wrappers and require
-runtime content to use approved packed paths. Foundry must therefore avoid
-emitting authoritative `res://` destinations or editing Vandrel catalogs.
+Vandrel import remains a separate consumer operation. An AI development session
+may execute the asset-scoped import and finite validation steps under the
+standing downstream-integration exception in `GOVERNANCE.md`; the resulting
+runtime wrapper and test are Vandrel-owned. Current Vandrel rules distinguish
+raw/source assets from reviewed runtime wrappers and require runtime content to
+use approved packed paths. Foundry package data must therefore avoid emitting
+authoritative `res://` destinations or editing Vandrel catalogs.
 
 Humanoid and animated assets are candidates until Vandrel validates them
 against its current animation and equipment contracts. A generic label such as

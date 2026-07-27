@@ -33,8 +33,11 @@ Before editing:
 
 - Work only in this repository and explicitly configured temporary test
   workspaces unless the user authorizes another target.
-- Treat the Vandrel repository as read-only. Do not write to it, run its game,
-  or alter its project/import state from Foundry work.
+- Treat the Vandrel repository as read-only except for the standing
+  approved-release downstream integration in `GOVERNANCE.md`. That exception
+  permits only asset-scoped runtime files, wrappers, bounded test scenes,
+  Godot import state, and finite bomb validation; it does not permit gameplay
+  registration, unrelated edits, commits, or pushes.
 - Do not write to the asset-library repository except through a future,
   explicitly approved release workflow.
 - Do not make provider calls or spend credits unless the user explicitly asks

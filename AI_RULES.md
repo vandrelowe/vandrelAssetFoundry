@@ -15,7 +15,9 @@ compatible with the wider Vandrel toolchain.
 
 ## Hard safety rules
 
-1. Never modify `C:\dev\Vandrel` from this repository.
+1. Treat `C:\dev\Vandrel` as read-only except for the approved-release,
+   asset-scoped downstream integration and finite test authorized by
+   `GOVERNANCE.md`.
 2. Never write to a real Foundry workspace during tests.
 3. Never delete or replace an existing asset workspace.
 4. Never overwrite prompts, artifacts, manifests, or releases silently.
@@ -65,8 +67,9 @@ current external authorities:
   visuals, construction, furniture/world items, terrain, or navigation.
 
 Use these only to define or test the handshake. Do not make them runtime
-dependencies, do not copy their gameplay catalogs into Foundry, and do not
-write to the checkout.
+dependencies or copy their gameplay catalogs into Foundry. Writes to the
+checkout are limited to the standing downstream-integration exception in
+`GOVERNANCE.md`.
 
 Foundry releases may state measured facts and declared intent. They must not
 claim that Vandrel imported an asset, accepted a skeleton, enabled runtime
@@ -82,7 +85,9 @@ consumer-side evidence.
 - Downloads go to a `.part` file, are checked and hashed, then moved to a new
   immutable path before manifest update.
 - Future Blender and Godot subprocesses must be bounded, invoked through one
-  adapter, capture versions/arguments/exit status, and operate outside Vandrel.
+  adapter, and capture versions, arguments, and exit status. Godot may operate
+  in Vandrel only for the standing approved-release downstream integration
+  test; ordinary Foundry processing remains outside Vandrel.
 - No unbounded polling or subprocess execution.
 
 ## Logging and errors
