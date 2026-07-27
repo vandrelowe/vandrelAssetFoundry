@@ -13,7 +13,13 @@ def main() -> None:
         raise RuntimeError("Expected input GLB, output GLB, and report JSON paths.")
     input_path, output_path, report_path = map(Path, arguments)
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=str(input_path))
+    suffix = input_path.suffix.lower()
+    if suffix in {".glb", ".gltf"}:
+        bpy.ops.import_scene.gltf(filepath=str(input_path))
+    elif suffix == ".fbx":
+        bpy.ops.import_scene.fbx(filepath=str(input_path), use_image_search=True)
+    else:
+        raise RuntimeError(f"Unsupported Blender input format: {suffix}")
     mesh_objects = [item for item in bpy.context.scene.objects if item.type == "MESH"]
     if not mesh_objects:
         raise RuntimeError("Imported GLB contains no mesh objects.")
@@ -34,6 +40,7 @@ def main() -> None:
             {
                 "schema_version": 1,
                 "blender_version": bpy.app.version_string,
+                "input_format": suffix.removeprefix("."),
                 "mesh_objects": len(mesh_objects),
                 "triangles": triangle_count,
                 "operations": ["apply_rotation", "apply_scale", "export_glb"],
