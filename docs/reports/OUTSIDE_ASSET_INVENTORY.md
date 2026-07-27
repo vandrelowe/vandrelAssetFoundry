@@ -1,7 +1,9 @@
 # Outside Asset Inventory
 
-**Source:** `C:\Dev\outsideassets`  
-**Inspection mode:** Read-only  
+**Source:** `C:\Dev\outsideassets`
+
+**Inspection mode:** Read-only
+
 **Last verified:** 2026-07-26
 
 ## Format inventory
