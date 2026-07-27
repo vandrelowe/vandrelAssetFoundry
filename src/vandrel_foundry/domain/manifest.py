@@ -35,7 +35,7 @@ class Workflow(StrictModel):
 
 
 class Input(StrictModel):
-    kind: Literal["text", "image"] = "text"
+    kind: Literal["text", "image", "external"] = "text"
     prompt_file: RelativeManifestPath = RelativeManifestPath("input/prompt.txt")
     reference_images: list[RelativeManifestPath] = Field(default_factory=list)
 

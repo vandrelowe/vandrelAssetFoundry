@@ -30,6 +30,7 @@
 | Atomic manifest replacement | `src/vandrel_foundry/storage/manifests.py` |
 | Audit event append | `src/vandrel_foundry/storage/events.py` |
 | Asset creation workflow | `src/vandrel_foundry/services/create_asset.py` |
+| External GLB source intake | `src/vandrel_foundry/services/add_source.py` |
 | Workspace discovery and initialization | `src/vandrel_foundry/services/inspect_assets.py` |
 | Health checks | `src/vandrel_foundry/services/doctor.py` |
 | Provider task status vocabulary | `src/vandrel_foundry/domain/provider.py` |

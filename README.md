@@ -39,6 +39,9 @@ foundry create --id stone_knife_001 --lane static_prop `
 foundry list
 foundry show stone_knife_001
 foundry status stone_knife_001
+
+# Skip Meshy entirely by adding an existing local GLB.
+foundry add-source stone_knife_001 --model .\models\stone_knife.glb
 ```
 
 `init` is safe to repeat and never creates asset records. `create` validates all
@@ -96,6 +99,11 @@ foundry reconcile stone_knife_001 --task meshy_preview_001 `
 The API key is read from the environment-variable name configured in
 `foundry.toml` (normally `MESHY_API_KEY`). It is never written to the manifest,
 provider evidence, event log, or terminal output.
+
+`add-source` validates GLB 2.0 structure, copies the file into immutable source
+storage, hashes the copy, and moves the asset directly to the downloaded state.
+The remaining processing, Godot validation, review, and release-plan commands
+work without a Meshy key or credits.
 
 ## Repository and workspace boundaries
 

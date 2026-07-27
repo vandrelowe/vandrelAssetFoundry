@@ -29,6 +29,11 @@ A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.
 
+An external GLB import is a local source-intake operation, not a provider task.
+It validates the GLB container before copying, records the copied file's hash
+and size, retains no machine-absolute source path, and enters the same
+downloaded-state processing corridor as provider output.
+
 ## Technical reports
 
 - Reports are JSON objects with an explicit schema version, asset ID, artifact

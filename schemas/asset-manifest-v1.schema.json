@@ -205,7 +205,8 @@
           "default": "text",
           "enum": [
             "text",
-            "image"
+            "image",
+            "external"
           ],
           "title": "Kind",
           "type": "string"

@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import struct
@@ -6,10 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from vandrel_foundry.domain.manifest import Artifact
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.services.add_source import add_external_glb
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.inspect_assets import initialize_workspace
+from vandrel_foundry.services.inspect_glb import inspect_processed_glb
+from vandrel_foundry.services.plan_release import plan_release
+from vandrel_foundry.services.process_asset import process_passthrough
+from vandrel_foundry.services.review_asset import approve_asset
 from vandrel_foundry.services.stage_godot import prepare_godot_sandbox
 from vandrel_foundry.services.validate_godot import validate_godot_sandbox
 from vandrel_foundry.storage.manifests import ManifestRepository
@@ -26,7 +29,7 @@ def test_real_godot_import_is_opt_in(config, lanes, prompt: Path) -> None:
     config.tools.godot_executable = executable
 
     initialize_workspace(config.foundry.workspace_root)
-    manifest = create_asset(
+    create_asset(
         config,
         lanes,
         "godot_smoke_asset",
@@ -34,10 +37,7 @@ def test_real_godot_import_is_opt_in(config, lanes, prompt: Path) -> None:
         "Godot Smoke Asset",
         prompt,
     )
-    asset_root = config.foundry.workspace_root / "assets" / "godot_smoke_asset"
-    relative = "processed/passthrough/processed_glb_001.glb"
-    model = asset_root / relative
-    model.parent.mkdir(parents=True)
+    model = prompt.parent / "external-smoke.glb"
     document = json.dumps({"asset": {"version": "2.0"}}).encode("utf-8")
     document += b" " * (-len(document) % 4)
     content = (
@@ -46,26 +46,19 @@ def test_real_godot_import_is_opt_in(config, lanes, prompt: Path) -> None:
         + document
     )
     model.write_bytes(content)
-    manifest.artifacts.append(
-        Artifact(
-            artifact_id="processed_glb_001",
-            role="processed_model",
-            stage="processed",
-            format="glb",
-            path=relative,
-            sha256=hashlib.sha256(content).hexdigest(),
-            size_bytes=len(content),
-        )
-    )
-    manifest.workflow.state = WorkflowState.PROCESSED
-    manifest.revision += 1
     repository = ManifestRepository(config.foundry.workspace_root)
-    repository.save(manifest, expected_revision=1)
 
+    add_external_glb(config, "godot_smoke_asset", model)
+    process_passthrough(config, "godot_smoke_asset")
+    inspect_processed_glb(config, lanes, "godot_smoke_asset")
     prepare_godot_sandbox(config, lanes, "godot_smoke_asset")
     result = validate_godot_sandbox(config, "godot_smoke_asset")
+    approve_asset(config, "godot_smoke_asset", reviewer="Opt-in smoke test")
+    release_plan = plan_release(config, lanes, "godot_smoke_asset")
     saved = repository.load("godot_smoke_asset")
     assert result.return_code == 0
     assert not result.timed_out
     assert not result.output_limited
-    assert saved.workflow.state is WorkflowState.REVIEW
+    assert saved.workflow.state is WorkflowState.APPROVED
+    assert release_plan.release_revision == 1
+    assert not release_plan.destination.exists()

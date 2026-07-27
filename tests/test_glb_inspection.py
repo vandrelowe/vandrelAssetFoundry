@@ -8,6 +8,7 @@ import pytest
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.services.add_source import add_external_glb
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.inspect_assets import initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_glb, inspect_processed_glb
@@ -111,3 +112,36 @@ def test_asset_inspection_persists_hash_bound_report(config, lanes, prompt: Path
     assert saved.validation.result == "passed"
     assert saved.quality.observed["triangle_count"] == 5
     assert report["artifact_sha256"] == hashlib.sha256(content).hexdigest()
+
+
+def test_external_glb_enters_downloaded_workflow_without_provider(
+    config, lanes, prompt: Path, tmp_path: Path
+) -> None:
+    initialize_workspace(config.foundry.workspace_root)
+    create_asset(
+        config,
+        lanes,
+        "external_prop_001",
+        "static_prop",
+        "External Prop",
+        prompt,
+    )
+    source = tmp_path / "external.glb"
+    _write_glb(
+        source,
+        {
+            "asset": {"version": "2.0"},
+            "accessors": [{"count": 6}],
+            "meshes": [{"primitives": [{"indices": 0}]}],
+        },
+    )
+    artifact = add_external_glb(config, "external_prop_001", source)
+    manifest = ManifestRepository(config.foundry.workspace_root).load("external_prop_001")
+    copied = config.foundry.workspace_root / "assets" / "external_prop_001" / str(artifact.path)
+    assert manifest.input.kind == "external"
+    assert manifest.workflow.state is WorkflowState.DOWNLOADED
+    assert manifest.generation.tasks == []
+    assert artifact.processor is not None
+    assert artifact.processor.name == "external_glb_import"
+    assert copied.read_bytes() == source.read_bytes()
+    assert copied.stat().st_ino != source.stat().st_ino

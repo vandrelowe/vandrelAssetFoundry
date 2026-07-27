@@ -12,6 +12,7 @@ from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.states import next_actions
 from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
 from vandrel_foundry.services.add_reference import add_reference_image
+from vandrel_foundry.services.add_source import add_external_glb
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
@@ -166,6 +167,21 @@ def add_reference(
         settings = load_config(config)
         relative = add_reference_image(settings, asset_id, image)
         console.print(f"[green]Added reference[/green] {relative}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("add-source")
+def add_source(
+    asset_id: str,
+    model: Annotated[Path, typer.Option("--model", help="Local GLB source file.")],
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Copy and verify an existing GLB without calling Meshy."""
+    try:
+        settings = load_config(config)
+        artifact = add_external_glb(settings, asset_id, model)
+        console.print(f"[green]Added external source[/green] {artifact.path}")
     except FoundryError as exc:
         fail(exc)
 
