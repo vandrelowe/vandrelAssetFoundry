@@ -51,6 +51,18 @@ that regions inside one atlas can be independently recolored without reliable
 mask or material assignments. Experiments preserve workflow and approval state
 and never replace the source model or textures.
 
+Semantic-mask experiments accept a caller-supplied PNG only when every pixel is
+one of the strict skin-red, fur/hair-green, cloth-blue, or accessories-white
+palette entries and all four classes are present. Foundry copies that candidate
+immutably, samples it as Non-Color with nearest filtering in bounded Blender,
+and records baseline plus per-channel isolation previews, a contact sheet, a
+report, and a process log. Palette and coverage checks prove file mechanics,
+not semantic correctness. The report must set
+`usable_for_material_authoring` to false until a later explicit acceptance
+workflow reviews the isolation evidence for crossing. This experiment performs
+no provider call, changes no source texture or model, preserves workflow and
+approval state, and cannot promote or release the candidate.
+
 Same-skeleton animation grafting is an explicit local processor. It requires
 the target and donor processed GLBs to have exactly the same unique joint names
 and joint-parent relationships, plus numerically matching local joint rest

@@ -19,6 +19,7 @@ from vandrel_foundry.services.build_review_gallery import build_review_gallery
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
+from vandrel_foundry.services.experiment_semantic_mask import experiment_semantic_mask
 from vandrel_foundry.services.experiment_shaders import experiment_shader_variants
 from vandrel_foundry.services.graft_animations import graft_animations
 from vandrel_foundry.services.init_library import initialize_asset_library
@@ -802,6 +803,35 @@ def experiment_shaders(
         settings = load_config(config)
         artifact = experiment_shader_variants(settings, asset_id)
         console.print(f"[green]Shader experiment created[/green] {artifact.path}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("experiment-semantic-mask")
+def experiment_mask(
+    asset_id: str,
+    mask: Annotated[
+        Path,
+        typer.Option(
+            "--mask",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Strict four-color semantic-mask PNG to record and test.",
+        ),
+    ],
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Record a local semantic mask and render per-channel shader isolation evidence."""
+    try:
+        settings = load_config(config)
+        artifact = experiment_semantic_mask(settings, asset_id, mask)
+        console.print(f"[green]Semantic-mask experiment created[/green] {artifact.path}")
+        console.print(
+            "[yellow]The candidate remains experimental until its isolation previews are "
+            "reviewed.[/yellow]"
+        )
     except FoundryError as exc:
         fail(exc)
 

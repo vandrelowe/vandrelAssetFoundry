@@ -92,6 +92,9 @@ foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
 # Offline material-response evidence for a processed character or prop.
 foundry experiment-shaders stone_knife_001
+# Record a strict four-color mask and render offline per-region isolation evidence.
+# This remains experimental and cannot automatically approve the mask.
+foundry experiment-semantic-mask character_001 --mask C:\path\to\semantic-mask.png
 # Compare a processed character and animation donor against the bundled
 # Meshy-to-Godot humanoid profile.
 foundry validate-humanoid-rig character_001 --animation-donor animation_library_001
