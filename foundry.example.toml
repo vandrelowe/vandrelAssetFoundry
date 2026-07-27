@@ -20,3 +20,8 @@ maximum_download_bytes = 4000000000
 [release]
 default_dry_run = true
 allow_overwrite = false
+
+[tools]
+godot_executable = "C:/Dev/Godot/Godot.exe"
+godot_timeout_seconds = 120
+maximum_output_bytes = 1000000

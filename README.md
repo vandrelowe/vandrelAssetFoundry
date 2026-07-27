@@ -7,8 +7,10 @@ atomic storage, event history, and inspection. Phase 2 adds a guarded Meshy
 Text-to-3D and Image-to-3D lifecycles with redacted evidence, polling,
 recovery, and checksummed source downloads.
 
-It is not the Vandrel game, a mod manager, or an asset database. It does not
-invoke Blender or Godot and never writes into the Vandrel repository.
+It is not the Vandrel game, a mod manager, or an asset database. It can invoke
+an explicitly configured Godot editor only inside generated validation
+sandboxes. It does not invoke Blender and never writes into the Vandrel
+repository.
 
 ## Windows setup
 
@@ -59,6 +61,10 @@ foundry download stone_knife_001
 foundry select-output stone_knife_001 --task meshy_preview_001
 foundry process stone_knife_001
 foundry inspect stone_knife_001
+foundry prepare-godot stone_knife_001
+foundry validate-godot stone_knife_001
+foundry approve stone_knife_001 --reviewer "Reviewer Name" --all-required-checks
+foundry release stone_knife_001
 
 # Optional paid provider remesh; defaults to the lane target.
 foundry remesh stone_knife_001 --confirm-spend
@@ -133,5 +139,21 @@ Image-to-3D submission, one-shot polling, ambiguous-submission reconciliation,
 and GLB plus preview-thumbnail download. The first Phase 3 slice adds explicit
 output selection, immutable pass-through processing, GLB 2.0 structural
 inspection, and triangle/material reporting against lane policy. Provider
-remesh and deeper technical checks remain Phase 3 work. Blender processing,
-Godot staging, approval, release, and humanoid promotion remain later phases.
+remesh is available behind an explicit paid-action guard. The first Phase 4
+slice creates a self-contained Godot validation sandbox and runs bounded,
+headless import validation without touching Vandrel. The subprocess uses the
+configured absolute executable, removes Meshy credentials from its environment,
+limits runtime and output, and records hash-bound logs and reports. Manual
+hash-bound approval and read-only release planning are implemented. Blender
+processing, release publication, and humanoid promotion remain later work.
+`release` is currently a read-only plan;
+`release --apply` fails closed until the publication transaction and
+asset-library safeguards are implemented.
+
+Set `tools.godot_executable` in `foundry.toml` before using
+`validate-godot`. The opt-in real-tool smoke test can be run without Meshy:
+
+```powershell
+$env:VANDREL_FOUNDRY_TEST_GODOT = "C:\Dev\Godot\Godot.exe"
+pytest tests/test_godot_live.py
+```

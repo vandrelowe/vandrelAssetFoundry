@@ -30,6 +30,9 @@ packages = ["src/vandrel_foundry"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+  "live_tool: opt-in local external-tool smoke tests",
+]
 
 [tool.ruff]
 line-length = 100

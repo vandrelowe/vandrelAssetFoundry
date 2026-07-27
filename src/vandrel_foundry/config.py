@@ -44,12 +44,19 @@ class ReleaseSettings(ConfigModel):
     allow_overwrite: bool = False
 
 
+class ToolSettings(ConfigModel):
+    godot_executable: Path | None = None
+    godot_timeout_seconds: float = Field(default=120.0, gt=0, le=900)
+    maximum_output_bytes: int = Field(default=1_000_000, gt=0, le=50_000_000)
+
+
 class FoundryConfig(ConfigModel):
     schema_version: Literal[1]
     foundry: FoundrySettings
     vandrel: VandrelSettings
     providers: Providers
     release: ReleaseSettings
+    tools: ToolSettings = Field(default_factory=ToolSettings)
 
     @model_validator(mode="after")
     def phase_one_safety(self) -> "FoundryConfig":

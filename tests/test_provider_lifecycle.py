@@ -17,14 +17,18 @@ from vandrel_foundry.providers.meshy.models import (
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
 from vandrel_foundry.services.inspect_assets import initialize_workspace
+from vandrel_foundry.services.plan_release import plan_release
 from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.process_asset import process_passthrough
+from vandrel_foundry.services.review_asset import approve_asset
 from vandrel_foundry.services.select_output import select_output
+from vandrel_foundry.services.stage_godot import prepare_godot_sandbox
 from vandrel_foundry.services.submit_preview import (
     submit_remesh,
     submit_text_preview,
     submit_text_refine,
 )
+from vandrel_foundry.services.validate_godot import ProcessResult, validate_godot_sandbox
 from vandrel_foundry.storage.manifests import ManifestRepository
 
 
@@ -311,6 +315,83 @@ def test_select_and_passthrough_processing_creates_distinct_verified_artifact(
     assert (asset_root / str(processed.path)).stat().st_ino != (
         asset_root / str(source.path)
     ).stat().st_ino
+
+    inspection_ready = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
+    inspection_ready.validation.result = "passed"
+    inspection_ready.validation.checks = [
+        {"name": "glb_structure", "passed": True},
+        {"name": "triangle_budget", "passed": True},
+    ]
+    inspection_ready.revision += 1
+    ManifestRepository(config.foundry.workspace_root).save(
+        inspection_ready,
+        "asset.inspected",
+        expected_revision=inspection_ready.revision - 1,
+    )
+
+    staged_model, wrapper = prepare_godot_sandbox(
+        config,
+        lanes,
+        "stone_knife_001",
+    )
+    staged_manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
+    wrapper_text = (asset_root / str(wrapper.path)).read_text(encoding="utf-8")
+    project = (asset_root / str(wrapper.path)).parent / "project.godot"
+    assert staged_manifest.workflow.state is WorkflowState.STAGED
+    assert staged_model.derived_from == [processed.artifact_id]
+    assert wrapper.derived_from == [staged_model.artifact_id]
+    assert 'path="res://model.glb"' in wrapper_text
+    assert "Collision" not in wrapper_text
+    assert project.is_file()
+    assert str(config.vandrel.reference_repo_root) not in wrapper_text
+    assert staged_manifest.quality.targets["collision_recommendation"] == "manual"
+
+    executable = prompt.parent / "Godot.exe"
+    executable.write_bytes(b"fixture executable")
+    config.tools.godot_executable = executable
+
+    def fake_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
+        assert arguments[0] == str(executable)
+        assert arguments[1:4] == ["--headless", "--path", str(cwd)]
+        assert "MESHY_API_KEY" not in environment
+        assert timeout_seconds == 120
+        assert maximum_output_bytes == 1_000_000
+        (cwd / ".godot" / "imported").mkdir(parents=True)
+        return ProcessResult(0, "imported", "", False, False, 0.1)
+
+    result = validate_godot_sandbox(
+        config,
+        "stone_knife_001",
+        runner=fake_runner,
+        environment={"MESHY_API_KEY": "must-not-leak", "PATH": "safe"},
+    )
+    validated = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
+    assert result.return_code == 0
+    assert validated.workflow.state is WorkflowState.REVIEW
+    assert validated.validation.result == "passed"
+    assert any(item.role == "godot_validation_report" for item in validated.artifacts)
+
+    approved = approve_asset(
+        config,
+        "stone_knife_001",
+        reviewer="Test Reviewer",
+        notes="Fixture approval.",
+    )
+    assert approved.workflow.state is WorkflowState.APPROVED
+    assert approved.approval.approved
+    assert approved.approval.reviewer == "Test Reviewer"
+    assert set(approved.approval.approved_artifact_hashes) == {
+        "processed_model",
+        "godot_wrapper_scene",
+    }
+    release_plan = plan_release(config, lanes, "stone_knife_001")
+    assert release_plan.release_revision == 1
+    assert not release_plan.destination.exists()
+    assert release_plan.descriptor["godot"]["import_validated"]
+    assert [item["role"] for item in release_plan.descriptor["files"]] == [
+        "model",
+        "godot_wrapper_scene",
+    ]
 
 
 def test_remesh_uses_lane_sized_explicit_paid_attempt(config, lanes, prompt: Path) -> None:

@@ -537,6 +537,10 @@
         "source_ready",
         "downloaded",
         "processed",
+        "staged",
+        "review",
+        "approved",
+        "rejected",
         "blocked"
       ],
       "title": "WorkflowState",

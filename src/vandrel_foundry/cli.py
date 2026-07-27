@@ -17,16 +17,20 @@ from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
 from vandrel_foundry.services.inspect_assets import discover_assets, initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_processed_glb
+from vandrel_foundry.services.plan_release import plan_release
 from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
+from vandrel_foundry.services.review_asset import approve_asset, reject_asset
 from vandrel_foundry.services.select_output import select_output
+from vandrel_foundry.services.stage_godot import prepare_godot_sandbox
 from vandrel_foundry.services.submit_preview import (
     submit_image_to_3d,
     submit_remesh,
     submit_text_preview,
     submit_text_refine,
 )
+from vandrel_foundry.services.validate_godot import validate_godot_sandbox
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath
 
@@ -429,6 +433,97 @@ def inspect(
             f"[green]Inspected[/green] {asset_id}: {result.triangle_count} triangles, "
             f"{result.material_count} materials"
         )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("prepare-godot")
+def prepare_godot(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Create a self-contained Godot validation sandbox outside Vandrel."""
+    try:
+        settings, lane_config = configured(config)
+        _, wrapper = prepare_godot_sandbox(settings, lane_config, asset_id)
+        console.print(f"[green]Staged Godot sandbox[/green] {wrapper.path}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("validate-godot")
+def validate_godot(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Run bounded headless import in the recorded Godot sandbox."""
+    try:
+        settings = load_config(config)
+        result = validate_godot_sandbox(settings, asset_id)
+        if result.return_code != 0 or result.timed_out or result.output_limited:
+            raise FoundryError("Godot sandbox validation failed; inspect its report.")
+        console.print(f"[green]Godot validation passed[/green] {asset_id}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def approve(
+    asset_id: str,
+    reviewer: Annotated[str, typer.Option("--reviewer")],
+    all_required_checks: Annotated[
+        bool,
+        typer.Option(
+            "--all-required-checks",
+            help="Confirm the human review and all required checks are complete.",
+        ),
+    ] = False,
+    notes: Annotated[str, typer.Option("--notes")] = "",
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Bind explicit approval to the exact reviewed artifact hashes."""
+    if not all_required_checks:
+        fail(FoundryError("Approval requires --all-required-checks."))
+    try:
+        settings = load_config(config)
+        manifest = approve_asset(settings, asset_id, reviewer, notes)
+        console.print(f"[green]Approved[/green] {asset_id} by {manifest.approval.reviewer}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def reject(
+    asset_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Reject a reviewed candidate with a retained reason."""
+    try:
+        settings = load_config(config)
+        reject_asset(settings, asset_id, reason)
+        console.print(f"[yellow]Rejected[/yellow] {asset_id}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def release(
+    asset_id: str,
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Publish the planned release."),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Print a read-only immutable release plan; publication remains blocked."""
+    if apply:
+        fail(FoundryError("Release publication is not implemented; dry-run only."))
+    try:
+        settings, lane_config = configured(config)
+        plan = plan_release(settings, lane_config, asset_id)
+        console.print_json(json.dumps(plan.descriptor, indent=2))
+        console.print(f"[cyan]Dry-run destination:[/cyan] {plan.destination}")
     except FoundryError as exc:
         fail(exc)
 

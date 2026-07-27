@@ -63,6 +63,18 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     guarded_remesh = invoke(["remesh", "stone_knife_001"], cli_config)
     assert guarded_remesh.exit_code != 0
     assert "--confirm-spend" in guarded_remesh.output
+    guarded_approval = invoke(
+        ["approve", "stone_knife_001", "--reviewer", "Reviewer"],
+        cli_config,
+    )
+    assert guarded_approval.exit_code != 0
+    assert "--all-required-checks" in guarded_approval.output
+    blocked_release_apply = invoke(
+        ["release", "stone_knife_001", "--apply"],
+        cli_config,
+    )
+    assert blocked_release_apply.exit_code != 0
+    assert "dry-run only" in blocked_release_apply.output
     download = invoke(["download", "stone_knife_001"], cli_config)
     assert download.exit_code != 0 and "Provider task not found" in download.output
 

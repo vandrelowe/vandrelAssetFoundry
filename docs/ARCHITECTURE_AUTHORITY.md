@@ -47,6 +47,10 @@
 | Provider output selection | `src/vandrel_foundry/services/select_output.py` |
 | Immutable pass-through processing | `src/vandrel_foundry/services/process_asset.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
+| Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
+| Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |
+| Manual approval and rejection | `src/vandrel_foundry/services/review_asset.py` |
+| Read-only release planning | `src/vandrel_foundry/services/plan_release.py` |
 
 The Pydantic model is the source for
 `schemas/asset-manifest-v1.schema.json`; the checked-in schema is the portable

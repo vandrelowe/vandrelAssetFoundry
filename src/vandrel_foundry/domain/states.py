@@ -8,6 +8,10 @@ class WorkflowState(StrEnum):
     SOURCE_READY = "source_ready"
     DOWNLOADED = "downloaded"
     PROCESSED = "processed"
+    STAGED = "staged"
+    REVIEW = "review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
     BLOCKED = "blocked"
 
 
@@ -20,4 +24,10 @@ def next_actions(state: WorkflowState) -> list[str]:
         return ["download"]
     if state is WorkflowState.DOWNLOADED:
         return ["select-output", "process"]
+    if state is WorkflowState.PROCESSED:
+        return ["inspect", "prepare-godot"]
+    if state is WorkflowState.STAGED:
+        return ["validate-godot"]
+    if state is WorkflowState.REVIEW:
+        return ["approve", "reject"]
     return []

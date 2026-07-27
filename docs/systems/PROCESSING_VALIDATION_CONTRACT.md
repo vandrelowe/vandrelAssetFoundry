@@ -1,12 +1,87 @@
 # Processing and Validation Contract
 
-**Status:** Stub — implementation blocked
+**Status:** Active — local processing and sandbox staging permitted
 
-This corridor will govern processors, technical inspectors, Godot sandbox
-validation, tool versions, deterministic outputs, reports, and artifact
-derivation.
+## Scope and authority
 
-No Blender or Godot subprocess integration may be implemented until the
-contract defines bounded execution, sandbox locations, version capture,
-artifact immutability, report schemas, failure recovery, and the prohibition on
-using the real Vandrel checkout as a processing or import sandbox.
+This corridor governs processors, technical inspection, generated Godot
+validation sandboxes, tool execution, reports, and artifact derivation.
+Processed and staged outputs remain Foundry candidates. They do not become
+Vandrel runtime wrappers, catalog entries, or approved releases.
+
+The real Vandrel checkout is always read-only and must never be used as a
+processing directory, import target, cache, or validation sandbox.
+
+## Immutable artifact protocol
+
+Every processor must:
+
+1. Load an existing manifest through `ManifestRepository`.
+2. Require an artifact with a recorded SHA-256 and size.
+3. Recalculate both before processing.
+4. Write to a new asset-relative path without overwrite.
+5. Flush the completed output and recalculate its hash and size.
+6. Record a distinct artifact ID, role, stage, derivation, processor name, and
+   processor version.
+7. Persist the manifest with an expected-revision check.
+
+A pass-through processor still creates a physically distinct output. It may
+preserve bytes and hashes, but it must not alias the source file through a hard
+link.
+
+## Technical reports
+
+- Reports are JSON objects with an explicit schema version, asset ID, artifact
+  ID and hash, measured facts, and named checks.
+- Reports use new numbered paths and never overwrite prior evidence.
+- A report records observations; it does not silently repair an artifact.
+- Lane validation compares measured facts with the checked-in lane policy.
+- Unknown or unsupported structures fail closed with a readable error.
+- Approval is not implied by a passing technical report.
+
+## Godot sandbox staging
+
+- Staging occurs only below the asset's `godot_staging/` directory.
+- A staging directory is deterministic from the selected artifact identity and
+  hash and is immutable once complete.
+- The sandbox contains its own `project.godot`, copied candidate model, and
+  validation-only wrapper scene.
+- Generated scenes may use sandbox-local `res://` paths only. They must not
+  emit or claim Vandrel runtime destinations.
+- Wrapper scenes instance the GLB; the imported GLB scene is not itself treated
+  as a final game wrapper.
+- Lane collision policy is recorded as a recommendation. Version 1 creates no
+  collision or navigation nodes automatically.
+
+## Bounded subprocess execution
+
+A future Godot or Blender subprocess adapter is permitted only when it:
+
+- executes an explicitly configured absolute executable path;
+- uses an argument vector without shell evaluation;
+- uses the generated workspace sandbox as its working directory;
+- has a configured finite timeout and terminates the child on expiry;
+- captures bounded standard output and error into a numbered report;
+- records executable version, arguments with secrets removed, exit status,
+  start/end times, and timeout state;
+- never passes provider credentials or inherits them when they are unnecessary;
+- treats nonzero exit, timeout, missing reports, or mutated inputs as failure;
+- never writes into the real Vandrel checkout or asset library.
+
+Normal tests use fake process runners. Live tool tests are opt-in and may not be
+required by CI.
+
+Godot command-line behavior follows the stable engine documentation:
+<https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html>.
+The validator uses `--headless`, `--path`, `--import`, and a sandbox-local log.
+
+## Failure recovery
+
+- Remove only incomplete files and directories created by the current
+  operation when commit is known not to have occurred.
+- If manifest replacement may already have succeeded before a later journal
+  error, retain the immutable output for reconciliation.
+- Never delete or overwrite an earlier source, processed artifact, staging
+  directory, or report during retry.
+- A retry receives a new artifact/report identity unless it can prove that an
+  existing deterministic output is complete and hash-identical.
