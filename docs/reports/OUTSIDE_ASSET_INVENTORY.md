@@ -106,3 +106,9 @@ preserving one material, one texture, and one embedded image. Foundry
 independently measured the output at 2,000 triangles, and Godot imported the
 decimated GLB successfully. The candidate remains in review because geometric
 and texture counts do not substitute for human visual-quality review.
+
+The Meshy Fresh Wood Campfire was then processed without decimation because
+its source conversion already measured 2,544 triangles, close to the
+2,500-triangle lane target and below the 5,000 maximum. Its material and
+embedded texture survived conversion, Godot import passed, and an audited local
+preview was generated. It remains in review.

@@ -1,0 +1,1 @@
+A fresh-wood campfire prop previously generated outside the Foundry, used to validate zero-credit static-prop intake, optimization, and Godot import.
