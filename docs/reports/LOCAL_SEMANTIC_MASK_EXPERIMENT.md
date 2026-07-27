@@ -99,3 +99,30 @@ Before applying the corridor to hundreds of characters, it should pass on
 several materially different bodies and outfits. In particular, the profile
 needs better handling of torso garments and small accessories than this first
 candidate achieved.
+
+## Diversity probe
+
+A follow-up detector-only probe used three existing Meshy exports from
+`C:/Dev/outsideassets`:
+
+- `Female Dark Sorcerer Low Poly.fbx`;
+- `Feral Apeman Low Poly.fbx`; and
+- `Male Athletic Shaman Low Poly.fbx`.
+
+The broader vocabulary successfully located the apeman loincloth and the male
+shaman's hair, skirt, bone ornaments, and wrist wraps. It also exposed two
+important failure modes:
+
+- the nearly monochrome tattooed sorcerer produced broad false clothing and
+  skirt boxes over painted skin; and
+- the pale apeman produced good loincloth and head-hair boxes but did not
+  reliably identify body fur as a separate region.
+
+Several generic clothing phrases also produced near-full-body boxes. A reusable
+runner must reject implausibly broad boxes before SAM segmentation.
+
+This probe rules out one universal phrase list as the default. The versioned
+configuration should provide archetype-specific profiles, such as sparse-clothed
+human, tattooed/painted human, and furred humanoid, while allowing manifest or
+operator hints to extend detector phrases. Foundry should record the exact
+profile and hints used so that a mask can be reproduced and audited.
