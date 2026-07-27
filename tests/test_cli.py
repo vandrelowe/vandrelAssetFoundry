@@ -50,6 +50,8 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     assert status.exit_code == 0 and "submit" in status.output
     audit = invoke(["audit", "stone_knife_001"], cli_config)
     assert audit.exit_code == 0 and "Integrity audit passed" in audit.output
+    audit_all = invoke(["audit-all"], cli_config)
+    assert audit_all.exit_code == 0 and "Workspace audit passed 1 candidates" in audit_all.output
     guarded_submit = invoke(["submit", "stone_knife_001"], cli_config)
     assert guarded_submit.exit_code != 0
     assert "--confirm-spend" in guarded_submit.output

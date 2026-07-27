@@ -315,6 +315,40 @@ def audit(
     console.print(f"[green]Integrity audit passed[/green] {asset_id}")
 
 
+@app.command("audit-all")
+def audit_all(
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Run read-only integrity audits for every discovered candidate."""
+    try:
+        settings = load_config(config)
+        assets, warnings = discover_assets(settings.foundry.workspace_root)
+        results = [audit_asset(settings, manifest.asset.asset_id) for manifest in assets]
+    except FoundryError as exc:
+        fail(exc)
+    table = Table("Asset", "State", "Artifacts", "Result")
+    for manifest, result in zip(assets, results, strict=True):
+        table.add_row(
+            result.asset_id,
+            manifest.workflow.state.value,
+            str(len(result.artifact_checks)),
+            "pass" if result.passed else "FAIL",
+            style=None if result.passed else "red",
+        )
+    console.print(table)
+    for warning in warnings:
+        error_console.print(f"[red]Discovery failure:[/red] {warning}")
+    failed = [result.asset_id for result in results if not result.passed]
+    if warnings or failed:
+        fail(
+            FoundryError(
+                f"Workspace audit failed: {len(failed)} candidates and "
+                f"{len(warnings)} discovery errors."
+            )
+        )
+    console.print(f"[green]Workspace audit passed[/green] {len(results)} candidates")
+
+
 @app.command()
 def submit(
     asset_id: str,
