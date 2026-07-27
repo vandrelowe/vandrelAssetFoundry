@@ -9,9 +9,14 @@ import bpy
 
 def main() -> None:
     arguments = sys.argv[sys.argv.index("--") + 1 :]
-    if len(arguments) != 3:
-        raise RuntimeError("Expected input GLB, output GLB, and report JSON paths.")
-    input_path, output_path, report_path = map(Path, arguments)
+    if len(arguments) not in {3, 4}:
+        raise RuntimeError(
+            "Expected input GLB, output GLB, report JSON, and optional triangle target."
+        )
+    input_path, output_path, report_path = map(Path, arguments[:3])
+    target_triangles = int(arguments[3]) if len(arguments) == 4 else None
+    if target_triangles is not None and target_triangles < 1:
+        raise RuntimeError("Triangle target must be positive.")
     bpy.ops.wm.read_factory_settings(use_empty=True)
     suffix = input_path.suffix.lower()
     if suffix in {".glb", ".gltf"}:
@@ -27,7 +32,21 @@ def main() -> None:
         item.select_set(True)
     bpy.context.view_layer.objects.active = mesh_objects[0]
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    triangle_count = sum(
+    triangles_before = sum(
+        len(loop_triangles) for item in mesh_objects for loop_triangles in [_triangles(item)]
+    )
+    operations = ["apply_rotation", "apply_scale"]
+    if target_triangles is not None and triangles_before > target_triangles:
+        ratio = target_triangles / triangles_before
+        for item in mesh_objects:
+            bpy.context.view_layer.objects.active = item
+            item.select_set(True)
+            modifier = item.modifiers.new(name="Foundry Decimate", type="DECIMATE")
+            modifier.ratio = ratio
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+            item.select_set(False)
+        operations.append("decimate")
+    triangles_after = sum(
         len(loop_triangles) for item in mesh_objects for loop_triangles in [_triangles(item)]
     )
     bpy.ops.export_scene.gltf(
@@ -42,8 +61,10 @@ def main() -> None:
                 "blender_version": bpy.app.version_string,
                 "input_format": suffix.removeprefix("."),
                 "mesh_objects": len(mesh_objects),
-                "triangles": triangle_count,
-                "operations": ["apply_rotation", "apply_scale", "export_glb"],
+                "triangles_before": triangles_before,
+                "triangles_after": triangles_after,
+                "target_triangles": target_triangles,
+                "operations": [*operations, "export_glb"],
             },
             indent=2,
         )

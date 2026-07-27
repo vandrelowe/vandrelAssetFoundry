@@ -18,8 +18,11 @@ ADAPTER_VERSION = "1"
 def process_with_blender(
     config: FoundryConfig,
     asset_id: str,
+    target_triangles: int | None = None,
     runner: ProcessRunner | None = None,
 ) -> Artifact:
+    if target_triangles is not None and target_triangles < 1:
+        raise FoundryError("Blender triangle target must be a positive integer.")
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
     if manifest.workflow.state not in {WorkflowState.DOWNLOADED, WorkflowState.PROCESSED}:
@@ -64,6 +67,8 @@ def process_with_blender(
         str(output_path),
         str(report_path),
     ]
+    if target_triangles is not None:
+        arguments.append(str(target_triangles))
     safe_environment = {
         key: value
         for key, value in os.environ.items()
@@ -93,9 +98,17 @@ def process_with_blender(
             raise FoundryError("Bounded Blender processing failed.")
         if not output_path.is_file() or not report_path.is_file():
             raise FoundryError("Blender did not create its required output and report.")
-        inspect_glb(output_path)
+        inspection = inspect_glb(output_path)
         report = json.loads(report_path.read_text(encoding="utf-8"))
         version = str(report["blender_version"])
+        if target_triangles is not None:
+            if report.get("target_triangles") != target_triangles:
+                raise FoundryError("Blender report does not match the requested triangle target.")
+            if inspection.triangle_count > target_triangles:
+                raise FoundryError(
+                    "Blender output exceeds the requested triangle target: "
+                    f"{inspection.triangle_count} > {target_triangles}"
+                )
         digest, size = _hash_file(output_path)
         report_digest, report_size = _hash_file(report_path)
     except BaseException:
@@ -103,7 +116,7 @@ def process_with_blender(
         report_path.unlink(missing_ok=True)
         raise
     processor = Processor(
-        name="blender_cleanup",
+        name="blender_decimate" if target_triangles is not None else "blender_cleanup",
         version=f"{ADAPTER_VERSION}+blender-{version}",
     )
     artifact = Artifact(

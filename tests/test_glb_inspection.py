@@ -207,6 +207,58 @@ def test_external_glb_enters_downloaded_workflow_without_provider(
     assert processed.processor.name == "blender_cleanup"
     assert any(item.role == "blender_processing_report" for item in updated.artifacts)
 
+    def fake_decimate_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
+        input_path, output_path, report_path = map(Path, arguments[-4:-1])
+        assert arguments[-1] == "3"
+        output_path.write_bytes(input_path.read_bytes())
+        report_path.write_text(
+            json.dumps(
+                {
+                    "blender_version": "fixture",
+                    "triangles_before": 5,
+                    "triangles_after": 3,
+                    "target_triangles": 3,
+                }
+            ),
+            encoding="utf-8",
+        )
+        return ProcessResult(0, "", "", False, False, 0.1)
+
+    decimated = process_with_blender(
+        config,
+        "external_prop_001",
+        target_triangles=3,
+        runner=fake_decimate_runner,
+    )
+    assert decimated.processor is not None
+    assert decimated.processor.name == "blender_decimate"
+
+    def fake_over_target_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
+        input_path, output_path, report_path = map(Path, arguments[-4:-1])
+        output_path.write_bytes(input_path.read_bytes())
+        report_path.write_text(
+            json.dumps({"blender_version": "fixture", "target_triangles": 1}),
+            encoding="utf-8",
+        )
+        return ProcessResult(0, "", "", False, False, 0.1)
+
+    with pytest.raises(FoundryError, match="exceeds the requested triangle target"):
+        process_with_blender(
+            config,
+            "external_prop_001",
+            target_triangles=1,
+            runner=fake_over_target_runner,
+        )
+    assert not (
+        config.foundry.workspace_root
+        / "assets/external_prop_001/processed/blender/processed_glb_003.glb"
+    ).exists()
+
+
+def test_blender_processing_rejects_nonpositive_triangle_target(config) -> None:
+    with pytest.raises(FoundryError, match="positive integer"):
+        process_with_blender(config, "missing", target_triangles=0)
+
 
 def test_external_fbx_package_preserves_source_texture_and_conversion_evidence(
     config, lanes, prompt: Path, tmp_path: Path

@@ -25,6 +25,12 @@ Every processor must:
    processor version.
 7. Persist the manifest with an expected-revision check.
 
+Local Blender decimation is explicit and accepts a positive triangle target.
+It records before/after counts and the target in the immutable processing
+report. Foundry parses the produced GLB independently and rejects an output
+that exceeds the requested target. Lane policy does not silently trigger
+decimation.
+
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.

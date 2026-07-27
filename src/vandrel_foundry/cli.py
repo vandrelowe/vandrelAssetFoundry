@@ -504,12 +504,20 @@ def process(
 @app.command("process-blender")
 def process_blender(
     asset_id: str,
+    target_triangles: Annotated[
+        int | None,
+        typer.Option(
+            "--target-triangles",
+            min=1,
+            help="Explicit local decimation target; omitted means transform cleanup only.",
+        ),
+    ] = None,
     config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
 ) -> None:
-    """Apply transforms and re-export a GLB through bounded headless Blender."""
+    """Apply transforms and optionally decimate through bounded headless Blender."""
     try:
         settings = load_config(config)
-        artifact = process_with_blender(settings, asset_id)
+        artifact = process_with_blender(settings, asset_id, target_triangles)
         console.print(f"[green]Blender processed[/green] {artifact.path}")
     except FoundryError as exc:
         fail(exc)

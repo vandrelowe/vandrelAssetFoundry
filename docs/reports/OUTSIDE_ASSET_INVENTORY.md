@@ -97,3 +97,12 @@ highest weights during GLB export; the warning is preserved in each candidate's
 conversion evidence. These results validate basic rig and animation
 preservation, but do not establish a canonical Vandrel humanoid skeleton
 contract.
+
+## Local decimation probe
+
+The native Empty Basket package was reprocessed with an explicit 2,000-triangle
+target. Blender reduced it from 3,084 to exactly 2,000 triangles while
+preserving one material, one texture, and one embedded image. Foundry
+independently measured the output at 2,000 triangles, and Godot imported the
+decimated GLB successfully. The candidate remains in review because geometric
+and texture counts do not substitute for human visual-quality review.

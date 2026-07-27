@@ -70,6 +70,8 @@ foundry download stone_knife_001
 foundry select-output stone_knife_001 --task meshy_preview_001
 foundry process stone_knife_001
 foundry process-blender stone_knife_001
+# Explicit, local-only decimation; the output must meet this target.
+foundry process-blender stone_knife_001 --target-triangles 2500
 foundry inspect stone_knife_001
 foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
@@ -163,8 +165,9 @@ headless import validation without touching Vandrel. The subprocess uses the
 configured absolute executable, removes Meshy credentials from its environment,
 limits runtime and output, and records hash-bound logs and reports. Manual
 hash-bound approval, read-only release planning, and deterministic Blender
-transform cleanup/export are implemented. Decimation policy, release
-publication, and humanoid promotion remain later work.
+transform cleanup/export are implemented. Explicit target-bound local
+decimation is implemented; automated target selection, release publication,
+and humanoid promotion remain later work.
 `release` is currently a read-only plan;
 `release --apply` fails closed until the publication transaction and
 asset-library safeguards are implemented.
