@@ -35,3 +35,6 @@ jobs:
 
       - name: Test
         run: python -m pytest
+
+      - name: Build distributable wheel
+        run: python -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist
