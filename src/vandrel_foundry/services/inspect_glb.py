@@ -50,9 +50,12 @@ def inspect_processed_glb(
     if lane is None:
         raise FoundryError(f"Lane policy is unavailable: {manifest.asset.lane}")
     maximum = lane.maximum_triangles
+    geometry_ok = inspection.mesh_count > 0 and inspection.primitive_count > 0
     triangle_ok = maximum is None or inspection.triangle_count <= maximum
     materials_ok = not lane.requires_materials or inspection.material_count > 0
-    skeleton_ok = not lane.requires_skeleton or inspection.skin_count > 0
+    skeleton_ok = not lane.requires_skeleton or (
+        inspection.skin_count > 0 and inspection.joint_count > 0
+    )
     checks = [
         {
             "name": "glb_structure",
@@ -64,6 +67,12 @@ def inspect_processed_glb(
             "passed": triangle_ok,
             "observed": inspection.triangle_count,
             "maximum": maximum,
+        },
+        {
+            "name": "geometry_present",
+            "passed": geometry_ok,
+            "observed_meshes": inspection.mesh_count,
+            "observed_primitives": inspection.primitive_count,
         },
         {
             "name": "materials_required",
@@ -92,7 +101,7 @@ def inspect_processed_glb(
     write_new_json_evidence(contained_path(asset_root, report_relative), report)
     manifest.quality.observed.update(inspection.__dict__)
     manifest.validation.result = (
-        "passed" if triangle_ok and materials_ok and skeleton_ok else "failed"
+        "passed" if geometry_ok and triangle_ok and materials_ok and skeleton_ok else "failed"
     )
     manifest.validation.checks = checks
     manifest.revision += 1
@@ -200,13 +209,18 @@ def _joint_count(document: dict[str, Any]) -> int:
     skins = document.get("skins", [])
     if not isinstance(skins, list):
         raise FoundryError("GLB skins must be an array.")
+    node_count = _array_length(document, "nodes")
     joints: set[int] = set()
     for skin in skins:
         values = skin.get("joints", []) if isinstance(skin, dict) else None
         if not isinstance(values, list) or any(
-            not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in values
+            not isinstance(value, int)
+            or isinstance(value, bool)
+            or value < 0
+            or value >= node_count
+            for value in values
         ):
-            raise FoundryError("GLB skin joints must be nonnegative integer arrays.")
+            raise FoundryError("GLB skin joints must reference valid node indices.")
         joints.update(values)
     return len(joints)
 

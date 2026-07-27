@@ -6,8 +6,8 @@
 
 - Approval is explicit and manual.
 - Approval binds exact artifact roles to SHA-256 hashes.
-- Approval requires passing GLB structure, lane triangle-budget, and Godot
-  sandbox-import checks.
+- Approval requires passing GLB structure, nonempty geometry, lane
+  triangle-budget, material, skeleton, and Godot sandbox-import checks.
 - Any approved artifact change invalidates approval.
 - Release is dry-run by default.
 - Release revisions are immutable and monotonically numbered.

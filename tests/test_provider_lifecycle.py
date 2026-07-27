@@ -320,6 +320,7 @@ def test_select_and_passthrough_processing_creates_distinct_verified_artifact(
     inspection_ready.validation.result = "passed"
     inspection_ready.validation.checks = [
         {"name": "glb_structure", "passed": True},
+        {"name": "geometry_present", "passed": True},
         {"name": "triangle_budget", "passed": True},
         {"name": "materials_required", "passed": True},
         {"name": "skeleton_required", "passed": True},

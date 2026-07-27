@@ -45,6 +45,8 @@ path and enters the same downloaded-state corridor as provider output.
 - Reports use new numbered paths and never overwrite prior evidence.
 - A report records observations; it does not silently repair an artifact.
 - Lane validation compares measured facts with the checked-in lane policy.
+- Empty geometry cannot pass review; humanoid lanes require at least one skin
+  with at least one valid joint reference.
 - Unknown or unsupported structures fail closed with a readable error.
 - Approval is not implied by a passing technical report.
 

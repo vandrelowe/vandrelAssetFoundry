@@ -43,6 +43,7 @@ def test_inspection_counts_indexed_triangles_and_materials(tmp_path: Path) -> No
             "materials": [{}],
             "textures": [{}, {}],
             "images": [{}],
+            "nodes": [{}, {}, {}],
             "skins": [{"joints": [0, 1, 2]}],
             "animations": [{}, {}],
         },
@@ -57,6 +58,26 @@ def test_inspection_counts_indexed_triangles_and_materials(tmp_path: Path) -> No
     assert result.skin_count == 1
     assert result.joint_count == 3
     assert result.animation_count == 2
+
+
+@pytest.mark.parametrize("joints", [[], [1], [-1], [True]])
+def test_inspection_rejects_empty_or_invalid_skin_joints(
+    joints: list[object], tmp_path: Path
+) -> None:
+    path = tmp_path / "invalid-skin.glb"
+    _write_glb(
+        path,
+        {
+            "asset": {"version": "2.0"},
+            "nodes": [{}],
+            "skins": [{"joints": joints}],
+        },
+    )
+    if joints == []:
+        assert inspect_glb(path).joint_count == 0
+    else:
+        with pytest.raises(FoundryError, match="valid node indices"):
+            inspect_glb(path)
 
 
 @pytest.mark.parametrize(
@@ -123,6 +144,9 @@ def test_asset_inspection_persists_hash_bound_report(config, lanes, prompt: Path
     assert result.triangle_count == 5
     assert saved.validation.result == "passed"
     assert saved.quality.observed["triangle_count"] == 5
+    assert next(check for check in saved.validation.checks if check["name"] == "geometry_present")[
+        "passed"
+    ]
     assert report["artifact_sha256"] == hashlib.sha256(content).hexdigest()
 
 

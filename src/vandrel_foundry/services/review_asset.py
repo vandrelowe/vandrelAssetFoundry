@@ -11,6 +11,7 @@ from vandrel_foundry.storage.paths import contained_path
 APPROVAL_ROLES = ("processed_model", "godot_wrapper_scene")
 REQUIRED_CHECKS = {
     "glb_structure",
+    "geometry_present",
     "triangle_budget",
     "materials_required",
     "skeleton_required",
