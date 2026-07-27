@@ -52,6 +52,7 @@
 | Bounded Blender cleanup/export | `src/vandrel_foundry/services/process_blender.py` |
 | In-Blender deterministic operations | `src/vandrel_foundry/blender/process_glb.py` |
 | Local Blender review preview rendering | `src/vandrel_foundry/services/render_preview.py` |
+| Missing-preview batch selection | `src/vandrel_foundry/services/render_missing_previews.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |

@@ -36,6 +36,9 @@ renders a hash-verified processed GLB into a new transparent PNG and JSON
 report, and retains bounded subprocess output as an immutable log artifact.
 Rendering does not alter workflow state, approved hashes, release
 state, or the source model.
+Batch preview rendering is sequential and selects only processed, review, or
+approved candidates without an existing local preview. It skips all other
+states and never replaces a preview.
 
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard

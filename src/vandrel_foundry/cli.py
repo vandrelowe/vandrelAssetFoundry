@@ -25,6 +25,7 @@ from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.process_blender import process_with_blender
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
+from vandrel_foundry.services.render_missing_previews import render_missing_previews
 from vandrel_foundry.services.render_preview import render_local_preview
 from vandrel_foundry.services.review_asset import (
     approval_checks_pass,
@@ -633,6 +634,19 @@ def render_preview(
         console.print(f"[green]Rendered preview[/green] {artifact.path}")
     except FoundryError as exc:
         fail(exc)
+
+
+@app.command("render-missing-previews")
+def render_missing(
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Render previews only for eligible candidates that do not have one."""
+    try:
+        settings = load_config(config)
+        artifacts = render_missing_previews(settings)
+    except FoundryError as exc:
+        fail(exc)
+    console.print(f"[green]Rendered[/green] {len(artifacts)} missing previews")
 
 
 @app.command("prepare-godot")

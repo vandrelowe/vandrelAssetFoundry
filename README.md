@@ -84,6 +84,7 @@ foundry process-blender stone_knife_001
 foundry process-blender stone_knife_001 --target-triangles 2500
 foundry inspect stone_knife_001
 foundry render-preview stone_knife_001
+foundry render-missing-previews
 foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
 foundry approve stone_knife_001 --reviewer "Reviewer Name" --all-required-checks
