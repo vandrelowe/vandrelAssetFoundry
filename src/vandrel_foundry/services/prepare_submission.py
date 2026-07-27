@@ -10,11 +10,15 @@ from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.providers.meshy.models import (
     ImageTo3DRequest,
     RemeshRequest,
+    RetextureRequest,
+    RiggingRequest,
     TextTo3DPreviewRequest,
     TextTo3DRefineRequest,
 )
 from vandrel_foundry.services.add_reference import MAX_REFERENCE_IMAGE_BYTES
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
+
+MAX_MODEL_DATA_URI_BYTES = 100 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -23,7 +27,14 @@ class PreparedSubmission:
     task_key: str
     attempt: int
     operation: str
-    request: TextTo3DPreviewRequest | TextTo3DRefineRequest | ImageTo3DRequest | RemeshRequest
+    request: (
+        TextTo3DPreviewRequest
+        | TextTo3DRefineRequest
+        | ImageTo3DRequest
+        | RemeshRequest
+        | RetextureRequest
+        | RiggingRequest
+    )
     request_fingerprint: str
 
 
@@ -151,11 +162,87 @@ def prepare_remesh_submission(
     return _prepare(manifest, "remesh", "meshy_remesh", request)
 
 
+def prepare_retexture_submission(
+    workspace_root: Path,
+    manifest: AssetManifest,
+    artifact_id: str,
+    prompt: str,
+    *,
+    enable_pbr: bool,
+    texture_resolution: str,
+    task_label: str,
+) -> PreparedSubmission:
+    if manifest.generation.provider != "meshy":
+        raise FoundryError(f"Asset provider is not meshy: {manifest.asset.asset_id}")
+    matches = [item for item in manifest.artifacts if item.artifact_id == artifact_id]
+    if not matches:
+        raise FoundryError(f"Artifact not found: {artifact_id}")
+    artifact = matches[-1]
+    if artifact.format != "glb":
+        raise FoundryError("Meshy retexture input must be a GLB artifact.")
+    asset_root = workspace_root / "assets" / manifest.asset.asset_id
+    path = contained_path(asset_root, artifact.path)
+    try:
+        content = path.read_bytes()
+    except OSError as exc:
+        raise FoundryError(f"Could not read retexture input {artifact_id}: {exc}") from exc
+    if not content or len(content) > MAX_MODEL_DATA_URI_BYTES:
+        raise FoundryError("Retexture input is empty or exceeds the 100 MiB upload limit.")
+    if (
+        len(content) != artifact.size_bytes
+        or hashlib.sha256(content).hexdigest() != artifact.sha256
+    ):
+        raise FoundryError(f"Retexture input no longer matches its manifest hash: {artifact_id}")
+    label = task_label.strip().lower().replace("-", "_")
+    if label not in {"beauty", "semantic"}:
+        raise FoundryError("Retexture task label must be beauty or semantic.")
+    request = RetextureRequest(
+        model_url=(
+            "data:application/octet-stream;base64," + base64.b64encode(content).decode("ascii")
+        ),
+        text_style_prompt=prompt.strip(),
+        enable_pbr=enable_pbr,
+        texture_resolution=texture_resolution,
+    )
+    return _prepare(manifest, f"retexture_{label}", f"meshy_retexture_{label}", request)
+
+
+def prepare_rigging_submission(
+    manifest: AssetManifest,
+    retexture_task_key: str,
+    height_meters: float,
+) -> PreparedSubmission:
+    if manifest.generation.provider != "meshy":
+        raise FoundryError(f"Asset provider is not meshy: {manifest.asset.asset_id}")
+    candidates = [
+        task
+        for task in manifest.generation.tasks
+        if task.task_key == retexture_task_key and task.operation == "retexture_beauty"
+    ]
+    if not candidates:
+        raise FoundryError(f"Beauty retexture task not found: {retexture_task_key}")
+    source = candidates[-1]
+    if source.status is not ProviderTaskStatus.SUCCEEDED or not source.provider_task_id:
+        raise FoundryError(f"Beauty retexture task is not succeeded: {retexture_task_key}")
+    request = RiggingRequest(
+        input_task_id=source.provider_task_id,
+        height_meters=height_meters,
+    )
+    return _prepare(manifest, "rigging", "meshy_rigging", request)
+
+
 def _prepare(
     manifest: AssetManifest,
     operation: str,
     task_prefix: str,
-    request: TextTo3DPreviewRequest | TextTo3DRefineRequest | ImageTo3DRequest | RemeshRequest,
+    request: (
+        TextTo3DPreviewRequest
+        | TextTo3DRefineRequest
+        | ImageTo3DRequest
+        | RemeshRequest
+        | RetextureRequest
+        | RiggingRequest
+    ),
 ) -> PreparedSubmission:
     prior_attempts = [
         task.attempt for task in manifest.generation.tasks if task.operation == operation

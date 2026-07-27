@@ -5,7 +5,11 @@ import pytest
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import ProviderTask
 from vandrel_foundry.domain.provider import ProviderTaskStatus
-from vandrel_foundry.providers.redaction import REDACTED, redact_provider_evidence
+from vandrel_foundry.providers.redaction import (
+    REDACTED,
+    REDACTED_DATA_URI,
+    redact_provider_evidence,
+)
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.inspect_assets import initialize_workspace
 from vandrel_foundry.services.prepare_submission import prepare_text_preview_submission
@@ -26,6 +30,14 @@ def test_redaction_removes_nested_credentials_and_signed_queries() -> None:
     assert redacted["nested"]["model_url"] == ("https://assets.meshy.ai/task/model.glb?[REDACTED]")
     assert redacted["safe"] == "value"
     assert "secret" not in str(redacted)
+
+
+def test_redaction_removes_model_data_uri() -> None:
+    redacted = redact_provider_evidence(
+        {"model_url": "data:application/octet-stream;base64,c2VjcmV0"}
+    )
+    assert redacted["model_url"] == REDACTED_DATA_URI
+    assert "c2VjcmV0" not in str(redacted)
 
 
 def test_preview_preparation_is_deterministic_and_local(config, lanes, prompt: Path) -> None:

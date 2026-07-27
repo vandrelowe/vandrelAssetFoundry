@@ -54,6 +54,7 @@ class ProviderTask(StrictModel):
     attempt: int = Field(ge=1)
     status: ProviderTaskStatus
     progress: int | None = Field(default=None, ge=0, le=100)
+    consumed_credits: int | None = Field(default=None, ge=0)
     request_fingerprint: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     request_path: RelativeManifestPath | None = None
     response_path: RelativeManifestPath | None = None

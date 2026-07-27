@@ -17,6 +17,8 @@ from vandrel_foundry.providers.meshy.models import (
     CreateTaskResponse,
     ImageTo3DRequest,
     RemeshRequest,
+    RetextureRequest,
+    RiggingRequest,
     TextTo3DPreviewRequest,
     TextTo3DRefineRequest,
 )
@@ -25,6 +27,8 @@ from vandrel_foundry.services.prepare_submission import (
     PreparedSubmission,
     prepare_image_submission,
     prepare_remesh_submission,
+    prepare_retexture_submission,
+    prepare_rigging_submission,
     prepare_text_preview_submission,
     prepare_text_refine_submission,
 )
@@ -145,6 +149,64 @@ def submit_remesh(
     )
 
 
+def submit_retexture(
+    config: FoundryConfig,
+    asset_id: str,
+    artifact_id: str,
+    prompt: str,
+    transport: TextPreviewTransport,
+    *,
+    task_label: str,
+    enable_pbr: bool,
+    texture_resolution: str = "2k",
+    environment: Mapping[str, str] | None = None,
+) -> ProviderTask:
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load(asset_id)
+    if manifest.release.released or manifest.approval.approved:
+        raise FoundryError("Retexture requires an unreleased, unapproved candidate.")
+    prepared = prepare_retexture_submission(
+        config.foundry.workspace_root,
+        manifest,
+        artifact_id,
+        prompt,
+        enable_pbr=enable_pbr,
+        texture_resolution=texture_resolution,
+        task_label=task_label,
+    )
+    return _submit_prepared(
+        config,
+        manifest,
+        repository,
+        prepared,
+        transport.create_retexture_task,
+        environment,
+    )
+
+
+def submit_rigging(
+    config: FoundryConfig,
+    asset_id: str,
+    retexture_task_key: str,
+    height_meters: float,
+    transport: TextPreviewTransport,
+    environment: Mapping[str, str] | None = None,
+) -> ProviderTask:
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load(asset_id)
+    if manifest.release.released or manifest.approval.approved:
+        raise FoundryError("Rigging requires an unreleased, unapproved candidate.")
+    prepared = prepare_rigging_submission(manifest, retexture_task_key, height_meters)
+    return _submit_prepared(
+        config,
+        manifest,
+        repository,
+        prepared,
+        transport.create_rigging_task,
+        environment,
+    )
+
+
 def _submit_prepared(
     config: FoundryConfig,
     manifest: AssetManifest,
@@ -152,7 +214,12 @@ def _submit_prepared(
     prepared: PreparedSubmission,
     create_task: Callable[
         [
-            TextTo3DPreviewRequest | TextTo3DRefineRequest | ImageTo3DRequest | RemeshRequest,
+            TextTo3DPreviewRequest
+            | TextTo3DRefineRequest
+            | ImageTo3DRequest
+            | RemeshRequest
+            | RetextureRequest
+            | RiggingRequest,
             str,
         ],
         CreateTaskResponse,

@@ -16,6 +16,8 @@ from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
 from vandrel_foundry.providers.meshy.models import (
     ImageTo3DRequest,
     RemeshRequest,
+    RetextureRequest,
+    RiggingRequest,
     TextTo3DPreviewRequest,
     TextTo3DRefineRequest,
 )
@@ -121,6 +123,36 @@ def test_create_remesh_uses_v1_remesh_endpoint() -> None:
     assert created.result == "remesh-id"
     assert request.full_url == "https://api.meshy.ai/openapi/v1/remesh"
     assert json.loads(request.data or b"{}")["target_polycount"] == 2500
+
+
+def test_retexture_and_rigging_use_documented_v1_endpoints() -> None:
+    observed: list[Request] = []
+
+    def opener(request: Request, timeout: float):
+        observed.append(request)
+        return FakeResponse(b'{"result":"task-id"}')
+
+    transport = MeshyHttpTransport("https://api.meshy.ai", 10, opener)
+    transport.create_retexture_task(
+        RetextureRequest(
+            model_url="data:application/octet-stream;base64,eA==",
+            text_style_prompt="painted traveler",
+        ),
+        "secret",
+    )
+    transport.create_rigging_task(
+        RiggingRequest(input_task_id="retexture-id", height_meters=1.8),
+        "secret",
+    )
+
+    retexture = json.loads(observed[0].data or b"{}")
+    rigging = json.loads(observed[1].data or b"{}")
+    assert observed[0].full_url == "https://api.meshy.ai/openapi/v1/retexture"
+    assert retexture["enable_original_uv"] is True
+    assert retexture["remove_lighting"] is True
+    assert retexture["target_formats"] == ["glb"]
+    assert observed[1].full_url == "https://api.meshy.ai/openapi/v1/rigging"
+    assert rigging == {"input_task_id": "retexture-id", "height_meters": 1.8}
 
 
 @pytest.mark.parametrize(

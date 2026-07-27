@@ -41,6 +41,10 @@ def download_text_preview_glb(
         response = transport.retrieve_image_task(task.provider_task_id, api_key)
     elif task.operation == "remesh":
         response = transport.retrieve_remesh_task(task.provider_task_id, api_key)
+    elif task.operation.startswith("retexture_"):
+        response = transport.retrieve_retexture_task(task.provider_task_id, api_key)
+    elif task.operation == "rigging":
+        response = transport.retrieve_rigging_task(task.provider_task_id, api_key)
     else:
         response = transport.retrieve_text_task(task.provider_task_id, api_key)
     if response.id != task.provider_task_id:
@@ -51,7 +55,12 @@ def download_text_preview_glb(
         raise DownloadError(
             f"Provider task is no longer downloadable: {task.task_key} ({response.status})"
         )
-    model_url = response.model_urls.get("glb")
+    if task.operation == "rigging":
+        model_url = (
+            response.result.rigged_character_glb_url if response.result is not None else None
+        )
+    else:
+        model_url = response.model_urls.get("glb")
     if not model_url:
         raise DownloadError(f"Provider task has no GLB output: {task.task_key}")
 
@@ -74,15 +83,22 @@ def download_text_preview_glb(
     outputs = [
         ("source_model", "source", "glb", model_url),
     ]
-    if response.thumbnail_url:
+    thumbnail_url = getattr(response, "thumbnail_url", None)
+    if thumbnail_url:
         outputs.append(
             (
                 "preview_thumbnail",
                 "preview",
-                _image_format(response.thumbnail_url),
-                response.thumbnail_url,
+                _image_format(thumbnail_url),
+                thumbnail_url,
             )
         )
+    if task.operation == "retexture_semantic":
+        texture_urls = getattr(response, "texture_urls", [])
+        base_color = texture_urls[0].base_color if texture_urls else None
+        if not base_color:
+            raise DownloadError(f"Semantic retexture has no base-color texture: {task.task_key}")
+        outputs.append(("semantic_mask_source", "masks", "png", base_color))
     new_artifacts: list[Artifact] = []
     promoted_paths: list[Path] = []
     try:
@@ -129,7 +145,12 @@ def _download_output(
     transport: TextPreviewTransport,
 ) -> tuple[Artifact, Path]:
     number = sum(artifact.role == role for artifact in existing_artifacts) + 1
-    prefix = "source_glb" if role == "source_model" else "thumbnail"
+    prefixes = {
+        "source_model": "source_glb",
+        "preview_thumbnail": "thumbnail",
+        "semantic_mask_source": "semantic_mask_source",
+    }
+    prefix = prefixes[role]
     artifact_id = f"{prefix}_{number:03d}"
     final_relative = RelativeManifestPath(f"{stage}/{task_key}/{artifact_id}.{file_format}")
     asset_root = config.foundry.workspace_root / "assets" / asset_id

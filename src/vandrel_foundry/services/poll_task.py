@@ -44,6 +44,10 @@ def poll_text_task(
         response = transport.retrieve_image_task(task.provider_task_id, api_key)
     elif task.operation == "remesh":
         response = transport.retrieve_remesh_task(task.provider_task_id, api_key)
+    elif task.operation.startswith("retexture_"):
+        response = transport.retrieve_retexture_task(task.provider_task_id, api_key)
+    elif task.operation == "rigging":
+        response = transport.retrieve_rigging_task(task.provider_task_id, api_key)
     else:
         response = transport.retrieve_text_task(task.provider_task_id, api_key)
     if response.id != task.provider_task_id:
@@ -63,6 +67,7 @@ def poll_text_task(
     task.response_snapshots.append(snapshot_relative)
     task.status = response.status
     task.progress = response.progress
+    task.consumed_credits = getattr(response, "consumed_credits", None)
     task.completed_at = (
         utc_now()
         if response.status
@@ -93,7 +98,16 @@ def select_generation_task(
         task
         for task in manifest.generation.tasks
         if task.provider == "meshy"
-        and task.operation in {"text_to_3d_preview", "text_to_3d_refine", "image_to_3d", "remesh"}
+        and task.operation
+        in {
+            "text_to_3d_preview",
+            "text_to_3d_refine",
+            "image_to_3d",
+            "remesh",
+            "retexture_beauty",
+            "retexture_semantic",
+            "rigging",
+        }
     ]
     if task_key is not None:
         candidates = [task for task in candidates if task.task_key == task_key]

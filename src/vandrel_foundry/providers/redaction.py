@@ -27,7 +27,7 @@ def redact_provider_evidence(value: Any) -> Any:
         }
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return [redact_provider_evidence(item) for item in value]
-    if isinstance(value, str) and value.startswith("data:image/"):
+    if isinstance(value, str) and value.startswith("data:"):
         return REDACTED_DATA_URI
     if isinstance(value, str) and _looks_like_url(value):
         return _redact_url(value)

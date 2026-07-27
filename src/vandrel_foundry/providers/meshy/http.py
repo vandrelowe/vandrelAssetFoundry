@@ -21,6 +21,10 @@ from vandrel_foundry.providers.meshy.models import (
     ImageTo3DTaskResponse,
     RemeshRequest,
     RemeshTaskResponse,
+    RetextureRequest,
+    RetextureTaskResponse,
+    RiggingRequest,
+    RiggingTaskResponse,
     TextTo3DPreviewRequest,
     TextTo3DRefineRequest,
     TextTo3DTaskResponse,
@@ -86,9 +90,30 @@ class MeshyHttpTransport:
     ) -> CreateTaskResponse:
         return self._create_task(request, api_key, "/openapi/v1/remesh")
 
+    def create_retexture_task(
+        self,
+        request: RetextureRequest,
+        api_key: str,
+    ) -> CreateTaskResponse:
+        return self._create_task(request, api_key, "/openapi/v1/retexture")
+
+    def create_rigging_task(
+        self,
+        request: RiggingRequest,
+        api_key: str,
+    ) -> CreateTaskResponse:
+        return self._create_task(request, api_key, "/openapi/v1/rigging")
+
     def _create_task(
         self,
-        request: TextTo3DPreviewRequest | TextTo3DRefineRequest | ImageTo3DRequest | RemeshRequest,
+        request: (
+            TextTo3DPreviewRequest
+            | TextTo3DRefineRequest
+            | ImageTo3DRequest
+            | RemeshRequest
+            | RetextureRequest
+            | RiggingRequest
+        ),
         api_key: str,
         endpoint: str,
     ) -> CreateTaskResponse:
@@ -158,6 +183,28 @@ class MeshyHttpTransport:
             return RemeshTaskResponse.model_validate(payload)
         except ValidationError as exc:
             raise ProviderRequestError("Meshy returned an invalid task response.") from exc
+
+    def retrieve_retexture_task(
+        self,
+        provider_task_id: str,
+        api_key: str,
+    ) -> RetextureTaskResponse:
+        payload = self._retrieve_task(provider_task_id, api_key, "/openapi/v1/retexture")
+        try:
+            return RetextureTaskResponse.model_validate(payload)
+        except ValidationError as exc:
+            raise ProviderRequestError("Meshy returned an invalid retexture response.") from exc
+
+    def retrieve_rigging_task(
+        self,
+        provider_task_id: str,
+        api_key: str,
+    ) -> RiggingTaskResponse:
+        payload = self._retrieve_task(provider_task_id, api_key, "/openapi/v1/rigging")
+        try:
+            return RiggingTaskResponse.model_validate(payload)
+        except ValidationError as exc:
+            raise ProviderRequestError("Meshy returned an invalid rigging response.") from exc
 
     def _retrieve_task(
         self,

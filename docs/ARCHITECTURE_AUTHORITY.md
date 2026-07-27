@@ -46,6 +46,7 @@
 | Bounded Meshy HTTP operations | `src/vandrel_foundry/providers/meshy/http.py` |
 | Provider task polling | `src/vandrel_foundry/services/poll_task.py` |
 | Source GLB download and promotion | `src/vandrel_foundry/services/download_artifact.py` |
+| Semantic texture palette quantization | `src/vandrel_foundry/services/quantize_semantic_mask.py` |
 | Ambiguous submission reconciliation | `src/vandrel_foundry/services/reconcile_submission.py` |
 | Provider output selection | `src/vandrel_foundry/services/select_output.py` |
 | Immutable pass-through processing | `src/vandrel_foundry/services/process_asset.py` |

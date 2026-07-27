@@ -7,6 +7,10 @@ from vandrel_foundry.providers.meshy.models import (
     ImageTo3DTaskResponse,
     RemeshRequest,
     RemeshTaskResponse,
+    RetextureRequest,
+    RetextureTaskResponse,
+    RiggingRequest,
+    RiggingTaskResponse,
     TextTo3DPreviewRequest,
     TextTo3DRefineRequest,
     TextTo3DTaskResponse,
@@ -40,6 +44,18 @@ class TextPreviewTransport(Protocol):
         api_key: str,
     ) -> CreateTaskResponse: ...
 
+    def create_retexture_task(
+        self,
+        request: RetextureRequest,
+        api_key: str,
+    ) -> CreateTaskResponse: ...
+
+    def create_rigging_task(
+        self,
+        request: RiggingRequest,
+        api_key: str,
+    ) -> CreateTaskResponse: ...
+
     def retrieve_text_task(
         self,
         provider_task_id: str,
@@ -57,5 +73,17 @@ class TextPreviewTransport(Protocol):
         provider_task_id: str,
         api_key: str,
     ) -> RemeshTaskResponse: ...
+
+    def retrieve_retexture_task(
+        self,
+        provider_task_id: str,
+        api_key: str,
+    ) -> RetextureTaskResponse: ...
+
+    def retrieve_rigging_task(
+        self,
+        provider_task_id: str,
+        api_key: str,
+    ) -> RiggingTaskResponse: ...
 
     def download_file(self, url: str, destination: Path) -> int: ...

@@ -26,6 +26,13 @@ The current official Text to 3D API uses:
 - `POST /openapi/v1/remesh` with a succeeded generation task ID, explicit
   topology, and target polygon count;
 - `GET /openapi/v1/remesh/:id` for remesh task retrieval;
+- `POST /openapi/v1/retexture` with a hash-verified local GLB data URI,
+  a bounded text-style prompt, preserved original UVs, and GLB-only output;
+- `GET /openapi/v1/retexture/:id` for retexture task retrieval and texture-map
+  output discovery;
+- `POST /openapi/v1/rigging` with a succeeded beauty-retexture task ID and an
+  explicit positive character height;
+- `GET /openapi/v1/rigging/:id` for rigged GLB discovery;
 - asynchronous task states including `PENDING`, `IN_PROGRESS`, `SUCCEEDED`,
   `FAILED`, and `CANCELED`;
 - signed, time-limited model download URLs returned by succeeded tasks.
@@ -39,6 +46,8 @@ Official references:
 - <https://docs.meshy.ai/en/api/text-to-3d>
 - <https://docs.meshy.ai/en/api/image-to-3d>
 - <https://docs.meshy.ai/en/api/remesh>
+- <https://docs.meshy.ai/en/api/retexture>
+- <https://docs.meshy.ai/en/api/rigging>
 - <https://docs.meshy.ai/en/api/errors>
 - <https://docs.meshy.ai/en/api/rate-limits>
 
@@ -109,6 +118,27 @@ secrets. They may be stored in the private active workspace as provenance.
 Image bytes are sent from memory as a data URI and replaced by
 `[REDACTED_DATA_URI]` in provider evidence, avoiding public image hosting and
 duplicate base64 blobs on disk.
+Local model bytes follow the same rule. Retexture input must be a recorded,
+hash-matching GLB no larger than 100 MiB; the data URI is never persisted.
+
+## Character retexture and rigging experiment
+
+The guarded character experiment uses three independently recorded paid tasks:
+
+1. A beauty retexture with original UV preservation, de-lighting, and PBR maps.
+2. A semantic retexture of the same exact input and UV layout, without PBR.
+3. Rigging of the succeeded beauty-retexture task, with no animation API call.
+
+Each task retains its own request fingerprint, evidence, task ID, status, and
+provider-reported consumed-credit count. Current Meshy examples report 10
+credits for each retexture and 5 for rigging; the provider response remains
+authoritative, and callers must approve a bounded ceiling before submission.
+
+The semantic result is experimental evidence rather than a validated material
+assignment. Foundry downloads its base-color texture and may quantize it to
+the exact palette red=skin, green=fur/hair, blue=cloth, white=accessories.
+The quantizer records class counts and ambiguity/error measurements. Neither
+the generated texture nor its quantized derivative is auto-approved.
 
 ## Download protocol
 

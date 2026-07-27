@@ -27,6 +27,7 @@ from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.process_blender import process_with_blender
 from vandrel_foundry.services.publish_release import publish_release
+from vandrel_foundry.services.quantize_semantic_mask import quantize_semantic_mask
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
 from vandrel_foundry.services.render_missing_previews import render_missing_previews
 from vandrel_foundry.services.render_preview import render_local_preview
@@ -41,6 +42,8 @@ from vandrel_foundry.services.stage_godot import prepare_godot_sandbox
 from vandrel_foundry.services.submit_preview import (
     submit_image_to_3d,
     submit_remesh,
+    submit_retexture,
+    submit_rigging,
     submit_text_preview,
     submit_text_refine,
 )
@@ -592,6 +595,91 @@ def remesh(
             f"[green]Submitted remesh[/green] {task.task_key} "
             f"(provider task {task.provider_task_id})"
         )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command()
+def retexture(
+    asset_id: str,
+    artifact_id: Annotated[str, typer.Option("--artifact")],
+    prompt: Annotated[str, typer.Option("--prompt")],
+    label: Annotated[str, typer.Option("--label", help="beauty or semantic")],
+    confirm_spend: Annotated[
+        bool,
+        typer.Option("--confirm-spend", help="Confirm this 10-credit Meshy retexture request."),
+    ] = False,
+    enable_pbr: Annotated[bool, typer.Option("--enable-pbr/--no-enable-pbr")] = True,
+    texture_resolution: Annotated[
+        str,
+        typer.Option("--texture-resolution", help="2k or 4k"),
+    ] = "2k",
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Submit one paid Meshy retexture while preserving the input UV layout."""
+    if not confirm_spend:
+        fail(FoundryError("Paid retexture requires --confirm-spend."))
+    try:
+        settings = load_config(config)
+        task = submit_retexture(
+            settings,
+            asset_id,
+            artifact_id,
+            prompt,
+            _meshy_transport(settings),
+            task_label=label,
+            enable_pbr=enable_pbr,
+            texture_resolution=texture_resolution,
+        )
+        console.print(
+            f"[green]Submitted retexture[/green] {task.task_key} "
+            f"(provider task {task.provider_task_id})"
+        )
+    except (FoundryError, ValueError) as exc:
+        fail(FoundryError(str(exc)))
+
+
+@app.command()
+def rig(
+    asset_id: str,
+    from_task: Annotated[str, typer.Option("--from", help="Succeeded beauty task key.")],
+    height_meters: Annotated[float, typer.Option("--height-meters", min=0.01)] = 1.7,
+    confirm_spend: Annotated[
+        bool,
+        typer.Option("--confirm-spend", help="Confirm this 5-credit Meshy rigging request."),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Submit one paid Meshy rigging task from a succeeded beauty retexture."""
+    if not confirm_spend:
+        fail(FoundryError("Paid rigging requires --confirm-spend."))
+    try:
+        settings = load_config(config)
+        task = submit_rigging(
+            settings,
+            asset_id,
+            from_task,
+            height_meters,
+            _meshy_transport(settings),
+        )
+        console.print(
+            f"[green]Submitted rigging[/green] {task.task_key} "
+            f"(provider task {task.provider_task_id})"
+        )
+    except (FoundryError, ValueError) as exc:
+        fail(FoundryError(str(exc)))
+
+
+@app.command("quantize-semantic-mask")
+def quantize_mask(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Convert the latest downloaded semantic texture to a strict ID palette."""
+    try:
+        settings = load_config(config)
+        artifact = quantize_semantic_mask(settings, asset_id)
+        console.print(f"[green]Quantized semantic mask[/green] {artifact.path}")
     except FoundryError as exc:
         fail(exc)
 

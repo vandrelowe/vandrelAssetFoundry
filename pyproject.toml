@@ -9,6 +9,7 @@ description = "Manifest-first local asset workflow for Vandrel"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "pillow>=11,<13",
   "pydantic>=2.7,<3",
   "rich>=13.7,<15",
   "typer>=0.12,<1",
