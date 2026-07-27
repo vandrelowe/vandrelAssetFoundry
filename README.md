@@ -27,6 +27,10 @@ real file is ignored because machine-specific paths do not belong in source
 control. The CLI also accepts `--config <path>` on every command; this is
 especially useful for isolated tests.
 
+After setup, the directly runnable Windows entry point is
+`.\.venv\Scripts\foundry.exe`. Activating the virtual environment makes the
+shorter `foundry` command available in that terminal.
+
 ## Commands
 
 ```powershell
