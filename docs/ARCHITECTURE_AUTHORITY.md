@@ -60,6 +60,7 @@
 | Read-only release planning | `src/vandrel_foundry/services/plan_release.py` |
 | Explicit immutable library publication | `src/vandrel_foundry/services/publish_release.py` |
 | Asset-library Git policy checks | `src/vandrel_foundry/storage/git_worktree.py` |
+| Read-only asset-library integrity audit | `src/vandrel_foundry/services/audit_library.py` |
 
 The Pydantic model is the source for
 `schemas/asset-manifest-v1.schema.json`; the checked-in schema is the portable

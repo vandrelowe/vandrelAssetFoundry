@@ -52,6 +52,8 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     assert audit.exit_code == 0 and "Integrity audit passed" in audit.output
     audit_all = invoke(["audit-all"], cli_config)
     assert audit_all.exit_code == 0 and "Workspace audit passed 1 candidates" in audit_all.output
+    library_audit = invoke(["audit-library"], cli_config)
+    assert library_audit.exit_code != 0 and "catalog does not exist" in library_audit.output
     gallery = invoke(["review-gallery"], cli_config)
     assert gallery.exit_code == 0 and "review-gallery-001.html" in gallery.output
     guarded_submit = invoke(["submit", "stone_knife_001"], cli_config)

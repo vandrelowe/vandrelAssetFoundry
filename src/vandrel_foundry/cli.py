@@ -14,6 +14,7 @@ from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
 from vandrel_foundry.services.audit_asset import audit_asset
+from vandrel_foundry.services.audit_library import audit_library
 from vandrel_foundry.services.build_review_gallery import build_review_gallery
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
@@ -353,6 +354,30 @@ def audit_all(
             )
         )
     console.print(f"[green]Workspace audit passed[/green] {len(results)} candidates")
+
+
+@app.command("audit-library")
+def audit_asset_library(
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Rehash every cataloged immutable release without changing the library."""
+    try:
+        settings = load_config(config)
+        result = audit_library(settings)
+    except FoundryError as exc:
+        fail(exc)
+    table = Table("Subject", "Result", "Detail")
+    for check in result.checks:
+        table.add_row(
+            check.subject,
+            "pass" if check.passed else "FAIL",
+            check.detail,
+            style=None if check.passed else "red",
+        )
+    console.print(table)
+    if not result.passed:
+        fail(FoundryError("Asset-library integrity audit failed."))
+    console.print(f"[green]Asset-library audit passed[/green] {len(result.checks)} checks")
 
 
 @app.command("review-gallery")

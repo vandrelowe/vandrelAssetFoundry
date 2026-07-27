@@ -82,3 +82,15 @@ rollback by deletion after immutable files become visible.
 Publication leaves asset-library changes uncommitted for inspection. Git
 commit and push are separate explicit operations. Foundry does not write to
 Vandrel, emit a `res://` destination, or claim consumer acceptance.
+
+## Read-only library audit
+
+`audit-library` validates the configured library without changing it. It
+requires a schema-versioned catalog, verifies every catalog descriptor hash,
+checks descriptor identity and revision, rehashes every declared release file,
+and reports release directories absent from the catalog. A recoverable
+post-rename interruption therefore appears as an orphan until `release
+--apply` completes that exact transaction.
+
+The audit does not require a clean Git tree, mutate the Foundry workspace,
+repair catalog data, delete staging evidence, commit, push, or inspect Vandrel.
