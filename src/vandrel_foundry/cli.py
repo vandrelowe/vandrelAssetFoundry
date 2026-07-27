@@ -24,6 +24,7 @@ from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.process_blender import process_with_blender
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
+from vandrel_foundry.services.render_preview import render_local_preview
 from vandrel_foundry.services.review_asset import (
     approval_checks_pass,
     approve_asset,
@@ -600,6 +601,20 @@ def inspect(
             f"[green]Inspected[/green] {asset_id}: {result.triangle_count} triangles, "
             f"{result.material_count} materials"
         )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("render-preview")
+def render_preview(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Render a local transparent PNG preview through bounded Blender."""
+    try:
+        settings = load_config(config)
+        artifact = render_local_preview(settings, asset_id)
+        console.print(f"[green]Rendered preview[/green] {artifact.path}")
     except FoundryError as exc:
         fail(exc)
 

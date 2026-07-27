@@ -31,6 +31,11 @@ report. Foundry parses the produced GLB independently and rejects an output
 that exceeds the requested target. Lane policy does not silently trigger
 decimation.
 
+Local review previews are derived evidence, not approval. Bounded Blender
+renders a hash-verified processed GLB into a new transparent PNG and JSON
+report. Rendering does not alter workflow state, approved hashes, release
+state, or the source model.
+
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.

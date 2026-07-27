@@ -81,6 +81,7 @@ foundry process-blender stone_knife_001
 # Explicit, local-only decimation; the output must meet this target.
 foundry process-blender stone_knife_001 --target-triangles 2500
 foundry inspect stone_knife_001
+foundry render-preview stone_knife_001
 foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
 foundry approve stone_knife_001 --reviewer "Reviewer Name" --all-required-checks

@@ -17,6 +17,7 @@ from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.inspect_assets import initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_glb, inspect_processed_glb
 from vandrel_foundry.services.process_blender import process_with_blender
+from vandrel_foundry.services.render_preview import render_local_preview
 from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.manifests import ManifestRepository
 
@@ -206,6 +207,20 @@ def test_external_glb_enters_downloaded_workflow_without_provider(
     assert processed.processor is not None
     assert processed.processor.name == "blender_cleanup"
     assert any(item.role == "blender_processing_report" for item in updated.artifacts)
+
+    def fake_preview_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
+        _, output_path, report_path = map(Path, arguments[-3:])
+        output_path.write_bytes(b"\x89PNG\r\n\x1a\npreview")
+        report_path.write_text(
+            json.dumps({"blender_version": "fixture", "resolution": [512, 512]}),
+            encoding="utf-8",
+        )
+        return ProcessResult(0, "", "", False, False, 0.1)
+
+    preview = render_local_preview(config, "external_prop_001", runner=fake_preview_runner)
+    preview_manifest = ManifestRepository(config.foundry.workspace_root).load("external_prop_001")
+    assert preview.role == "local_preview"
+    assert preview_manifest.workflow.state is WorkflowState.PROCESSED
 
     def fake_decimate_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
         input_path, output_path, report_path = map(Path, arguments[-4:-1])
