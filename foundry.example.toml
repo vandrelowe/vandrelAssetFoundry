@@ -1,0 +1,19 @@
+schema_version = 1
+
+[foundry]
+workspace_root = "C:/dev/VandrelFoundryWorkspace"
+asset_library_root = "C:/dev/VandrelAssetLibrary"
+default_provider = "meshy"
+
+[vandrel]
+reference_repo_root = "C:/dev/Vandrel"
+required_marker = "project.godot"
+write_enabled = false
+
+[providers.meshy]
+api_base = "https://api.meshy.ai"
+api_key_environment_variable = "MESHY_API_KEY"
+
+[release]
+default_dry_run = true
+allow_overwrite = false

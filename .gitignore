@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.py[cod]
+.env
+foundry.toml
+build/
+dist/
+*.egg-info/
+
+# Active candidate work and generated assets never belong in this repository.
+workspace/
+VandrelFoundryWorkspace/
+downloads/
+processed/
+review/
+temp/
+cache/
+models/
+*.part
+*.blend1
+*.blend2
+.manual-smoke/

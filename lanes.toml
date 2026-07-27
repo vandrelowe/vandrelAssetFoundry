@@ -1,0 +1,40 @@
+[lanes.static_prop]
+wrapper_template = "static_prop"
+target_triangles = 2500
+maximum_triangles = 5000
+collision_policy = "manual_simple_convex"
+requires_materials = true
+requires_skeleton = false
+release_enabled = true
+
+[lanes.environment_near]
+wrapper_template = "environment_near"
+target_triangles = 10000
+maximum_triangles = 20000
+collision_policy = "manual_review"
+requires_materials = true
+requires_skeleton = false
+release_enabled = true
+
+[lanes.environment_distant]
+wrapper_template = "environment_distant"
+target_triangles = 2000
+maximum_triangles = 5000
+collision_policy = "none"
+requires_materials = true
+requires_skeleton = false
+release_enabled = true
+
+[lanes.humanoid]
+wrapper_template = "humanoid_candidate"
+collision_policy = "manual_review"
+requires_materials = true
+requires_skeleton = true
+release_enabled = false
+
+[lanes.creature]
+wrapper_template = "creature_candidate"
+collision_policy = "manual_review"
+requires_materials = true
+requires_skeleton = false
+release_enabled = false

@@ -1,0 +1,548 @@
+{
+  "$defs": {
+    "Approval": {
+      "additionalProperties": false,
+      "properties": {
+        "approved": {
+          "default": false,
+          "title": "Approved",
+          "type": "boolean"
+        },
+        "approved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approved At"
+        },
+        "approved_artifact_hashes": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Approved Artifact Hashes",
+          "type": "object"
+        },
+        "reviewer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reviewer"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "Approval",
+      "type": "object"
+    },
+    "Artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "stage": {
+          "title": "Stage",
+          "type": "string"
+        },
+        "format": {
+          "title": "Format",
+          "type": "string"
+        },
+        "path": {
+          "description": "Forward-slash workspace-relative path without traversal",
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "derived_from": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Derived From",
+          "type": "array"
+        },
+        "processor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Processor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "artifact_id",
+        "role",
+        "stage",
+        "format",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "AssetIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "display_name": {
+          "minLength": 1,
+          "title": "Display Name",
+          "type": "string"
+        },
+        "lane": {
+          "minLength": 1,
+          "title": "Lane",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "asset_id",
+        "display_name",
+        "lane",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "AssetIdentity",
+      "type": "object"
+    },
+    "Generation": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "selected_task_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Task Key"
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/ProviderTask"
+          },
+          "title": "Tasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "title": "Generation",
+      "type": "object"
+    },
+    "Input": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "text",
+          "default": "text",
+          "title": "Kind",
+          "type": "string"
+        },
+        "prompt_file": {
+          "default": "input/prompt.txt",
+          "description": "Forward-slash workspace-relative path without traversal",
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+          "title": "Prompt File",
+          "type": "string"
+        },
+        "reference_images": {
+          "items": {
+            "description": "Forward-slash workspace-relative path without traversal",
+            "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+            "type": "string"
+          },
+          "title": "Reference Images",
+          "type": "array"
+        }
+      },
+      "title": "Input",
+      "type": "object"
+    },
+    "Processor": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "Processor",
+      "type": "object"
+    },
+    "ProviderTask": {
+      "additionalProperties": false,
+      "properties": {
+        "task_key": {
+          "title": "Task Key",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "operation": {
+          "title": "Operation",
+          "type": "string"
+        },
+        "provider_task_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Task Id"
+        },
+        "attempt": {
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "progress": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Progress"
+        },
+        "request_path": {
+          "anyOf": [
+            {
+              "description": "Forward-slash workspace-relative path without traversal",
+              "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Path"
+        },
+        "response_path": {
+          "anyOf": [
+            {
+              "description": "Forward-slash workspace-relative path without traversal",
+              "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Response Path"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Submitted At"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed At"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        }
+      },
+      "required": [
+        "task_key",
+        "provider",
+        "operation",
+        "attempt",
+        "status"
+      ],
+      "title": "ProviderTask",
+      "type": "object"
+    },
+    "Quality": {
+      "additionalProperties": false,
+      "properties": {
+        "targets": {
+          "additionalProperties": true,
+          "title": "Targets",
+          "type": "object"
+        },
+        "observed": {
+          "additionalProperties": true,
+          "title": "Observed",
+          "type": "object"
+        }
+      },
+      "title": "Quality",
+      "type": "object"
+    },
+    "Release": {
+      "additionalProperties": false,
+      "properties": {
+        "released": {
+          "default": false,
+          "title": "Released",
+          "type": "boolean"
+        },
+        "release_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Release Revision"
+        },
+        "released_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Released At"
+        }
+      },
+      "title": "Release",
+      "type": "object"
+    },
+    "Validation": {
+      "additionalProperties": false,
+      "properties": {
+        "result": {
+          "default": "not_run",
+          "enum": [
+            "not_run",
+            "passed",
+            "failed"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Checks",
+          "type": "array"
+        }
+      },
+      "title": "Validation",
+      "type": "object"
+    },
+    "Workflow": {
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/WorkflowState",
+          "default": "draft"
+        },
+        "blocked_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Blocked Reason"
+        },
+        "last_error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Error"
+        }
+      },
+      "title": "Workflow",
+      "type": "object"
+    },
+    "WorkflowState": {
+      "enum": [
+        "draft"
+      ],
+      "title": "WorkflowState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "revision": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "asset": {
+      "$ref": "#/$defs/AssetIdentity"
+    },
+    "workflow": {
+      "$ref": "#/$defs/Workflow"
+    },
+    "input": {
+      "$ref": "#/$defs/Input"
+    },
+    "generation": {
+      "$ref": "#/$defs/Generation"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/Artifact"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "vandrel_technical": {
+      "additionalProperties": true,
+      "title": "Vandrel Technical",
+      "type": "object"
+    },
+    "quality": {
+      "$ref": "#/$defs/Quality"
+    },
+    "validation": {
+      "$ref": "#/$defs/Validation"
+    },
+    "approval": {
+      "$ref": "#/$defs/Approval"
+    },
+    "release": {
+      "$ref": "#/$defs/Release"
+    },
+    "notes": {
+      "default": "",
+      "title": "Notes",
+      "type": "string"
+    }
+  },
+  "required": [
+    "asset",
+    "generation"
+  ],
+  "title": "AssetManifest",
+  "type": "object"
+}
