@@ -38,6 +38,7 @@ foundry create --id stone_knife_001 --lane static_prop `
 foundry list
 foundry show stone_knife_001
 foundry status stone_knife_001
+foundry audit stone_knife_001
 foundry scan-sources C:\Dev\outsideassets
 foundry scan-sources C:\Dev\outsideassets --json
 
@@ -54,6 +55,8 @@ reports the current workflow and valid next actions.
 `scan-sources` performs a read-only recursive inventory of supported model
 packages and suggests static-prop or humanoid intake lanes; it does not copy,
 convert, submit, or create asset records.
+`audit` is also read-only. It rehashes every manifest artifact and checks
+artifact IDs, paths, derivation references, and approval bindings.
 
 Phase 2 adds guarded Meshy commands:
 

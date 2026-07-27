@@ -13,6 +13,7 @@ from vandrel_foundry.domain.states import WorkflowState, next_actions
 from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
+from vandrel_foundry.services.audit_asset import audit_asset
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
@@ -283,6 +284,35 @@ def status(
     table.add_row("Revision", str(manifest.revision))
     table.add_row("Next actions", ", ".join(actions) if actions else "none")
     console.print(table)
+
+
+@app.command()
+def audit(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Rehash every recorded artifact and verify manifest relationships."""
+    try:
+        settings = load_config(config)
+        result = audit_asset(settings, asset_id)
+    except FoundryError as exc:
+        fail(exc)
+    table = Table("Artifact", "Result", "Path", "Detail")
+    for check in result.artifact_checks:
+        table.add_row(
+            check.artifact_id,
+            "pass" if check.passed else "FAIL",
+            check.path,
+            check.detail,
+            style=None if check.passed else "red",
+        )
+    console.print(table)
+    for check in result.manifest_checks:
+        label = "[green]pass[/green]" if check["passed"] else "[red]FAIL[/red]"
+        console.print(f"{label} {check['name']}")
+    if not result.passed:
+        fail(FoundryError(f"Integrity audit failed: {asset_id}"))
+    console.print(f"[green]Integrity audit passed[/green] {asset_id}")
 
 
 @app.command()

@@ -31,8 +31,11 @@ repurposed without a schema/contract change.
 
 ## Phase 1 commands
 
-`init`, `doctor`, `lanes`, `create`, `list`, `show`, and `status` are local-only.
-Reporting `submit` as a next action does not authorize or implement submission.
+`init`, `doctor`, `lanes`, `create`, `list`, `show`, `status`, `scan-sources`,
+and `audit` are local-only. The audit command is read-only: it rehashes every
+recorded artifact and verifies unique IDs/paths, derivation references, and
+approval bindings. Reporting `submit` as a next action does not authorize or
+implement submission.
 
 ## Failure policy
 

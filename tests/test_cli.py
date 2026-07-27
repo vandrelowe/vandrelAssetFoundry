@@ -48,6 +48,8 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     assert shown.exit_code == 0 and '"schema_version": 1' in shown.output
     status = invoke(["status", "stone_knife_001"], cli_config)
     assert status.exit_code == 0 and "submit" in status.output
+    audit = invoke(["audit", "stone_knife_001"], cli_config)
+    assert audit.exit_code == 0 and "Integrity audit passed" in audit.output
     guarded_submit = invoke(["submit", "stone_knife_001"], cli_config)
     assert guarded_submit.exit_code != 0
     assert "--confirm-spend" in guarded_submit.output

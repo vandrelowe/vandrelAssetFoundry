@@ -33,6 +33,7 @@
 | External GLB source intake | `src/vandrel_foundry/services/add_source.py` |
 | Workspace discovery and initialization | `src/vandrel_foundry/services/inspect_assets.py` |
 | Health checks | `src/vandrel_foundry/services/doctor.py` |
+| Read-only artifact integrity audit | `src/vandrel_foundry/services/audit_asset.py` |
 | Provider task status vocabulary | `src/vandrel_foundry/domain/provider.py` |
 | Recursive provider evidence redaction | `src/vandrel_foundry/providers/redaction.py` |
 | Meshy request/response shapes | `src/vandrel_foundry/providers/meshy/models.py` |
