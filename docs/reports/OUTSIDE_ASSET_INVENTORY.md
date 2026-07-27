@@ -123,3 +123,8 @@ mesh and centimeter-scale character geometry. Preview framing now prefers
 skinned meshes, uses scale-relative camera clipping and lighting, and records
 excluded helper counts. Corrected renders show intact posed silhouettes, but
 both candidates remain unapproved because their GLBs contain no materials.
+
+The Meshy Hide Sleeping Mat subsequently passed native intake at 2,912
+triangles with one embedded material/texture, passed Godot import and integrity
+audit, and was approved after delegated visual review found coherent layered
+hide geometry and no obvious mesh failure.
