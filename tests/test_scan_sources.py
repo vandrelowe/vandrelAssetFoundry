@@ -40,6 +40,12 @@ def test_scan_sources_classifies_and_bounds_external_models(tmp_path: Path) -> N
     assert by_name["Walking.fbx"].suggested_asset_id == "walking"
 
     assert len(scan_source_directory(tmp_path, limit=2)) == 2
+    assert [item.path.name for item in scan_source_directory(tmp_path, source_family="meshy")] == [
+        "Basket.fbx"
+    ]
+    assert {
+        item.path.name for item in scan_source_directory(tmp_path, suggested_lane="humanoid")
+    } == {"Walking.fbx"}
 
     linked = tmp_path / "linked.fbx"
     try:

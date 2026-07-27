@@ -47,6 +47,7 @@ foundry audit-all
 foundry review-gallery
 foundry scan-sources C:\Dev\outsideassets
 foundry scan-sources C:\Dev\outsideassets --json
+foundry scan-sources C:\Dev\outsideassets --family meshy --lane static_prop
 
 # Skip Meshy entirely with GLB, FBX-plus-textures, or glTF packages.
 foundry add-source stone_knife_001 --model .\models\stone_knife.glb

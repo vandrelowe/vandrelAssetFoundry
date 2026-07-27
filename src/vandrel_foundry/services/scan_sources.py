@@ -28,7 +28,12 @@ class SourceCandidate:
     warning: str | None = None
 
 
-def scan_source_directory(root: Path, limit: int = 1000) -> list[SourceCandidate]:
+def scan_source_directory(
+    root: Path,
+    limit: int = 1000,
+    source_family: str | None = None,
+    suggested_lane: str | None = None,
+) -> list[SourceCandidate]:
     if not root.is_dir():
         raise FoundryError(f"Source scan root is not a directory: {root}")
     if limit <= 0 or limit > 10_000:
@@ -44,7 +49,12 @@ def scan_source_directory(root: Path, limit: int = 1000) -> list[SourceCandidate
                 path = Path(directory) / filename
                 if path.is_symlink() or path.suffix.lower() not in SUPPORTED_SCAN_SUFFIXES:
                     continue
-                candidates.append(_candidate(resolved_root, path))
+                candidate = _candidate(resolved_root, path)
+                if source_family is not None and candidate.source_family != source_family:
+                    continue
+                if suggested_lane is not None and candidate.suggested_lane != suggested_lane:
+                    continue
+                candidates.append(candidate)
                 if len(candidates) >= limit:
                     return _unique_asset_ids(candidates)
     except OSError as exc:

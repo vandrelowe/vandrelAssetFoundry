@@ -169,13 +169,15 @@ def list_assets(
 def scan_sources(
     root: Path,
     limit: Annotated[int, typer.Option("--limit", min=1, max=10_000)] = 1000,
+    family: Annotated[str | None, typer.Option("--family")] = None,
+    lane: Annotated[str | None, typer.Option("--lane")] = None,
     json_output: Annotated[
         bool, typer.Option("--json", help="Emit a machine-readable dry-run intake plan.")
     ] = False,
 ) -> None:
     """Inventory supported external models without copying or converting them."""
     try:
-        candidates = scan_source_directory(root, limit)
+        candidates = scan_source_directory(root, limit, family, lane)
     except FoundryError as exc:
         fail(exc)
     if json_output:
