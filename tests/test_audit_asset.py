@@ -1,4 +1,5 @@
 import hashlib
+import json
 from pathlib import Path
 
 from vandrel_foundry.domain.manifest import Artifact
@@ -90,3 +91,22 @@ def test_asset_audit_detects_unresolved_derivation(config, lanes, prompt: Path) 
         item for item in result.manifest_checks if item["name"] == "artifact_derivations_resolve"
     )
     assert check["missing"] == ["missing_source_001"]
+
+    with (asset_root / "events.jsonl").open("a", encoding="utf-8") as stream:
+        stream.write(
+            json.dumps(
+                {
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "event": "unexpected.gap",
+                    "asset_id": "audit_derivation_001",
+                    "revision": 4,
+                }
+            )
+            + "\n"
+        )
+    event_result = audit_asset(config, "audit_derivation_001")
+    event_check = next(
+        item for item in event_result.manifest_checks if item["name"] == "event_history"
+    )
+    assert not event_check["passed"]
+    assert event_check["expected_revisions"] == [1, 2]

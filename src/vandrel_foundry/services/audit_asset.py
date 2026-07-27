@@ -1,4 +1,5 @@
 import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -7,6 +8,8 @@ from vandrel_foundry.domain.manifest import Artifact
 from vandrel_foundry.services.review_asset import APPROVAL_ROLES
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import contained_path
+
+MAX_EVENT_LOG_BYTES = 16 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -68,6 +71,7 @@ def audit_asset(config: FoundryConfig, asset_id: str) -> AssetAudit:
             "name": "approval_bindings_resolve",
             "passed": approval_bindings_ok,
         },
+        _audit_events(asset_root, asset_id, manifest.revision),
     ]
     passed = all(check.passed for check in artifact_checks) and all(
         bool(check["passed"]) for check in manifest_checks
@@ -111,3 +115,40 @@ def _audit_artifact(asset_root: Path, artifact: Artifact) -> ArtifactAudit:
         passed=passed,
         detail=detail,
     )
+
+
+def _audit_events(asset_root: Path, asset_id: str, manifest_revision: int) -> dict[str, object]:
+    path = asset_root / "events.jsonl"
+    try:
+        if path.stat().st_size > MAX_EVENT_LOG_BYTES:
+            return {
+                "name": "event_history",
+                "passed": False,
+                "detail": "event log exceeds the audit size limit",
+            }
+        lines = path.read_text(encoding="utf-8").splitlines()
+        events = [json.loads(line) for line in lines]
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return {
+            "name": "event_history",
+            "passed": False,
+            "detail": f"event log is unreadable or invalid: {exc}",
+        }
+    revisions = [event.get("revision") for event in events if isinstance(event, dict)]
+    valid_shape = len(events) == len(revisions) and all(
+        event.get("asset_id") == asset_id
+        and isinstance(event.get("event"), str)
+        and bool(event["event"])
+        and isinstance(event.get("timestamp"), str)
+        and bool(event["timestamp"])
+        for event in events
+        if isinstance(event, dict)
+    )
+    expected_revisions = list(range(1, manifest_revision + 1))
+    passed = valid_shape and revisions == expected_revisions
+    return {
+        "name": "event_history",
+        "passed": passed,
+        "observed_revisions": revisions,
+        "expected_revisions": expected_revisions,
+    }

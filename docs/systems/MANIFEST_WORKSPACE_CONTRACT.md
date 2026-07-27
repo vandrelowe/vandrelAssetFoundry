@@ -34,8 +34,9 @@ repurposed without a schema/contract change.
 `init`, `doctor`, `lanes`, `create`, `list`, `show`, `status`, `scan-sources`,
 and `audit` are local-only. The audit command is read-only: it rehashes every
 recorded artifact and verifies unique IDs/paths, derivation references, and
-approval bindings. Reporting `submit` as a next action does not authorize or
-implement submission.
+approval bindings. It also checks that the bounded JSONL event history has one
+well-formed, asset-matching event for every manifest revision in order.
+Reporting `submit` as a next action does not authorize or implement submission.
 
 ## Failure policy
 
