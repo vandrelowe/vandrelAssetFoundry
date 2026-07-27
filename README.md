@@ -35,6 +35,8 @@ shorter `foundry` command available in that terminal.
 
 ```powershell
 foundry init
+# One-time, explicit creation of a new configured local Git/LFS library:
+foundry init-library --confirm-init
 foundry doctor
 foundry lanes
 foundry create --id stone_knife_001 --lane static_prop `

@@ -22,6 +22,20 @@
 - Foundry never initializes, commits, pushes, or repairs the asset-library
   repository as part of publication.
 
+## One-time local library bootstrap
+
+`init-library --confirm-init` is a separate, explicit maintenance action for a
+configured library path that does not yet exist. It creates the complete
+baseline in a unique sibling staging directory, initializes Git and local Git
+LFS hooks, writes the LFS attributes, staging ignore, empty schema-versioned
+catalog, and boundary README, creates one baseline commit, verifies a clean
+worktree, then atomically renames the staging directory to the configured path.
+
+Bootstrap refuses an existing destination, never adopts or repairs a directory,
+never configures a remote, never pushes, and never touches Vandrel. A failed
+bootstrap removes only its own uniquely created staging directory before the
+destination becomes visible.
+
 ## Dry-run release descriptor
 
 `release` performs a read-only plan. It verifies the approved artifact files

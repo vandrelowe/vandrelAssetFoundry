@@ -26,6 +26,9 @@ def invoke(command: list[str], config: Path):
 
 def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dict) -> None:
     assert invoke(["init"], cli_config).exit_code == 0
+    guarded_library_init = invoke(["init-library"], cli_config)
+    assert guarded_library_init.exit_code != 0
+    assert "--confirm-init" in guarded_library_init.output
     assert invoke(["lanes"], cli_config).exit_code == 0
     create = invoke(
         [

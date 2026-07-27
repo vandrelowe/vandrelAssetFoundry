@@ -19,6 +19,7 @@ from vandrel_foundry.services.build_review_gallery import build_review_gallery
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
+from vandrel_foundry.services.init_library import initialize_asset_library
 from vandrel_foundry.services.inspect_assets import discover_assets, initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_processed_glb
 from vandrel_foundry.services.plan_release import plan_release
@@ -70,6 +71,29 @@ def initialize(
         settings = load_config(config)
         initialize_workspace(settings.foundry.workspace_root)
         console.print(f"[green]Ready:[/green] {settings.foundry.workspace_root}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("init-library")
+def initialize_library(
+    confirm_init: Annotated[
+        bool,
+        typer.Option(
+            "--confirm-init",
+            help="Confirm creation and baseline commit of the configured asset library.",
+        ),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Create a new local Git/LFS asset library; never adopt an existing path."""
+    if not confirm_init:
+        fail(FoundryError("Asset-library initialization requires --confirm-init."))
+    try:
+        settings = load_config(config)
+        result = initialize_asset_library(settings)
+        console.print(f"[green]Asset library initialized[/green] {result.destination}")
+        console.print("[yellow]No remote was configured and nothing was pushed.[/yellow]")
     except FoundryError as exc:
         fail(exc)
 
