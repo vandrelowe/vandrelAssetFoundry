@@ -19,8 +19,14 @@ def main() -> None:
     meshes = [item for item in bpy.context.scene.objects if item.type == "MESH"]
     if not meshes:
         raise RuntimeError("Imported GLB contains no mesh objects.")
+    skinned_meshes = [
+        item for item in meshes if any(modifier.type == "ARMATURE" for modifier in item.modifiers)
+    ]
+    framed_meshes = skinned_meshes or meshes
 
-    corners = [item.matrix_world @ Vector(corner) for item in meshes for corner in item.bound_box]
+    corners = [
+        item.matrix_world @ Vector(corner) for item in framed_meshes for corner in item.bound_box
+    ]
     minimum = Vector(tuple(min(point[index] for point in corners) for index in range(3)))
     maximum = Vector(tuple(max(point[index] for point in corners) for index in range(3)))
     center = (minimum + maximum) / 2
@@ -29,6 +35,8 @@ def main() -> None:
         raise RuntimeError("Imported GLB has zero-size bounds.")
 
     camera_data = bpy.data.cameras.new("Foundry Preview Camera")
+    camera_data.clip_start = max(extent / 1000, 0.000001)
+    camera_data.clip_end = max(extent * 100, 1.0)
     camera = bpy.data.objects.new("Foundry Preview Camera", camera_data)
     bpy.context.scene.collection.objects.link(camera)
     direction = Vector((1.4, -1.4, 1.0)).normalized()
@@ -41,7 +49,7 @@ def main() -> None:
         ("Fill", center + Vector((-extent * 2, -extent, extent)), 600),
     ):
         light_data = bpy.data.lights.new(name, "AREA")
-        light_data.energy = energy
+        light_data.energy = max(energy * extent * extent, 0.01)
         light_data.shape = "DISK"
         light_data.size = extent * 2
         light = bpy.data.objects.new(name, light_data)
@@ -65,6 +73,8 @@ def main() -> None:
                 "blender_version": bpy.app.version_string,
                 "resolution": [512, 512],
                 "mesh_objects": len(meshes),
+                "framed_mesh_objects": len(framed_meshes),
+                "excluded_helper_meshes": len(meshes) - len(framed_meshes),
                 "transparent_background": True,
             },
             indent=2,

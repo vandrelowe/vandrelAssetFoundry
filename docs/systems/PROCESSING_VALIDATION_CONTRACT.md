@@ -36,6 +36,9 @@ renders a hash-verified processed GLB into a new transparent PNG and JSON
 report, and retains bounded subprocess output as an immutable log artifact.
 Rendering does not alter workflow state, approved hashes, release
 state, or the source model.
+When a scene contains skinned meshes, preview framing uses those meshes and
+excludes unskinned helper geometry from camera bounds; the report records the
+included and excluded mesh counts.
 Batch preview rendering is sequential and selects only processed, review, or
 approved candidates without an existing local preview. It skips all other
 states and never replaces a preview.
@@ -64,6 +67,9 @@ path and enters the same downloaded-state corridor as provider output.
   with at least one valid joint reference.
 - Unknown or unsupported structures fail closed with a readable error.
 - Approval is not implied by a passing technical report.
+- Review-state reinspection may refresh the named technical checks for older
+  candidates. It preserves independent validator checks such as Godot import
+  evidence and never changes workflow state or approval.
 
 ## Godot sandbox staging
 

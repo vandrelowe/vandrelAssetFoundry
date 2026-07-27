@@ -112,3 +112,14 @@ its source conversion already measured 2,544 triangles, close to the
 2,500-triangle lane target and below the 5,000 maximum. Its material and
 embedded texture survived conversion, Godot import passed, and an audited local
 preview was generated. It remains in review.
+
+After delegated visual review, the Fresh Wood Campfire, original Empty Basket,
+and Quaternius Anvil were approved with exact processed-model and Godot-wrapper
+hash bindings. The Berry Basket remains in review because its contents are
+visually ambiguous.
+
+The first humanoid previews exposed an oversized unskinned `Icosphere` helper
+mesh and centimeter-scale character geometry. Preview framing now prefers
+skinned meshes, uses scale-relative camera clipping and lighting, and records
+excluded helper counts. Corrected renders show intact posed silhouettes, but
+both candidates remain unapproved because their GLBs contain no materials.

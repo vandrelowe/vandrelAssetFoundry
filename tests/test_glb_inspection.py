@@ -150,6 +150,18 @@ def test_asset_inspection_persists_hash_bound_report(config, lanes, prompt: Path
     ]
     assert report["artifact_sha256"] == hashlib.sha256(content).hexdigest()
 
+    saved.workflow.state = WorkflowState.REVIEW
+    saved.validation.checks.append({"name": "godot_sandbox_import", "passed": True})
+    saved.revision += 1
+    repository.save(saved, "test.review", expected_revision=saved.revision - 1)
+    inspect_processed_glb(config, lanes, "stone_knife_001")
+    reinspected = repository.load("stone_knife_001")
+    assert reinspected.workflow.state is WorkflowState.REVIEW
+    assert any(
+        check["name"] == "godot_sandbox_import" and check["passed"]
+        for check in reinspected.validation.checks
+    )
+
 
 def test_external_glb_enters_downloaded_workflow_without_provider(
     config, lanes, prompt: Path, tmp_path: Path

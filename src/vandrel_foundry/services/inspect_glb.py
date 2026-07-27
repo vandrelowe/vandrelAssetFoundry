@@ -16,6 +16,13 @@ from vandrel_foundry.storage.provider_evidence import write_new_json_evidence
 GLB_MAGIC = b"glTF"
 GLB_JSON_CHUNK = 0x4E4F534A
 MAX_GLB_JSON_BYTES = 64 * 1024 * 1024
+TECHNICAL_CHECK_NAMES = {
+    "glb_structure",
+    "triangle_budget",
+    "geometry_present",
+    "materials_required",
+    "skeleton_required",
+}
 
 
 @dataclass(frozen=True)
@@ -38,8 +45,8 @@ def inspect_processed_glb(
 ) -> GlbInspection:
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
-    if manifest.workflow.state is not WorkflowState.PROCESSED:
-        raise FoundryError(f"GLB inspection requires processed state: {asset_id}")
+    if manifest.workflow.state not in {WorkflowState.PROCESSED, WorkflowState.REVIEW}:
+        raise FoundryError(f"GLB inspection requires processed or review state: {asset_id}")
     candidates = [item for item in manifest.artifacts if item.role == "processed_model"]
     if not candidates:
         raise FoundryError(f"No processed GLB artifact exists: {asset_id}")
@@ -100,10 +107,21 @@ def inspect_processed_glb(
     report_relative = _next_report_path(asset_root)
     write_new_json_evidence(contained_path(asset_root, report_relative), report)
     manifest.quality.observed.update(inspection.__dict__)
+    retained_checks = [
+        check
+        for check in manifest.validation.checks
+        if str(check.get("name")) not in TECHNICAL_CHECK_NAMES
+    ]
+    manifest.validation.checks = [*checks, *retained_checks]
     manifest.validation.result = (
-        "passed" if geometry_ok and triangle_ok and materials_ok and skeleton_ok else "failed"
+        "passed"
+        if geometry_ok
+        and triangle_ok
+        and materials_ok
+        and skeleton_ok
+        and all(bool(check.get("passed")) for check in retained_checks)
+        else "failed"
     )
-    manifest.validation.checks = checks
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(
