@@ -1,6 +1,8 @@
 import os
 import re
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, replace
+from hashlib import sha256
 from pathlib import Path
 
 from vandrel_foundry.domain.errors import FoundryError
@@ -44,10 +46,10 @@ def scan_source_directory(root: Path, limit: int = 1000) -> list[SourceCandidate
                     continue
                 candidates.append(_candidate(resolved_root, path))
                 if len(candidates) >= limit:
-                    return candidates
+                    return _unique_asset_ids(candidates)
     except OSError as exc:
         raise FoundryError(f"Could not scan external source directory: {exc}") from exc
-    return candidates
+    return _unique_asset_ids(candidates)
 
 
 def _candidate(root: Path, path: Path) -> SourceCandidate:
@@ -85,7 +87,21 @@ def _classify(relative_path: str) -> tuple[str, str]:
     normalized = relative_path.casefold()
     if "mixamo" in normalized:
         return "mixamo", "humanoid"
-    if any(marker in normalized for marker in ("biped", "rigged", "character_output", "withskin")):
+    humanoid_markers = (
+        "biped",
+        "rigged",
+        "character_output",
+        "withskin",
+        "female",
+        "male",
+        "caveman",
+        "apeman",
+        "chieftain",
+        "raider",
+        "shaman",
+        "sorcerer",
+    )
+    if any(marker in normalized for marker in humanoid_markers):
         return ("meshy" if "meshy" in normalized else "external"), "humanoid"
     if "meshy" in normalized:
         return "meshy", "static_prop"
@@ -100,3 +116,16 @@ def _suggest_asset_id(stem: str) -> str:
     if len(value) < 3:
         value = f"asset_{value or 'model'}"
     return value
+
+
+def _unique_asset_ids(candidates: list[SourceCandidate]) -> list[SourceCandidate]:
+    counts = Counter(candidate.suggested_asset_id for candidate in candidates)
+    result: list[SourceCandidate] = []
+    for candidate in candidates:
+        if counts[candidate.suggested_asset_id] == 1:
+            result.append(candidate)
+            continue
+        suffix = sha256(candidate.relative_path.encode("utf-8")).hexdigest()[:8]
+        base = candidate.suggested_asset_id[:55].rstrip("_")
+        result.append(replace(candidate, suggested_asset_id=f"{base}_{suffix}"))
+    return result

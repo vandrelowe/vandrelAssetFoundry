@@ -166,12 +166,36 @@ def list_assets(
 def scan_sources(
     root: Path,
     limit: Annotated[int, typer.Option("--limit", min=1, max=10_000)] = 1000,
+    json_output: Annotated[
+        bool, typer.Option("--json", help="Emit a machine-readable dry-run intake plan.")
+    ] = False,
 ) -> None:
     """Inventory supported external models without copying or converting them."""
     try:
         candidates = scan_source_directory(root, limit)
     except FoundryError as exc:
         fail(exc)
+    if json_output:
+        console.print_json(
+            json.dumps(
+                [
+                    {
+                        "path": str(candidate.path),
+                        "relative_path": candidate.relative_path,
+                        "format": candidate.format,
+                        "size_bytes": candidate.size_bytes,
+                        "sidecar_count": candidate.sidecar_count,
+                        "source_family": candidate.source_family,
+                        "suggested_lane": candidate.suggested_lane,
+                        "suggested_asset_id": candidate.suggested_asset_id,
+                        "warning": candidate.warning,
+                    }
+                    for candidate in candidates
+                ],
+                indent=2,
+            )
+        )
+        return
     table = Table("Format", "MiB", "Sidecars", "Family", "Lane", "Suggested ID", "Path")
     for candidate in candidates:
         table.add_row(

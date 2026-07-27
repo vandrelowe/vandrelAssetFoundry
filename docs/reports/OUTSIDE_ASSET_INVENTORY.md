@@ -8,9 +8,10 @@
 
 The Foundry scanner found 963 supported model sources: 869 FBX and 94 glTF.
 Its path-based first-pass classification identified 61 Meshy, 651 Mixamo, and
-251 Quaternius files, with 298 suggested static-prop candidates and 665
-suggested humanoid candidates. The scan completed with no warnings and did not
-copy or modify source files.
+251 Quaternius files, with 262 suggested static-prop candidates and 701
+suggested humanoid candidates. The Meshy subset contains 50 humanoid-intent and
+11 static-prop candidates. The scan completed with no warnings, produced 963
+unique suggested asset IDs, and did not copy or modify source files.
 
 ## Format inventory
 

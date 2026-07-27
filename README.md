@@ -39,6 +39,7 @@ foundry list
 foundry show stone_knife_001
 foundry status stone_knife_001
 foundry scan-sources C:\Dev\outsideassets
+foundry scan-sources C:\Dev\outsideassets --json
 
 # Skip Meshy entirely with GLB, FBX-plus-textures, or glTF packages.
 foundry add-source stone_knife_001 --model .\models\stone_knife.glb

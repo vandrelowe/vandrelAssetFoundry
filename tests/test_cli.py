@@ -129,6 +129,20 @@ def test_status_does_not_offer_approval_when_validation_failed(
     assert "approve" not in status.output
 
 
+def test_scan_sources_json_is_a_read_only_intake_plan(tmp_path: Path) -> None:
+    source = tmp_path / "sources"
+    source.mkdir()
+    model = source / "Rock.fbx"
+    model.write_bytes(b"fbx")
+
+    result = runner.invoke(app, ["scan-sources", str(source), "--json"])
+
+    assert result.exit_code == 0, result.output
+    assert '"suggested_asset_id": "rock"' in result.output
+    assert '"suggested_lane": "static_prop"' in result.output
+    assert list(source.iterdir()) == [model]
+
+
 @pytest.mark.parametrize(
     "command", [["init"], ["list"], ["show", "missing"], ["status", "missing"]]
 )

@@ -48,3 +48,29 @@ def test_scan_sources_classifies_and_bounds_external_models(tmp_path: Path) -> N
         pass
     else:
         assert all(item.path != linked for item in scan_source_directory(tmp_path))
+
+
+def test_scan_sources_disambiguates_duplicate_asset_ids(tmp_path: Path) -> None:
+    first = tmp_path / "one"
+    second = tmp_path / "two"
+    first.mkdir()
+    second.mkdir()
+    (first / "Rock.fbx").write_bytes(b"first")
+    (second / "Rock.fbx").write_bytes(b"second")
+
+    candidates = scan_source_directory(tmp_path)
+
+    ids = [candidate.suggested_asset_id for candidate in candidates]
+    assert len(set(ids)) == 2
+    assert all(value.startswith("rock_") and len(value) == 13 for value in ids)
+
+
+def test_scan_sources_recognizes_named_humanoid_characters(tmp_path: Path) -> None:
+    meshy = tmp_path / "Meshy"
+    meshy.mkdir()
+    (meshy / "Cave Female Athletic Chieftain.fbx").write_bytes(b"character")
+
+    candidate = scan_source_directory(tmp_path)[0]
+
+    assert candidate.source_family == "meshy"
+    assert candidate.suggested_lane == "humanoid"
