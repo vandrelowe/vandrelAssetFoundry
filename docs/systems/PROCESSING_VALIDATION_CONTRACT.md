@@ -63,6 +63,18 @@ workflow reviews the isolation evidence for crossing. This experiment performs
 no provider call, changes no source texture or model, preserves workflow and
 approval state, and cannot promote or release the candidate.
 
+Deterministic texture-region recoloring is an explicit local processor. It
+accepts a caller-supplied grayscale PNG aligned to the current GLB's sole
+base-color texture and a declared RGB color. The mask must select a nonempty,
+bounded region and match the texture dimensions. Bounded Blender colorizes
+only the selected pixels while preserving source luminance, embeds the changed
+texture in a new immutable GLB, and verifies that the animation count is
+unchanged. Foundry records an immutable copy of the mask, a report, and a
+bounded process log, all bound to the input and output hashes. The operation
+resets technical/Godot validation and approval. Mask mechanics do not prove
+semantic correctness; the resulting model requires a new local preview and
+visual review before approval.
+
 Same-skeleton animation grafting is an explicit local processor. It requires
 the target and donor processed GLBs to have exactly the same unique joint names
 and joint-parent relationships, plus numerically matching local joint rest

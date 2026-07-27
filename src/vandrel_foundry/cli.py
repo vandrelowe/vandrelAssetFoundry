@@ -13,6 +13,7 @@ from vandrel_foundry.domain.states import WorkflowState, next_actions
 from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
+from vandrel_foundry.services.apply_texture_mask import apply_texture_mask
 from vandrel_foundry.services.audit_asset import audit_asset
 from vandrel_foundry.services.audit_library import audit_library
 from vandrel_foundry.services.build_review_gallery import build_review_gallery
@@ -762,6 +763,41 @@ def process_blender(
         artifact = process_with_blender(settings, asset_id, target_triangles)
         console.print(f"[green]Blender processed[/green] {artifact.path}")
     except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("apply-texture-mask")
+def apply_masked_texture_color(
+    asset_id: str,
+    mask: Annotated[
+        Path,
+        typer.Option(
+            "--mask",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Grayscale PNG aligned to the current base-color texture.",
+        ),
+    ],
+    color: Annotated[
+        str,
+        typer.Option(
+            "--color",
+            help="Replacement color in #RRGGBB form; source luminance is preserved.",
+        ),
+    ],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Create a new GLB with one texture-atlas region deterministically recolored."""
+    try:
+        settings = load_config(config)
+        result = apply_texture_mask(settings, asset_id, mask, color)
+        console.print(f"[green]Applied texture mask[/green] {result.model.path}")
+        console.print(
+            f"Recorded {result.mask.path}; coverage {result.coverage_fraction:.2%}"
+        )
+    except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 
 

@@ -54,6 +54,7 @@
 | In-Blender deterministic operations | `src/vandrel_foundry/blender/process_glb.py` |
 | Local Blender review preview rendering | `src/vandrel_foundry/services/render_preview.py` |
 | Local Blender shader/material comparison evidence | `src/vandrel_foundry/services/experiment_shaders.py` |
+| Deterministic texture-region recoloring | `src/vandrel_foundry/services/apply_texture_mask.py` |
 | Missing-preview batch selection | `src/vandrel_foundry/services/render_missing_previews.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
