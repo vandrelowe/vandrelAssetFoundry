@@ -45,6 +45,9 @@ def test_review_gallery_embeds_preview_and_never_overwrites(config, lanes, promp
     assert second.name == "review-gallery-002.html"
     assert "&lt;Gallery &amp; Prop&gt;" in rendered
     assert "data:image/png;base64," in rendered
+    assert 'aria-label="Search assets"' in rendered
+    assert 'aria-label="Filter by state"' in rendered
+    assert "http://" not in rendered and "https://" not in rendered
     assert ManifestRepository(config.foundry.workspace_root).load("gallery_prop_001").revision == 2
 
     preview.write_bytes(content[:8] + b"x" * (len(content) - 8))

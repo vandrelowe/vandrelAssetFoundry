@@ -70,8 +70,13 @@ def _card(config: FoundryConfig, manifest: AssetManifest) -> str:
         f"{observed.get('material_count', '—')} materials · "
         f"{observed.get('animation_count', '—')} animations"
     )
+    search = html.escape(
+        f"{manifest.asset.display_name} {manifest.asset.asset_id} {manifest.asset.lane}".casefold(),
+        quote=True,
+    )
     return (
-        "<article class='card'>"
+        f"<article class='card' data-state='{html.escape(manifest.workflow.state.value, quote=True)}' "
+        f"data-lane='{html.escape(manifest.asset.lane, quote=True)}' data-search='{search}'>"
         f"{image}<div class='body'><h2>{html.escape(manifest.asset.display_name)}</h2>"
         f"<code>{html.escape(manifest.asset.asset_id)}</code>"
         f"<p><span class='state'>{html.escape(manifest.workflow.state.value)}</span> "
@@ -98,6 +103,8 @@ def _document(cards: str, count: int) -> str:
 <style>
 body{{margin:0;background:#11151c;color:#e8edf5;font:15px system-ui;padding:28px}}
 header{{max-width:1200px;margin:auto auto 24px}} h1{{margin:0}} header p{{color:#9aa8ba}}
+.controls{{display:flex;gap:10px;flex-wrap:wrap}} input,select{{background:#1b2330;color:#e8edf5;
+border:1px solid #465670;border-radius:7px;padding:9px 11px}}
 .grid{{max-width:1200px;margin:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}}
 .card{{background:#1b2330;border:1px solid #344156;border-radius:12px;overflow:hidden}}
 img,.placeholder{{width:100%;aspect-ratio:1;object-fit:contain;background:#080b10;display:grid;place-items:center}}
@@ -106,5 +113,22 @@ code{{color:#95c8ff}} .state{{background:#30405a;padding:3px 8px;border-radius:9
 ul{{columns:2;padding-left:18px}} .pass{{color:#8ee6a4}} .fail{{color:#ff8e93}}
 </style></head><body><header><h1>Review Gallery</h1>
 <p>{count} candidates · offline snapshot · informational only; approval remains a CLI action.</p>
-</header><main class="grid">{cards}</main></body></html>
+<div class="controls"><input id="search" aria-label="Search assets" placeholder="Search assets">
+<select id="state" aria-label="Filter by state"><option value="">All states</option>
+<option value="review">Review</option><option value="approved">Approved</option>
+<option value="rejected">Rejected</option></select>
+<select id="lane" aria-label="Filter by lane"><option value="">All lanes</option>
+<option value="static_prop">Static prop</option><option value="humanoid">Humanoid</option>
+<option value="environment_near">Environment near</option>
+<option value="environment_distant">Environment distant</option>
+<option value="creature">Creature</option></select></div>
+</header><main class="grid">{cards}</main>
+<script>
+const controls=[document.querySelector('#search'),document.querySelector('#state'),
+document.querySelector('#lane')]; function filterCards(){{
+const q=controls[0].value.toLowerCase(),state=controls[1].value,lane=controls[2].value;
+for(const card of document.querySelectorAll('.card')){{
+card.hidden=!!((q&&!card.dataset.search.includes(q))||(state&&card.dataset.state!==state)||
+(lane&&card.dataset.lane!==lane));}}}} controls.forEach(control=>control.addEventListener('input',filterCards));
+</script></body></html>
 """
