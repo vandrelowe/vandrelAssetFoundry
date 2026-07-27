@@ -17,8 +17,14 @@ def render_local_preview(
 ) -> Artifact:
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
-    if manifest.workflow.state not in {WorkflowState.PROCESSED, WorkflowState.REVIEW}:
-        raise FoundryError(f"Preview rendering requires processed or review state: {asset_id}")
+    if manifest.workflow.state not in {
+        WorkflowState.PROCESSED,
+        WorkflowState.REVIEW,
+        WorkflowState.APPROVED,
+    }:
+        raise FoundryError(
+            f"Preview rendering requires processed, review, or approved state: {asset_id}"
+        )
     executable = config.tools.blender_executable
     if executable is None or not executable.is_absolute() or not executable.is_file():
         raise FoundryError("Configure tools.blender_executable as an existing absolute file.")

@@ -269,6 +269,20 @@ def test_external_glb_enters_downloaded_workflow_without_provider(
         / "assets/external_prop_001/processed/blender/processed_glb_003.glb"
     ).exists()
 
+    repository = ManifestRepository(config.foundry.workspace_root)
+    approved = repository.load("external_prop_001")
+    approved.workflow.state = WorkflowState.APPROVED
+    approved.approval.approved = True
+    approved.approval.approved_artifact_hashes = {"processed_model": decimated.sha256}
+    approved.revision += 1
+    repository.save(approved, "test.approved", expected_revision=approved.revision - 1)
+
+    render_local_preview(config, "external_prop_001", runner=fake_preview_runner)
+    still_approved = repository.load("external_prop_001")
+    assert still_approved.workflow.state is WorkflowState.APPROVED
+    assert still_approved.approval.approved
+    assert still_approved.approval.approved_artifact_hashes == {"processed_model": decimated.sha256}
+
 
 def test_blender_processing_rejects_nonpositive_triangle_target(config) -> None:
     with pytest.raises(FoundryError, match="positive integer"):
