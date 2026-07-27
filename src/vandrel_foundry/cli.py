@@ -24,6 +24,7 @@ from vandrel_foundry.services.plan_release import plan_release
 from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.process_blender import process_with_blender
+from vandrel_foundry.services.publish_release import publish_release
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
 from vandrel_foundry.services.render_missing_previews import render_missing_previews
 from vandrel_foundry.services.render_preview import render_local_preview
@@ -728,11 +729,16 @@ def release(
     ] = False,
     config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
 ) -> None:
-    """Print a read-only immutable release plan; publication remains blocked."""
-    if apply:
-        fail(FoundryError("Release publication is not implemented; dry-run only."))
+    """Plan or explicitly publish one immutable asset-library release."""
     try:
         settings, lane_config = configured(config)
+        if apply:
+            result = publish_release(settings, lane_config, asset_id)
+            action = "Recovered" if result.recovered else "Published"
+            console.print(f"[green]{action}[/green] {asset_id} r{result.release_revision:03d}")
+            console.print(f"[cyan]Library destination:[/cyan] {result.destination}")
+            console.print("[yellow]Asset-library Git commit and push remain separate.[/yellow]")
+            return
         plan = plan_release(settings, lane_config, asset_id)
         console.print_json(json.dumps(plan.descriptor, indent=2))
         console.print(f"[cyan]Dry-run destination:[/cyan] {plan.destination}")

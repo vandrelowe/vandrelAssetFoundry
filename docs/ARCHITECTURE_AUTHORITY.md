@@ -58,6 +58,8 @@
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |
 | Manual approval and rejection | `src/vandrel_foundry/services/review_asset.py` |
 | Read-only release planning | `src/vandrel_foundry/services/plan_release.py` |
+| Explicit immutable library publication | `src/vandrel_foundry/services/publish_release.py` |
+| Asset-library Git policy checks | `src/vandrel_foundry/storage/git_worktree.py` |
 
 The Pydantic model is the source for
 `schemas/asset-manifest-v1.schema.json`; the checked-in schema is the portable

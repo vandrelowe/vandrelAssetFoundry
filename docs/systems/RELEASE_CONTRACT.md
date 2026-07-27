@@ -1,6 +1,6 @@
 # Review, Approval, and Release Contract
 
-**Status:** Active for review, approval, and dry-run planning; publication blocked
+**Status:** Active for review, approval, dry-run planning, and explicit publication
 
 ## Ratified invariants
 
@@ -15,6 +15,12 @@
 - Release creation and Git commit/push are separate user-controlled actions.
 - A release contains technical facts and provenance, not Vandrel gameplay or
   mod authority.
+- Publication requires the asset library to be an existing Git worktree with
+  no unrelated changes.
+- Binary model paths must resolve to the Git LFS `filter=lfs` attribute before
+  any release files are copied.
+- Foundry never initializes, commits, pushes, or repairs the asset-library
+  repository as part of publication.
 
 ## Dry-run release descriptor
 
@@ -30,10 +36,49 @@ selects the next unused `rNNN` directory, and prints schema-versioned
 - Foundry manifest revision and approval provenance.
 
 The plan does not create a directory, mutate the manifest or catalog, run Git,
-or claim a Vandrel runtime destination. `release --apply` fails closed.
+or claim a Vandrel runtime destination.
 
-## Required before publication implementation
+## Publication transaction
 
-Publication still requires a ratified staging/rename transaction, catalog
-update transaction, clean-tree policy, partial-publication recovery, and
-asset-library Git LFS verification.
+`release --apply` is an explicit publication action. Under one library-wide
+lock, it:
+
+1. recomputes the release plan and verifies every approved source artifact;
+2. verifies the target is a Git worktree and that its status contains no paths
+   outside the exact recoverable transaction;
+3. verifies every binary release path is governed by Git LFS;
+4. copies files into a same-filesystem staging directory, hashes the copies,
+   and writes the release descriptor last;
+5. atomically renames the complete staging directory to the unused `rNNN`
+   destination;
+6. atomically replaces `catalog.json` with a schema-versioned entry containing
+   the immutable descriptor hash; and
+7. records the published revision in the Foundry manifest only after the
+   library catalog is durable.
+
+No existing revision, catalog release entry, or staged destination is
+overwritten. The catalog is the library discovery index; the release
+descriptor remains authoritative for files inside its revision.
+
+## Recovery and interruption rules
+
+The directory rename is the publication point for immutable files. If a
+process stops after that rename but before catalog or Foundry-manifest update,
+a later identical `release --apply` recognizes the descriptor and artifact
+hashes, completes the missing catalog entry, and then records the Foundry
+release. Any mismatch fails closed.
+
+Abandoned staging directories are never treated as releases and are not
+silently deleted. They must not affect revision allocation. A retry uses a new
+unique staging directory. Status checks permit only the exact matching
+recoverable release and catalog path; unrelated changes still block recovery.
+
+Catalog replacement cannot be atomic with directory rename across two paths,
+so the matching descriptor is the recovery journal. This deliberately avoids
+rollback by deletion after immutable files become visible.
+
+## Git boundary
+
+Publication leaves asset-library changes uncommitted for inspection. Git
+commit and push are separate explicit operations. Foundry does not write to
+Vandrel, emit a `res://` destination, or claim consumer acceptance.

@@ -1,0 +1,180 @@
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+import pytest
+
+import vandrel_foundry.services.publish_release as publication
+from vandrel_foundry.domain.errors import FoundryError
+from vandrel_foundry.domain.manifest import Artifact, utc_now
+from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.services.create_asset import create_asset
+from vandrel_foundry.services.publish_release import publish_release
+from vandrel_foundry.storage.manifests import ManifestRepository
+
+
+class FakeGit:
+    def __init__(self, status: str = "", lfs: bool = True) -> None:
+        self.status = status
+        self.lfs = lfs
+
+    def __call__(
+        self,
+        command: list[str],
+        cwd: Path,
+    ) -> subprocess.CompletedProcess[str]:
+        if command[:2] == ["rev-parse", "--is-inside-work-tree"]:
+            return subprocess.CompletedProcess(command, 0, "true\n", "")
+        if command[:2] == ["status", "--porcelain=v1"]:
+            return subprocess.CompletedProcess(command, 0, self.status, "")
+        if command[:2] == ["check-attr", "filter"]:
+            value = "lfs" if self.lfs else "unspecified"
+            return subprocess.CompletedProcess(command, 0, f"{command[-1]}: filter: {value}\n", "")
+        raise AssertionError(command)
+
+
+def _sha256(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _approved_asset(config, lanes, prompt: Path) -> None:
+    create_asset(config, lanes, "stone_knife_001", "static_prop", "Stone Knife", prompt)
+    root = config.foundry.workspace_root / "assets" / "stone_knife_001"
+    model = b"fixture glb"
+    wrapper = b"[gd_scene format=3]\n"
+    (root / "processed").mkdir(exist_ok=True)
+    (root / "processed" / "model.glb").write_bytes(model)
+    (root / "review").mkdir(exist_ok=True)
+    (root / "review" / "wrapper.tscn").write_bytes(wrapper)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("stone_knife_001")
+    manifest.artifacts.extend(
+        [
+            Artifact(
+                artifact_id="processed-model-001",
+                role="processed_model",
+                stage="processed",
+                format="glb",
+                path="processed/model.glb",
+                sha256=_sha256(model),
+                size_bytes=len(model),
+            ),
+            Artifact(
+                artifact_id="godot-wrapper-001",
+                role="godot_wrapper_scene",
+                stage="review",
+                format="tscn",
+                path="review/wrapper.tscn",
+                sha256=_sha256(wrapper),
+                size_bytes=len(wrapper),
+            ),
+        ]
+    )
+    manifest.validation.result = "passed"
+    manifest.validation.checks = [{"name": "godot_sandbox_import", "passed": True}]
+    manifest.approval.approved = True
+    manifest.approval.approved_at = utc_now()
+    manifest.approval.reviewer = "Test Reviewer"
+    manifest.approval.approved_artifact_hashes = {
+        "processed_model": _sha256(model),
+        "godot_wrapper_scene": _sha256(wrapper),
+    }
+    manifest.workflow.state = WorkflowState.APPROVED
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+
+
+def _library(config) -> Path:
+    root = config.foundry.asset_library_root
+    (root / ".git").mkdir(parents=True)
+    return root
+
+
+def test_publish_creates_immutable_release_catalog_and_manifest_record(
+    config,
+    lanes,
+    prompt: Path,
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    root = _library(config)
+
+    result = publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
+
+    assert result.release_revision == 1
+    assert not result.recovered
+    descriptor = json.loads((result.destination / "asset-release.json").read_text())
+    assert (result.destination / "model.glb").read_bytes() == b"fixture glb"
+    catalog = json.loads((root / "catalog.json").read_text())
+    entry = catalog["assets"]["stone_knife_001"]["releases"][0]
+    assert entry["revision"] == 1
+    assert entry["descriptor_sha256"] == _sha256(
+        (result.destination / "asset-release.json").read_bytes()
+    )
+    assert descriptor["asset_id"] == "stone_knife_001"
+    manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
+    assert manifest.release.released
+    assert manifest.release.release_revision == 1
+
+
+def test_publish_rejects_unrelated_dirty_tree(config, lanes, prompt: Path) -> None:
+    _approved_asset(config, lanes, prompt)
+    _library(config)
+
+    with pytest.raises(FoundryError, match="unrelated changes"):
+        publish_release(
+            config,
+            lanes,
+            "stone_knife_001",
+            git_runner=FakeGit(" M README.md\n"),
+        )
+
+
+def test_publish_rejects_missing_lfs_policy(config, lanes, prompt: Path) -> None:
+    _approved_asset(config, lanes, prompt)
+    _library(config)
+
+    with pytest.raises(FoundryError, match="Git LFS"):
+        publish_release(
+            config,
+            lanes,
+            "stone_knife_001",
+            git_runner=FakeGit(lfs=False),
+        )
+    assert not (config.foundry.asset_library_root / "assets").exists()
+
+
+def test_publish_recovers_after_release_rename_before_catalog(
+    config,
+    lanes,
+    prompt: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    root = _library(config)
+    original = publication._update_catalog
+
+    def interrupt(*args, **kwargs):
+        raise FoundryError("simulated interruption")
+
+    monkeypatch.setattr(publication, "_update_catalog", interrupt)
+    with pytest.raises(FoundryError, match="simulated interruption"):
+        publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
+
+    release = root / "assets" / "stone_knife_001" / "r001"
+    status = "".join(
+        f"?? {path.relative_to(root).as_posix()}\n"
+        for path in sorted(release.rglob("*"))
+        if path.is_file()
+    )
+    monkeypatch.setattr(publication, "_update_catalog", original)
+    result = publish_release(
+        config,
+        lanes,
+        "stone_knife_001",
+        git_runner=FakeGit(status),
+    )
+
+    assert result.recovered
+    assert result.release_revision == 1
+    assert (root / "catalog.json").is_file()

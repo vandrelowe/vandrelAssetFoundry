@@ -9,7 +9,7 @@ VandrelAssetFoundry (Python source)
           v
 VandrelFoundryWorkspace (active local candidates)
           |
-          v  future explicit approval and publication
+          v  explicit approval and publication
 VandrelAssetLibrary (immutable, Git LFS releases)
           |
           v  explicit game-side import
@@ -21,10 +21,12 @@ workspace is local operational state: one permanent directory per asset, one
 authoritative manifest, prior-manifest backup, and an append-only event log.
 Workflow state lives in the manifest rather than directory names.
 
-The asset library is a future release channel containing only reviewed immutable
-revisions. Vandrel consumes selected releases explicitly; Foundry never mutates
-the game checkout. A future mod manager remains separate and owns gameplay
-metadata, dependency resolution, load order, and overrides.
+The asset library is a separate release channel containing only reviewed
+immutable revisions. Foundry may publish through its explicit guarded
+transaction, but it does not commit or push the library. Vandrel consumes
+selected releases explicitly; Foundry never mutates the game checkout. A future
+mod manager remains separate and owns gameplay metadata, dependency resolution,
+load order, and overrides.
 
 Phase 1 uses a thin Typer CLI over application services, Pydantic domain models,
 and a filesystem repository. Manifest changes use an asset-specific exclusive

@@ -82,7 +82,7 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
         cli_config,
     )
     assert blocked_release_apply.exit_code != 0
-    assert "dry-run only" in blocked_release_apply.output
+    assert "Asset-library root does not exist" in blocked_release_apply.output
     download = invoke(["download", "stone_knife_001"], cli_config)
     assert download.exit_code != 0 and "Provider task not found" in download.output
 

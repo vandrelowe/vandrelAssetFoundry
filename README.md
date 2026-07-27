@@ -88,7 +88,10 @@ foundry render-missing-previews
 foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
 foundry approve stone_knife_001 --reviewer "Reviewer Name" --all-required-checks
+# Read-only plan:
 foundry release stone_knife_001
+# Explicitly publish into a preconfigured clean Git/LFS asset library:
+foundry release stone_knife_001 --apply
 
 # Optional paid provider remesh; defaults to the lane target.
 foundry remesh stone_knife_001 --confirm-spend
@@ -134,8 +137,9 @@ without a Meshy key or credits.
 - This repository contains Python source, schemas, tests, and documentation.
 - The configured Foundry workspace contains active candidate assets and stays
   outside Git.
-- `C:\dev\VandrelAssetLibrary` will eventually contain approved immutable
-  releases and use Git LFS; the current implementation does not write there.
+- The configured asset-library Git repository contains approved immutable
+  releases. `release --apply` writes only after clean-tree and Git LFS checks;
+  it never commits or pushes those changes.
 - `C:\dev\Vandrel` is reference-only. `doctor` may check for `project.godot`;
   Foundry refuses configurations that enable writes.
 - A future mod manager owns gameplay metadata, dependencies, overrides, and load
@@ -176,18 +180,18 @@ slice creates a self-contained Godot validation sandbox and runs bounded,
 headless import validation without touching Vandrel. The subprocess uses the
 configured absolute executable, removes Meshy credentials from its environment,
 limits runtime and output, and records hash-bound logs and reports. Manual
-hash-bound approval, read-only release planning, and deterministic Blender
-transform cleanup/export are implemented. Explicit target-bound local
-decimation is implemented; automated target selection, release publication,
-and humanoid promotion remain later work.
-`release` is currently a read-only plan;
-`release --apply` fails closed until the publication transaction and
-asset-library safeguards are implemented.
+hash-bound approval, read-only release planning, recoverable explicit
+asset-library publication, and deterministic Blender transform cleanup/export
+are implemented. Publication uses an immutable staging/rename transaction,
+atomic catalog replacement, clean-worktree checks, and Git LFS verification;
+asset-library commit/push and Vandrel import remain separate. Explicit
+target-bound local decimation is implemented; automated target selection and
+humanoid promotion remain later work.
 
 The optional Blender processor uses the absolute executable configured at
 `tools.blender_executable`. The current machine uses the Steam installation at
 `C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe`; it has
-been verified with Blender 5.1.2 in background mode. Foundry launches it with
+been verified with Blender 5.2.0 LTS in background mode. Foundry launches it with
 factory settings, automatic embedded-script execution disabled, a bounded
 runtime/output budget, and a checked-in processing script. It applies rotation
 and scale, exports a new GLB, validates that output, and records Blender's
