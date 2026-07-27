@@ -8,7 +8,11 @@ import pytest
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact
 from vandrel_foundry.domain.states import WorkflowState
-from vandrel_foundry.services.add_source import add_external_glb
+from vandrel_foundry.services.add_source import (
+    _gltf_sidecars,
+    add_external_fbx,
+    add_external_glb,
+)
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.inspect_assets import initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_glb, inspect_processed_glb
@@ -86,6 +90,7 @@ def test_asset_inspection_persists_hash_bound_report(config, lanes, prompt: Path
             "asset": {"version": "2.0"},
             "accessors": [{"count": 15}],
             "meshes": [{"primitives": [{"indices": 0}]}],
+            "materials": [{}],
         },
     )
     content = path.read_bytes()
@@ -172,3 +177,119 @@ def test_external_glb_enters_downloaded_workflow_without_provider(
     assert processed.processor is not None
     assert processed.processor.name == "blender_cleanup"
     assert any(item.role == "blender_processing_report" for item in updated.artifacts)
+
+
+def test_external_fbx_package_preserves_source_texture_and_conversion_evidence(
+    config, lanes, prompt: Path, tmp_path: Path
+) -> None:
+    initialize_workspace(config.foundry.workspace_root)
+    create_asset(
+        config,
+        lanes,
+        "external_fbx_001",
+        "static_prop",
+        "External FBX",
+        prompt,
+    )
+    package = tmp_path / "package"
+    package.mkdir()
+    source = package / "Meshy Export.fbx"
+    texture = package / "Meshy Export.png"
+    source.write_bytes(b"fixture-fbx")
+    texture.write_bytes(b"\x89PNG\r\n\x1a\nfixture")
+    executable = tmp_path / "blender.exe"
+    executable.write_bytes(b"fixture executable")
+    config.tools.blender_executable = executable
+
+    def fake_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
+        output_path = Path(arguments[-2])
+        report_path = Path(arguments[-1])
+        _write_glb(
+            output_path,
+            {
+                "asset": {"version": "2.0"},
+                "accessors": [{"count": 6}],
+                "meshes": [{"primitives": [{"indices": 0}]}],
+                "materials": [{}],
+                "textures": [{}],
+                "images": [{}],
+            },
+        )
+        report_path.write_text(
+            json.dumps({"blender_version": "fixture", "input_format": "fbx"}),
+            encoding="utf-8",
+        )
+        return ProcessResult(0, "WARNING: conversion warning", "", False, False, 0.1)
+
+    converted = add_external_fbx(
+        config,
+        "external_fbx_001",
+        source,
+        runner=fake_runner,
+    )
+    manifest = ManifestRepository(config.foundry.workspace_root).load("external_fbx_001")
+    asset_root = config.foundry.workspace_root / "assets" / "external_fbx_001"
+    roles = [item.role for item in manifest.artifacts]
+    assert manifest.workflow.state is WorkflowState.DOWNLOADED
+    assert roles == [
+        "external_source_model",
+        "source_texture",
+        "source_model",
+        "blender_conversion_report",
+        "blender_conversion_log",
+    ]
+    assert (asset_root / "source/packages/package_001/Meshy Export.fbx").read_bytes() == (
+        source.read_bytes()
+    )
+    assert (asset_root / "source/packages/package_001/Meshy Export.png").read_bytes() == (
+        texture.read_bytes()
+    )
+    assert set(converted.derived_from) == {
+        "external_source_fbx_001",
+        "source_texture_001_002",
+    }
+    assert "WARNING: conversion warning" in (
+        asset_root / "source/packages/package_001/blender-conversion.log"
+    ).read_text(encoding="utf-8")
+    report = json.loads(
+        (asset_root / "source/packages/package_001/blender-conversion.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert report["warnings"] == ["WARNING: conversion warning"]
+    assert manifest.quality.observed["source_conversion_warnings"] == [
+        "WARNING: conversion warning"
+    ]
+
+
+def test_gltf_sidecars_include_only_declared_safe_dependencies(tmp_path: Path) -> None:
+    model = tmp_path / "model.gltf"
+    buffer = tmp_path / "model.bin"
+    texture = tmp_path / "base color.png"
+    unrelated = tmp_path / "unrelated.png"
+    buffer.write_bytes(b"buffer")
+    texture.write_bytes(b"texture")
+    unrelated.write_bytes(b"unrelated")
+    model.write_text(
+        json.dumps(
+            {
+                "asset": {"version": "2.0"},
+                "buffers": [{"uri": "model.bin", "byteLength": 6}],
+                "images": [{"uri": "base%20color.png"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert _gltf_sidecars(model) == [texture, buffer]
+
+    model.write_text(
+        json.dumps(
+            {
+                "asset": {"version": "2.0"},
+                "buffers": [{"uri": "../escape.bin", "byteLength": 6}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(FoundryError, match="missing or unsafe"):
+        _gltf_sidecars(model)

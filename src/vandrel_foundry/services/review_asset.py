@@ -9,7 +9,12 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import contained_path
 
 APPROVAL_ROLES = ("processed_model", "godot_wrapper_scene")
-REQUIRED_CHECKS = {"glb_structure", "triangle_budget", "godot_sandbox_import"}
+REQUIRED_CHECKS = {
+    "glb_structure",
+    "triangle_budget",
+    "materials_required",
+    "godot_sandbox_import",
+}
 
 
 def approve_asset(

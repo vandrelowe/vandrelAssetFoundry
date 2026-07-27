@@ -12,7 +12,7 @@ from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.states import next_actions
 from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
 from vandrel_foundry.services.add_reference import add_reference_image
-from vandrel_foundry.services.add_source import add_external_glb
+from vandrel_foundry.services.add_source import add_external_glb, add_external_package
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
@@ -178,10 +178,13 @@ def add_source(
     model: Annotated[Path, typer.Option("--model", help="Local GLB source file.")],
     config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
 ) -> None:
-    """Copy and verify an existing GLB without calling Meshy."""
+    """Copy and verify an existing GLB or FBX package without calling Meshy."""
     try:
         settings = load_config(config)
-        artifact = add_external_glb(settings, asset_id, model)
+        if model.suffix.lower() in {".fbx", ".gltf"}:
+            artifact = add_external_package(settings, asset_id, model)
+        else:
+            artifact = add_external_glb(settings, asset_id, model)
         console.print(f"[green]Added external source[/green] {artifact.path}")
     except FoundryError as exc:
         fail(exc)

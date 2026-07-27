@@ -38,7 +38,7 @@ def test_real_godot_import_is_opt_in(config, lanes, prompt: Path) -> None:
         prompt,
     )
     model = prompt.parent / "external-smoke.glb"
-    document = json.dumps({"asset": {"version": "2.0"}}).encode("utf-8")
+    document = json.dumps({"asset": {"version": "2.0"}, "materials": [{}]}).encode("utf-8")
     document += b" " * (-len(document) % 4)
     content = (
         struct.pack("<4sII", b"glTF", 2, 20 + len(document))

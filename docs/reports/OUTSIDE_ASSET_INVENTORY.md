@@ -64,7 +64,13 @@ returned exit code 0 without timing out or exceeding the output limit.
   should become a recorded Blender validation check.
 - Static props should be exercised before humanoids because the humanoid lane
   remains release-disabled and requires a future canonical skeleton contract.
-- Native package intake should eventually copy the FBX and sidecar textures
-  into immutable provenance storage before conversion. Until that lands,
-  conversion should remain an explicit preprocessing step and the originals
-  must stay untouched.
+- Native FBX package intake now copies the FBX and same-directory texture
+  sidecars into immutable provenance storage before converting the copy.
+- A second Meshy berry-basket package passed native intake, Blender conversion,
+  the 5,000-triangle static-prop budget at 2,988 triangles, and Godot import.
+- Native glTF intake copies only JSON-declared local buffers/images. A
+  Quaternius anvil package copied its GLTF, one BIN, and three referenced
+  textures; it passed at 750 triangles and reached review.
+- Both Meshy FBX and Quaternius glTF conversion exposed Blender's
+  multiple-image-texture-node sampler warning. It is now retained in structured
+  conversion evidence instead of only console text.

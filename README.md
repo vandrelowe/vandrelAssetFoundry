@@ -39,8 +39,10 @@ foundry list
 foundry show stone_knife_001
 foundry status stone_knife_001
 
-# Skip Meshy entirely by adding an existing local GLB.
+# Skip Meshy entirely with GLB, FBX-plus-textures, or glTF packages.
 foundry add-source stone_knife_001 --model .\models\stone_knife.glb
+foundry add-source basket_001 --model .\meshy\basket.fbx
+foundry add-source anvil_001 --model .\kit\Anvil.gltf
 ```
 
 `init` is safe to repeat and never creates asset records. `create` validates all
@@ -100,10 +102,13 @@ The API key is read from the environment-variable name configured in
 `foundry.toml` (normally `MESHY_API_KEY`). It is never written to the manifest,
 provider evidence, event log, or terminal output.
 
-`add-source` validates GLB 2.0 structure, copies the file into immutable source
-storage, hashes the copy, and moves the asset directly to the downloaded state.
-The remaining processing, Godot validation, review, and release-plan commands
-work without a Meshy key or credits.
+`add-source` accepts a GLB directly or converts FBX/glTF packages through the
+bounded Blender adapter. Package intake copies the original model and only its
+required/same-package texture or buffer sidecars into immutable provenance
+storage before conversion. It records hashes, Blender version, structured
+warnings, and bounded logs, then moves the asset to the downloaded state. The
+remaining processing, Godot validation, review, and release-plan commands work
+without a Meshy key or credits.
 
 ## Repository and workspace boundaries
 
