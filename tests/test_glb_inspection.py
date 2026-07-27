@@ -12,6 +12,8 @@ from vandrel_foundry.services.add_source import add_external_glb
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.inspect_assets import initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_glb, inspect_processed_glb
+from vandrel_foundry.services.process_blender import process_with_blender
+from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.manifests import ManifestRepository
 
 
@@ -145,3 +147,28 @@ def test_external_glb_enters_downloaded_workflow_without_provider(
     assert artifact.processor.name == "external_glb_import"
     assert copied.read_bytes() == source.read_bytes()
     assert copied.stat().st_ino != source.stat().st_ino
+
+    executable = tmp_path / "blender.exe"
+    executable.write_bytes(b"fixture executable")
+    config.tools.blender_executable = executable
+
+    def fake_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
+        input_path, output_path, report_path = map(Path, arguments[-3:])
+        output_path.write_bytes(input_path.read_bytes())
+        report_path.write_text(
+            json.dumps({"blender_version": "fixture", "triangles": 2}),
+            encoding="utf-8",
+        )
+        return ProcessResult(0, "", "", False, False, 0.1)
+
+    processed = process_with_blender(
+        config,
+        "external_prop_001",
+        runner=fake_runner,
+    )
+    updated = ManifestRepository(config.foundry.workspace_root).load("external_prop_001")
+    assert updated.workflow.state is WorkflowState.PROCESSED
+    assert processed.derived_from == [artifact.artifact_id]
+    assert processed.processor is not None
+    assert processed.processor.name == "blender_cleanup"
+    assert any(item.role == "blender_processing_report" for item in updated.artifacts)

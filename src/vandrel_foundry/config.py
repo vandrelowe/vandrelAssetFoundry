@@ -46,7 +46,9 @@ class ReleaseSettings(ConfigModel):
 
 class ToolSettings(ConfigModel):
     godot_executable: Path | None = None
+    blender_executable: Path | None = None
     godot_timeout_seconds: float = Field(default=120.0, gt=0, le=900)
+    blender_timeout_seconds: float = Field(default=300.0, gt=0, le=1800)
     maximum_output_bytes: int = Field(default=1_000_000, gt=0, le=50_000_000)
 
 

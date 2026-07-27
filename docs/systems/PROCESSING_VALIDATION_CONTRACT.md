@@ -80,6 +80,13 @@ Godot command-line behavior follows the stable engine documentation:
 <https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html>.
 The validator uses `--headless`, `--path`, `--import`, and a sandbox-local log.
 
+Blender command-line behavior follows the official manual:
+<https://docs.blender.org/manual/en/latest/advanced/command_line/arguments.html>.
+The adapter uses background mode, factory startup, disabled automatic embedded
+scripts, an explicit checked-in Python script, and a nonzero Python exception
+exit code. A Blender result is accepted only when the subprocess succeeds, the
+new GLB parses, and the versioned report exists.
+
 ## Failure recovery
 
 - Remove only incomplete files and directories created by the current

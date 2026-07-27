@@ -23,5 +23,7 @@ allow_overwrite = false
 
 [tools]
 godot_executable = "C:/Dev/Godot/Godot.exe"
+blender_executable = "C:/Program Files (x86)/Steam/steamapps/common/Blender/blender.exe"
 godot_timeout_seconds = 120
+blender_timeout_seconds = 300
 maximum_output_bytes = 1000000

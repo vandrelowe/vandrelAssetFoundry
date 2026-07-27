@@ -8,9 +8,8 @@ Text-to-3D and Image-to-3D lifecycles with redacted evidence, polling,
 recovery, and checksummed source downloads.
 
 It is not the Vandrel game, a mod manager, or an asset database. It can invoke
-an explicitly configured Godot editor only inside generated validation
-sandboxes. It does not invoke Blender and never writes into the Vandrel
-repository.
+explicitly configured Godot and Blender executables only through bounded local
+workflows. It never writes into the Vandrel repository.
 
 ## Windows setup
 
@@ -63,6 +62,7 @@ foundry download stone_knife_001
 # then inspect GLB structure and the lane triangle budget.
 foundry select-output stone_knife_001 --task meshy_preview_001
 foundry process stone_knife_001
+foundry process-blender stone_knife_001
 foundry inspect stone_knife_001
 foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
@@ -152,11 +152,29 @@ slice creates a self-contained Godot validation sandbox and runs bounded,
 headless import validation without touching Vandrel. The subprocess uses the
 configured absolute executable, removes Meshy credentials from its environment,
 limits runtime and output, and records hash-bound logs and reports. Manual
-hash-bound approval and read-only release planning are implemented. Blender
-processing, release publication, and humanoid promotion remain later work.
+hash-bound approval, read-only release planning, and deterministic Blender
+transform cleanup/export are implemented. Decimation policy, release
+publication, and humanoid promotion remain later work.
 `release` is currently a read-only plan;
 `release --apply` fails closed until the publication transaction and
 asset-library safeguards are implemented.
+
+The optional Blender processor uses the absolute executable configured at
+`tools.blender_executable`. The current machine uses the Steam installation at
+`C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe`; it has
+been verified with Blender 5.1.2 in background mode. Foundry launches it with
+factory settings, automatic embedded-script execution disabled, a bounded
+runtime/output budget, and a checked-in processing script. It applies rotation
+and scale, exports a new GLB, validates that output, and records Blender's
+version and a processing report.
+
+The opt-in real Blender smoke test is credit-free:
+
+```powershell
+$env:VANDREL_FOUNDRY_TEST_BLENDER = `
+  "C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe"
+pytest tests/test_blender_live.py
+```
 
 Set `tools.godot_executable` in `foundry.toml` before using
 `validate-godot`. The opt-in real-tool smoke test can be run without Meshy:

@@ -50,6 +50,18 @@ def run_doctor(config: FoundryConfig, lanes: LaneConfiguration) -> list[Check]:
             f"{marker} {'found' if marker.is_file() else 'not found'}",
         )
     )
+    for name, executable in (
+        ("Godot executable", config.tools.godot_executable),
+        ("Blender executable", config.tools.blender_executable),
+    ):
+        if executable is not None:
+            checks.append(
+                Check(
+                    name,
+                    executable.is_absolute() and executable.is_file(),
+                    str(executable),
+                )
+            )
     return checks
 
 

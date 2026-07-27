@@ -21,6 +21,7 @@ from vandrel_foundry.services.inspect_glb import inspect_processed_glb
 from vandrel_foundry.services.plan_release import plan_release
 from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.process_asset import process_passthrough
+from vandrel_foundry.services.process_blender import process_with_blender
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
 from vandrel_foundry.services.review_asset import approve_asset, reject_asset
 from vandrel_foundry.services.select_output import select_output
@@ -432,6 +433,20 @@ def process(
         settings = load_config(config)
         artifact = process_passthrough(settings, asset_id)
         console.print(f"[green]Processed[/green] {artifact.artifact_id}: {artifact.path}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("process-blender")
+def process_blender(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Apply transforms and re-export a GLB through bounded headless Blender."""
+    try:
+        settings = load_config(config)
+        artifact = process_with_blender(settings, asset_id)
+        console.print(f"[green]Blender processed[/green] {artifact.path}")
     except FoundryError as exc:
         fail(exc)
 
