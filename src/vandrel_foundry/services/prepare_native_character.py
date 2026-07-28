@@ -21,7 +21,7 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "godot_provider_native_character"
-PROCESSOR_VERSION = "1"
+PROCESSOR_VERSION = "2"
 
 PROJECT_TEXT = """; Generated Foundry validation project. Not a Vandrel runtime project.
 config_version=5
@@ -123,7 +123,11 @@ func _ready() -> void:
 \tvar player := character.find_child("AnimationPlayer", true, false) as AnimationPlayer
 \tvar skeleton := character.find_child("Skeleton3D", true, false) as Skeleton3D
 \tvar mesh_count := 0
+\tvar visible_mesh_count := 0
+\tvar visible_skinned_mesh_count := 0
+\tvar visible_unskinned_mesh_count := 0
 \tvar triangle_count := 0
+\tvar visible_skinned_triangle_count := 0
 \tvar material_count := 0
 \tvar textured_material_count := 0
 \tfor node in character.find_children("*", "MeshInstance3D", true, false):
@@ -131,11 +135,23 @@ func _ready() -> void:
 \t\tif mesh_instance.mesh == null:
 \t\t\tcontinue
 \t\tmesh_count += 1
+\t\tvar bound_skeleton := mesh_instance.get_node_or_null(mesh_instance.skeleton)
+\t\tvar is_skinned_to_rig := mesh_instance.skin != null and bound_skeleton is Skeleton3D
+\t\tvar is_visible := mesh_instance.is_visible_in_tree()
+\t\tif is_visible:
+\t\t\tvisible_mesh_count += 1
+\t\t\tif is_skinned_to_rig:
+\t\t\t\tvisible_skinned_mesh_count += 1
+\t\t\telse:
+\t\t\t\tvisible_unskinned_mesh_count += 1
 \t\tfor surface_index in mesh_instance.mesh.get_surface_count():
 \t\t\tvar arrays := mesh_instance.mesh.surface_get_arrays(surface_index)
 \t\t\tvar indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
 \t\t\tvar vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-\t\t\ttriangle_count += (indices.size() if not indices.is_empty() else vertices.size()) / 3
+\t\t\tvar surface_triangles := (indices.size() if not indices.is_empty() else vertices.size()) / 3
+\t\t\ttriangle_count += surface_triangles
+\t\t\tif is_visible and is_skinned_to_rig:
+\t\t\t\tvisible_skinned_triangle_count += surface_triangles
 \t\t\tvar material := mesh_instance.get_active_material(surface_index)
 \t\t\tif material != null:
 \t\t\t\tmaterial_count += 1
@@ -159,11 +175,17 @@ func _ready() -> void:
 \t_finish({
 \t\t"schema_version": 1,
 \t\t"passed": player != null and bone_count >= 20 and mesh_count > 0
+\t\t\tand visible_mesh_count > 0 and visible_skinned_mesh_count > 0
+\t\t\tand visible_skinned_triangle_count > 0
 \t\t\tand triangle_count > 0 and material_count > 0 and textured_material_count > 0
 \t\t\tand missing.is_empty() and finite_bones,
 \t\t"bone_count": bone_count,
 \t\t"mesh_count": mesh_count,
+\t\t"visible_mesh_count": visible_mesh_count,
+\t\t"visible_skinned_mesh_count": visible_skinned_mesh_count,
+\t\t"visible_unskinned_mesh_count": visible_unskinned_mesh_count,
 \t\t"triangle_count": triangle_count,
+\t\t"visible_skinned_triangle_count": visible_skinned_triangle_count,
 \t\t"material_count": material_count,
 \t\t"textured_material_count": textured_material_count,
 \t\t"missing_animations": missing,
@@ -291,8 +313,7 @@ def prepare_provider_native_character(
         _require_success(validation_result, "Godot provider-native playback")
         report_path = sandbox / "native-character-report.json"
         report_data = json.loads(report_path.read_text(encoding="utf-8"))
-        if not report_data.get("passed"):
-            raise FoundryError("Provider-native character validation report did not pass.")
+        _require_native_character_report(report_data)
         report_data.update(
             {
                 "asset_id": asset_id,
@@ -456,6 +477,15 @@ def prepare_provider_native_character(
             "same_provider_task": (
                 model.source_task_key == walk.source_task_key == run.source_task_key
             ),
+            "skin_binding_passed": int(report_data["visible_skinned_mesh_count"]) > 0
+            and int(report_data["visible_skinned_triangle_count"]) > 0,
+            "visible_skinned_mesh_count": int(report_data["visible_skinned_mesh_count"]),
+            "visible_unskinned_mesh_count": int(
+                report_data["visible_unskinned_mesh_count"]
+            ),
+            "visible_skinned_triangle_count": int(
+                report_data["visible_skinned_triangle_count"]
+            ),
         },
         {"name": "geometry_present", "passed": int(report_data["mesh_count"]) > 0},
         {
@@ -466,6 +496,20 @@ def prepare_provider_native_character(
         },
         {"name": "materials_required", "passed": int(report_data["textured_material_count"]) > 0},
         {"name": "skeleton_required", "passed": int(report_data["bone_count"]) >= 20},
+        {
+            "name": "character_skin_binding",
+            "passed": int(report_data["visible_skinned_mesh_count"]) > 0
+            and int(report_data["visible_skinned_triangle_count"]) > 0,
+            "observed_visible_skinned_meshes": int(
+                report_data["visible_skinned_mesh_count"]
+            ),
+            "observed_visible_unskinned_meshes": int(
+                report_data["visible_unskinned_mesh_count"]
+            ),
+            "observed_visible_skinned_triangles": int(
+                report_data["visible_skinned_triangle_count"]
+            ),
+        },
         {"name": "godot_sandbox_import", "passed": True, "report": str(report_artifact.path)},
     ]
     manifest.validation.checks = checks
@@ -474,6 +518,14 @@ def prepare_provider_native_character(
         {
             "triangle_count": triangle_count,
             "mesh_count": int(report_data["mesh_count"]),
+            "visible_mesh_count": int(report_data["visible_mesh_count"]),
+            "visible_skinned_mesh_count": int(report_data["visible_skinned_mesh_count"]),
+            "visible_unskinned_mesh_count": int(
+                report_data["visible_unskinned_mesh_count"]
+            ),
+            "visible_skinned_triangle_count": int(
+                report_data["visible_skinned_triangle_count"]
+            ),
             "material_count": int(report_data["material_count"]),
             "bone_count": int(report_data["bone_count"]),
             "animation_source": "meshy_same_rigging_task",
@@ -508,6 +560,49 @@ def prepare_provider_native_character(
         import_result=import_result,
         validation_result=validation_result,
     )
+
+
+def _require_native_character_report(report: object) -> None:
+    if not isinstance(report, dict) or report.get("schema_version") != 1:
+        raise FoundryError("Provider-native character validation report is invalid.")
+    integer_fields = (
+        "bone_count",
+        "mesh_count",
+        "visible_mesh_count",
+        "visible_skinned_mesh_count",
+        "visible_unskinned_mesh_count",
+        "triangle_count",
+        "visible_skinned_triangle_count",
+        "material_count",
+        "textured_material_count",
+    )
+    if any(
+        not isinstance(report.get(field), int)
+        or isinstance(report.get(field), bool)
+        or int(report[field]) < 0
+        for field in integer_fields
+    ):
+        raise FoundryError("Provider-native character validation report has invalid counts.")
+    missing = report.get("missing_animations")
+    checks_pass = (
+        report.get("passed") is True
+        and int(report["bone_count"]) >= 20
+        and int(report["mesh_count"]) > 0
+        and int(report["visible_mesh_count"]) > 0
+        and int(report["visible_skinned_mesh_count"]) > 0
+        and int(report["visible_skinned_triangle_count"]) > 0
+        and int(report["triangle_count"]) >= int(report["visible_skinned_triangle_count"])
+        and int(report["material_count"]) > 0
+        and int(report["textured_material_count"]) > 0
+        and isinstance(missing, list)
+        and not missing
+        and report.get("finite_bone_scales") is True
+    )
+    if not checks_pass:
+        raise FoundryError(
+            "Provider-native character validation requires visible geometry skinned "
+            "to the imported rig."
+        )
 
 
 def _select_sources(

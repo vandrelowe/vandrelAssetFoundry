@@ -132,9 +132,13 @@ The bounded validator imports the three provider-native FBXs, extracts compact
 looping walk/run `Animation` resources, loads them onto the character's own
 `AnimationPlayer`, and checks geometry, triangle count, textured material
 presence, humanoid skeleton size, required clip aliases, and finite sampled
-bone scales. It then discards duplicate animation meshes, extracted textures,
-import caches, and its temporary validation script before promoting the
-candidate.
+bone scales. At least one nonempty, visible `MeshInstance3D` must also have
+both a Godot `Skin` and a resolvable `Skeleton3D` binding. Merely placing
+static visible geometry beside an animated or hidden reference rig does not
+satisfy the humanoid lane. The report records visible skinned and unskinned
+mesh counts plus the visible triangle count actually bound to the rig. The
+validator then discards duplicate animation meshes, extracted textures, import
+caches, and its temporary validation script before promoting the candidate.
 
 The promoted wrapper is validation and release-template evidence. It does not
 choose a Vandrel `res://` destination, establish gameplay clip semantics, or

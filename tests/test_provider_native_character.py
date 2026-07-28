@@ -2,6 +2,9 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
+from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.services.create_asset import create_asset
@@ -10,6 +13,7 @@ from vandrel_foundry.services.plan_release import plan_release
 from vandrel_foundry.services.prepare_native_character import (
     PROCESSOR_NAME,
     _repair_native_artifact_id_collisions,
+    _require_native_character_report,
     _select_sources,
     prepare_provider_native_character,
 )
@@ -83,7 +87,11 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
                         "passed": True,
                         "bone_count": 24,
                         "mesh_count": 1,
+                        "visible_mesh_count": 1,
+                        "visible_skinned_mesh_count": 1,
+                        "visible_unskinned_mesh_count": 0,
                         "triangle_count": 12000,
+                        "visible_skinned_triangle_count": 12000,
                         "material_count": 1,
                         "textured_material_count": 1,
                         "missing_animations": [],
@@ -119,7 +127,18 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
         if item["name"] == "provider_native_character_playback"
     )
     assert check["same_provider_task"] is True
+    assert check["skin_binding_passed"] is True
     assert check["processed_model_sha256"] == result.model.sha256
+    skin_check = next(
+        item for item in saved.validation.checks if item["name"] == "character_skin_binding"
+    )
+    assert skin_check == {
+        "name": "character_skin_binding",
+        "passed": True,
+        "observed_visible_skinned_meshes": 1,
+        "observed_visible_unskinned_meshes": 0,
+        "observed_visible_skinned_triangles": 12000,
+    }
 
     approve_asset(config, "native_character_001", "Automated test")
     release = plan_release(config, humanoid_lanes, "native_character_001")
@@ -137,6 +156,30 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
         "shared_animation_pool_compatible": False,
         "report": str(result.report.path),
     }
+
+
+def test_native_character_report_rejects_static_mesh_beside_unbound_rig() -> None:
+    report = {
+        "schema_version": 1,
+        "passed": True,
+        "bone_count": 24,
+        "mesh_count": 1,
+        "visible_mesh_count": 1,
+        "visible_skinned_mesh_count": 0,
+        "visible_unskinned_mesh_count": 1,
+        "triangle_count": 12000,
+        "visible_skinned_triangle_count": 0,
+        "material_count": 1,
+        "textured_material_count": 1,
+        "missing_animations": [],
+        "finite_bone_scales": True,
+    }
+
+    with pytest.raises(
+        FoundryError,
+        match="visible geometry skinned to the imported rig",
+    ):
+        _require_native_character_report(report)
 
 
 def test_legacy_rig_download_order_is_supported_but_recorded(

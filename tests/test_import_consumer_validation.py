@@ -1,0 +1,144 @@
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+from vandrel_foundry.domain.errors import FoundryError
+from vandrel_foundry.domain.manifest import Artifact
+from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.services.create_asset import create_asset
+from vandrel_foundry.services.import_consumer_validation import (
+    import_vandrel_character_validation,
+)
+from vandrel_foundry.services.inspect_assets import initialize_workspace
+from vandrel_foundry.storage.manifests import ManifestRepository
+from vandrel_foundry.storage.paths import RelativeManifestPath
+
+
+def _candidate(config, humanoid_lanes, prompt: Path, asset_id: str = "consumer_test") -> str:
+    initialize_workspace(config.foundry.workspace_root)
+    manifest = create_asset(
+        config,
+        humanoid_lanes,
+        asset_id,
+        "humanoid",
+        "Consumer Test",
+        prompt,
+    )
+    content = b"processed-character"
+    digest = hashlib.sha256(content).hexdigest()
+    relative = RelativeManifestPath("processed/model.fbx")
+    path = config.foundry.workspace_root / "assets" / asset_id / str(relative)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
+    manifest.artifacts.append(
+        Artifact(
+            artifact_id="processed_fbx_001",
+            role="processed_model",
+            stage="processed",
+            format="fbx",
+            path=relative,
+            sha256=digest,
+            size_bytes=len(content),
+        )
+    )
+    manifest.workflow.state = WorkflowState.REVIEW
+    manifest.validation.result = "passed"
+    manifest.revision += 1
+    ManifestRepository(config.foundry.workspace_root).save(
+        manifest,
+        "fixture.processed",
+        expected_revision=manifest.revision - 1,
+    )
+    return digest
+
+
+def _ledger(path: Path, asset_id: str, digest: str | None, severity: str) -> None:
+    evidence = {
+        "character_id": "consumer_character",
+        "consumer_scene_path": "res://character.tscn",
+        "status": "fail",
+        "generic_asset_defects": [
+            {
+                "code": "rig.visible_mesh_not_skinned",
+                "severity": severity,
+                "detail": "Visible mesh is not driven by the rig.",
+                "owner": "asset_foundry",
+            }
+        ],
+        "vandrel_runtime_corrections": [],
+        "evidence": {"animation_csv": "debug_output/run/animation_grounding.csv"},
+    }
+    if digest is not None:
+        evidence["foundry_binding"] = {
+            "asset_id": asset_id,
+            "model_sha256": digest,
+        }
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "consumer": "vandrel",
+                "assets": {"consumer_character": evidence},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_hash_bound_generic_blocker_blocks_candidate(
+    config,
+    humanoid_lanes,
+    prompt: Path,
+    tmp_path: Path,
+) -> None:
+    digest = _candidate(config, humanoid_lanes, prompt)
+    ledger = tmp_path / "acceptance.json"
+    _ledger(ledger, "consumer_test", digest, "blocker")
+
+    result = import_vandrel_character_validation(
+        config,
+        "consumer_test",
+        ledger,
+        "consumer_character",
+    )
+
+    assert result.hash_bound
+    assert result.generic_gate_passed is False
+    saved = ManifestRepository(config.foundry.workspace_root).load("consumer_test")
+    assert saved.workflow.state is WorkflowState.BLOCKED
+    assert saved.validation.result == "failed"
+    assert saved.approval.approved is False
+
+
+def test_unbound_evidence_requires_explicit_diagnostic_mode(
+    config,
+    humanoid_lanes,
+    prompt: Path,
+    tmp_path: Path,
+) -> None:
+    _candidate(config, humanoid_lanes, prompt)
+    ledger = tmp_path / "acceptance.json"
+    _ledger(ledger, "consumer_test", None, "blocker")
+
+    with pytest.raises(FoundryError, match="not bound"):
+        import_vandrel_character_validation(
+            config,
+            "consumer_test",
+            ledger,
+            "consumer_character",
+        )
+
+    result = import_vandrel_character_validation(
+        config,
+        "consumer_test",
+        ledger,
+        "consumer_character",
+        allow_unbound_diagnostic=True,
+    )
+    assert not result.hash_bound
+    assert result.generic_gate_passed is None
+    saved = ManifestRepository(config.foundry.workspace_root).load("consumer_test")
+    assert saved.workflow.state is WorkflowState.REVIEW
+    assert saved.validation.result == "passed"

@@ -22,6 +22,9 @@
 - Humanoid release planning requires either a passing, hash-bound
   humanoid-retarget compatibility check or passing, hash-bound provider-native
   same-task playback evidence for the exact approved processed model.
+- Provider-native humanoid evidence must prove that nonempty character
+  geometry is actually bound to a resolvable imported skeleton; a static mesh
+  placed beside an animated reference rig is not releasable.
 - Publication requires the asset library to be an existing Git worktree with
   no unrelated changes.
 - Binary model paths must resolve to the Git LFS `filter=lfs` attribute before

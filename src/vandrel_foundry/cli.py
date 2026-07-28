@@ -23,6 +23,9 @@ from vandrel_foundry.services.download_artifact import download_text_preview_glb
 from vandrel_foundry.services.experiment_semantic_mask import experiment_semantic_mask
 from vandrel_foundry.services.experiment_shaders import experiment_shader_variants
 from vandrel_foundry.services.graft_animations import graft_animations
+from vandrel_foundry.services.import_consumer_validation import (
+    import_vandrel_character_validation,
+)
 from vandrel_foundry.services.init_library import initialize_asset_library
 from vandrel_foundry.services.inspect_assets import discover_assets, initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_processed_glb
@@ -963,6 +966,37 @@ def validate_humanoid_rig(
             "direct animation transfer candidate: "
             f"{'yes' if result.shared_animation_transfer_candidate else 'no'}"
         )
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("import-vandrel-character-validation")
+def import_vandrel_validation(
+    asset_id: str,
+    ledger: Annotated[Path, typer.Option("--ledger")],
+    consumer_asset_key: Annotated[str, typer.Option("--consumer-asset-key")],
+    diagnostic_only: Annotated[
+        bool,
+        typer.Option(
+            "--diagnostic-only",
+            help="Allow unbound legacy evidence; it cannot affect promotion.",
+        ),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Import versioned Vandrel character evidence with exact-hash gating."""
+    try:
+        settings = load_config(config)
+        result = import_vandrel_character_validation(
+            settings,
+            asset_id,
+            ledger,
+            consumer_asset_key,
+            allow_unbound_diagnostic=diagnostic_only,
+        )
+        mode = "hash-bound gate" if result.hash_bound else "unbound diagnostic"
+        console.print(f"[green]Imported Vandrel character evidence[/green] {result.report.path}")
+        console.print(f"Mode: {mode}; consumer status: {result.consumer_status}")
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 

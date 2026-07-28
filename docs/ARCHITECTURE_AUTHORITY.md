@@ -60,6 +60,8 @@
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |
 | Provider-native FBX character preparation and same-task playback evidence | `src/vandrel_foundry/services/prepare_native_character.py` |
+| Versioned Vandrel character-acceptance evidence shape | `src/vandrel_foundry/domain/consumer_validation.py` |
+| Hash-bound Vandrel consumer-evidence intake | `src/vandrel_foundry/services/import_consumer_validation.py` |
 | Versioned humanoid mapping and retarget compatibility evidence | `src/vandrel_foundry/services/validate_humanoid_retarget.py` plus `src/vandrel_foundry/data/rig_profiles/` |
 | Deterministic exact-skeleton animation grafting | `src/vandrel_foundry/services/graft_animations.py` |
 | Manual approval and rejection | `src/vandrel_foundry/services/review_asset.py` |

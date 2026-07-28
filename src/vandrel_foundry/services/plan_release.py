@@ -142,6 +142,7 @@ def _humanoid_release_evidence(manifest: AssetManifest) -> dict[str, Any] | None
         if (
             not check.get("passed")
             or not check.get("same_provider_task")
+            or not check.get("skin_binding_passed")
             or check.get("processed_model_sha256") != approved_model_hash
             or check.get("walk_sha256") != approved_walk_hash
             or check.get("run_sha256") != approved_run_hash
