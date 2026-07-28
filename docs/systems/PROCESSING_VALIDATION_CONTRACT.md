@@ -43,6 +43,27 @@ Batch preview rendering is sequential and selects only processed, review, or
 approved candidates without an existing local preview. It skips all other
 states and never replaces a preview.
 
+The versioned static-batch orchestrator is also sequential and local-only. A
+plan explicitly names candidate identity, source, lane, and requested
+credit-free stages. The orchestrator composes the same creation, intake,
+processing, inspection, Godot-sandbox, preview, and audit services used by
+their individual CLI commands; it is not a second workflow implementation.
+Each stage records UTC start/end time, duration, result/error category,
+manifest revisions, artifact count/byte deltas, and manifest-derived next
+actions in a new machine-readable ledger. Candidate failures are isolated and
+the plan explicitly chooses continue or stop behavior. Reruns explicitly
+choose either resume-by-skipping completed immutable stages or fail-on-complete;
+they never silently duplicate a completed stage. Completion evidence must bind
+to the currently selected source and current processed artifact. Read-only
+integrity audit is deliberately repeatable and exempt from fail-on-complete.
+When stop-on-failure prevents later candidates from running, their IDs remain
+explicit in the ledger's `not_run_candidates` list.
+
+Multi-angle batch records measure each generated PNG's nonzero-alpha pixel
+fraction and foreground bounding-box fraction. A bounding-box fraction below
+0.25 is flagged as excessive empty canvas for review; this observation neither
+auto-crops nor replaces immutable evidence.
+
 Local shader experiments are derived review evidence, not material edits.
 They render a hash-verified processed GLB through bounded Blender into new
 baseline, tint, matte, and polished previews plus a contact sheet and measured

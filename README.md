@@ -51,6 +51,9 @@ foundry audit stone_knife_001
 foundry audit-all
 foundry audit-library
 foundry review-gallery
+
+# Run an explicit versioned, sequential local-only static batch plan.
+foundry run-static-batch .\batch-plan.json --ledger .\batch-ledger.json
 foundry scan-sources C:\Dev\outsideassets
 foundry scan-sources C:\Dev\outsideassets --json
 foundry scan-sources C:\Dev\outsideassets --family meshy --lane static_prop

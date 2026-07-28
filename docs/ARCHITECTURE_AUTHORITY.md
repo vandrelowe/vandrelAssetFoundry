@@ -25,6 +25,7 @@
 | Asset identity rules | `src/vandrel_foundry/domain/ids.py` |
 | Manifest shape and validation | `src/vandrel_foundry/domain/manifest.py` |
 | Workflow state and next actions | `src/vandrel_foundry/domain/states.py` |
+| Versioned static batch plan and ledger shapes | `src/vandrel_foundry/domain/batch.py` |
 | Portable path validation and containment | `src/vandrel_foundry/storage/paths.py` |
 | Asset-specific locking | `src/vandrel_foundry/storage/locks.py` |
 | Atomic manifest replacement | `src/vandrel_foundry/storage/manifests.py` |
@@ -56,6 +57,7 @@
 | Local Blender shader/material comparison evidence | `src/vandrel_foundry/services/experiment_shaders.py` |
 | Deterministic texture-region recoloring | `src/vandrel_foundry/services/apply_texture_mask.py` |
 | Missing-preview batch selection | `src/vandrel_foundry/services/render_missing_previews.py` |
+| Sequential fail-isolated static batch orchestration and timing ledger | `src/vandrel_foundry/services/run_static_batch.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |

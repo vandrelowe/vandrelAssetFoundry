@@ -107,6 +107,8 @@ def inspect_processed_glb(
     report_relative = _next_report_path(asset_root)
     write_new_json_evidence(contained_path(asset_root, report_relative), report)
     manifest.quality.observed.update(inspection.__dict__)
+    manifest.quality.observed["inspected_processed_artifact_id"] = artifact.artifact_id
+    manifest.quality.observed["inspected_processed_sha256"] = artifact.sha256
     retained_checks = [
         check
         for check in manifest.validation.checks

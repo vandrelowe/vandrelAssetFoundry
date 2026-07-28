@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -158,6 +159,34 @@ def test_scan_sources_json_is_a_read_only_intake_plan(tmp_path: Path) -> None:
     assert '"suggested_asset_id": "rock"' in result.output
     assert '"suggested_lane": "static_prop"' in result.output
     assert list(source.iterdir()) == [model]
+
+
+def test_run_static_batch_cli_writes_ledger(tmp_path: Path, cli_config: Path, prompt: Path) -> None:
+    plan = tmp_path / "plan.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "candidates": [
+                    {
+                        "asset_id": "cli_batch_one",
+                        "lane": "static_prop",
+                        "display_name": "CLI Batch One",
+                        "prompt_file": str(prompt),
+                        "stages": ["create"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    ledger = tmp_path / "ledger.json"
+
+    result = invoke(["run-static-batch", str(plan), "--ledger", str(ledger)], cli_config)
+
+    assert result.exit_code == 0, result.output
+    assert "1 completed, 0 failed" in result.output
+    assert json.loads(ledger.read_text(encoding="utf-8"))["records"][0]["stage"] == "create"
 
 
 @pytest.mark.parametrize(

@@ -50,6 +50,7 @@ from vandrel_foundry.services.review_asset import (
     approve_asset,
     reject_asset,
 )
+from vandrel_foundry.services.run_static_batch import load_batch_plan, run_static_batch
 from vandrel_foundry.services.scan_sources import scan_source_directory
 from vandrel_foundry.services.select_output import select_output
 from vandrel_foundry.services.stage_godot import prepare_godot_sandbox
@@ -448,6 +449,30 @@ def review_gallery(
     except FoundryError as exc:
         fail(exc)
     console.print(f"[green]Review gallery created[/green] {destination}")
+
+
+@app.command("run-static-batch")
+def run_batch(
+    plan: Annotated[Path, typer.Argument(help="Versioned local batch-plan JSON.")],
+    ledger: Annotated[
+        Path,
+        typer.Option("--ledger", help="New machine-readable ledger JSON destination."),
+    ],
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Run a sequential, fail-isolated, credit-free static corridor plan."""
+    try:
+        settings, lane_config = configured(config)
+        result = run_static_batch(settings, lane_config, load_batch_plan(plan), ledger)
+        console.print(
+            f"[green]Static batch complete[/green] "
+            f"{result.completed_candidates} completed, {result.failed_candidates} failed; "
+            f"ledger {ledger}"
+        )
+        if result.failed_candidates:
+            raise typer.Exit(code=1)
+    except FoundryError as exc:
+        fail(exc)
 
 
 @app.command()
