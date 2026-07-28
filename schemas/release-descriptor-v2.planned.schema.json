@@ -181,6 +181,11 @@
           "title": "Size Bytes",
           "type": "integer"
         },
+        "source_artifact_id": {
+          "minLength": 1,
+          "title": "Source Artifact Id",
+          "type": "string"
+        },
         "scope_root": {
           "$ref": "#/$defs/PortableCustodyPath"
         },
@@ -196,6 +201,7 @@
         "release_path",
         "sha256",
         "size_bytes",
+        "source_artifact_id",
         "scope_root",
         "rights_semantics"
       ],

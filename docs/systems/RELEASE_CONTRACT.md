@@ -70,6 +70,9 @@ authority. The plan contains:
   same-task playback facts, plus explicit candidate-only/runtime-unaccepted
   markers and a packaged report entry bound by release path, source artifact
   ID, SHA-256, and size;
+- exact role, release path, source artifact ID, SHA-256, and size reconciliation
+  for every packaged custody-evidence and humanoid-report reference; neither a
+  model nor another static release role may substitute for evidence;
 - Foundry manifest revision and approval provenance.
 
 The plan does not create a directory, mutate the manifest or catalog, run Git,
@@ -134,6 +137,15 @@ process stops after that rename but before catalog or Foundry-manifest update,
 a later identical `release --apply` recognizes the descriptor and artifact
 hashes, completes the missing catalog entry, and then records the Foundry
 release. Any mismatch fails closed.
+
+Recovery validates the uncataloged descriptor through the same versioned
+executable contract used by planning and library audit. The descriptor must be
+canonical, agree with its `rNNN` directory, and match the complete current
+release plan byte-for-byte after substituting that recovery revision. Recovery
+also reconciles the exact declared file set and rechecks every file hash and
+size before catalog replacement. Partial identity tuples, unknown descriptor
+fields, role/source substitution, undeclared files, and changed bytes are not
+recoverable and must leave the catalog and Foundry manifest unchanged.
 
 Abandoned staging directories are never treated as releases and are not
 silently deleted. They must not affect revision allocation. A retry uses a new

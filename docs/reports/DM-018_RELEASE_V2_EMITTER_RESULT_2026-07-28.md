@@ -19,6 +19,13 @@ of an open raw dictionary:
 - humanoid compatibility reports are verified manifest artifacts, included in
   the release file set, and referenced by packaged path, source artifact ID,
   SHA-256, and size;
+- custody evidence references now carry their candidate evidence artifact ID,
+  and both custody evidence and humanoid reports reconcile the exact expected
+  role, release path, source artifact ID, SHA-256, and size;
+- interrupted publication recovery validates the complete descriptor through
+  the same executable v2 contract, requires canonical byte equality to the
+  current complete plan, and rechecks the exact release file set, hashes, and
+  sizes before any catalog mutation;
 - planner, descriptor models, publication layout helpers, and Library audit
   reject revisions outside `1..999`.
 
@@ -50,6 +57,13 @@ Runtime and checked-JSON-schema tests reject:
 - arbitrary technical fields carrying workspace paths;
 - Workspace-only humanoid report strings;
 - report references not reconciled to packaged file hashes;
+- model-as-humanoid-report, model-as-license-evidence, custody source-ID
+  mismatch, and static-role-confusion substitutions in both the domain
+  validator and live Library-audit service;
+- unknown-field, otherwise-valid complete-descriptor, and evidence-source
+  tampering in an uncataloged recovery journal, with catalog and Foundry
+  manifest remaining unchanged;
+- changed or undeclared recovered release files before catalog mutation;
 - `r000` and `r1000` descriptor/planner/audit layouts.
 
 The Torch resume-ledger redaction contract now recursively checks all string
@@ -67,8 +81,9 @@ Dependency direction for this unit is:
 2. `plan_release.py` verifies candidate-owned artifacts and constructs the
    strict v2 projection;
 3. `audit_library.py` consumes the versioned validator read-only;
-4. `publish_release.py` consumes the already validated plan and shared layout
-   formatter.
+4. `publish_release.py` consumes the already validated plan, reuses the
+   versioned descriptor validator for interruption recovery, and owns only
+   publication-journal/file-set reconciliation plus transaction mechanics.
 
 No domain module imports planner, audit, publication, configuration, or
 Library mechanics. The planner does not invoke publication. No new reverse
@@ -91,17 +106,22 @@ status and documentation.
 ## Boundaries
 
 This unit performed no asset approval, release publication, Asset Library
-mutation, provider/network operation, deletion, Git push, folder migration, or
-v2 ratification.
+mutation, provider/network operation, asset deletion, Git push, folder
+migration, or v2 ratification. Bounded generated live-audit files were written
+only under ignored `temp/` and removed after validation.
 
 ## Verification
 
-- Focused schema/custody/planner/humanoid/audit/batch suite: 72 passed.
-- Full suite: 277 passed, 3 expected platform/symlink skips.
+- Focused descriptor/planner/publication/audit suite: 50 passed.
+- Full suite: 290 passed, 3 expected platform/symlink skips (293 collected).
 - Ruff and `git diff --check`: passed.
 - Checked manifest and release schemas exactly match their executable models.
 - Live read-only Asset Library audit: 65 checks passed across all 11 immutable
   historical releases.
+- Live read-only workspace audit: 19 of 19 candidates passed.
+- Fresh live custody inventory 1.1:
+  SHA-256 `0a7285b884d92b66b6d2ce1da26bf5f315e3c7d2a3d95fd42b9ea9108db5fb44`;
+  validation passed with 1,648 Outside files and 1,173 Workspace files.
 - Live read-only Torch fitness: integrity passing, custody freshness `stale`,
   explicit blocker `custody_assertion_legacy_stale`, unapproved, unpublished,
   and release-ineligible.

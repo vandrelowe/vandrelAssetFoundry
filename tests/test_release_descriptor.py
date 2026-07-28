@@ -158,6 +158,64 @@ def test_v2_rejects_workspace_humanoid_report_reference() -> None:
         ReleaseDescriptorV2.model_validate(value)
 
 
+def test_v2_rejects_model_substituted_for_custody_evidence() -> None:
+    value = _fixture("release-v2.json")
+    model = value["files"][0]
+    evidence = value["custody"]["source_contributions"][0]["license_evidence"][0]
+    evidence.update(
+        {
+            "release_path": model["path"],
+            "sha256": model["sha256"],
+            "size_bytes": model["size_bytes"],
+            "source_artifact_id": model["source_artifact_id"],
+        }
+    )
+
+    with pytest.raises(ValidationError, match="Custody evidence role and source"):
+        ReleaseDescriptorV2.model_validate(value)
+
+
+def test_v2_rejects_custody_evidence_source_mismatch() -> None:
+    value = _fixture("release-v2.json")
+    evidence = value["custody"]["source_contributions"][0]["license_evidence"][0]
+    evidence["source_artifact_id"] = "different-evidence-artifact"
+
+    with pytest.raises(ValidationError, match="Custody evidence role and source"):
+        ReleaseDescriptorV2.model_validate(value)
+
+
+def test_v2_rejects_model_substituted_for_humanoid_report() -> None:
+    value = _fixture("release-v2.json")
+    model = value["files"][0]
+    value["humanoid_compatibility"] = {
+        "evidence_route": "retarget_mapping",
+        "candidate_only": True,
+        "vandrel_runtime_accepted": False,
+        "mapping_profile": "profile/v1",
+        "report": {
+            "release_path": model["path"],
+            "sha256": model["sha256"],
+            "size_bytes": model["size_bytes"],
+            "source_artifact_id": model["source_artifact_id"],
+        },
+        "animation_donor_asset_id": "donor_asset_001",
+        "direct_skeleton_match": True,
+        "direct_rest_transform_match": True,
+        "humanoid_retarget_candidate": True,
+    }
+
+    with pytest.raises(ValidationError, match="Humanoid report role and source"):
+        ReleaseDescriptorV2.model_validate(value)
+
+
+def test_v2_rejects_static_file_role_confusion() -> None:
+    value = _fixture("release-v2.json")
+    value["files"][1]["role"] = "model"
+
+    with pytest.raises(ValidationError, match="exactly one model"):
+        ReleaseDescriptorV2.model_validate(value)
+
+
 @pytest.mark.parametrize("schema_version", [1, 2])
 @pytest.mark.parametrize("revision", [0, 1000])
 def test_v1_and_v2_reject_out_of_range_revisions(

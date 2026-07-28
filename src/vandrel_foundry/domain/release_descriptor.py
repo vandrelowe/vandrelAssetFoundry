@@ -137,6 +137,7 @@ class ReleaseCustodyEvidenceV2(ReleaseModel):
     release_path: str
     sha256: Sha256
     size_bytes: int = Field(ge=0)
+    source_artifact_id: str = Field(min_length=1)
     scope_root: PortableCustodyPath
     rights_semantics: Literal["documented"]
 
@@ -246,35 +247,44 @@ class ReleaseDescriptorV2(ReleaseModel):
         paths = [item.path for item in self.files]
         if len(paths) != len(set(paths)):
             raise ValueError("Release file paths must be unique.")
+        if sum(item.role == "model" for item in self.files) != 1:
+            raise ValueError("Release descriptor requires exactly one model file.")
         file_bindings = {
-            (item.path, item.sha256, item.size_bytes, item.source_artifact_id)
+            (
+                item.role,
+                item.path,
+                item.sha256,
+                item.size_bytes,
+                item.source_artifact_id,
+            )
             for item in self.files
         }
         for contribution in self.custody.source_contributions:
             for evidence in contribution.license_evidence:
                 if (
+                    "custody_license_evidence",
                     evidence.release_path,
                     evidence.sha256,
                     evidence.size_bytes,
-                    next(
-                        (
-                            item.source_artifact_id
-                            for item in self.files
-                            if item.path == evidence.release_path
-                        ),
-                        "",
-                    ),
+                    evidence.source_artifact_id,
                 ) not in file_bindings:
-                    raise ValueError("Custody evidence is not bound to a packaged release file.")
+                    raise ValueError(
+                        "Custody evidence role and source are not bound to "
+                        "the exact packaged release file."
+                    )
         if self.humanoid_compatibility is not None:
             report = self.humanoid_compatibility.report
             if (
+                "humanoid_compatibility_report",
                 report.release_path,
                 report.sha256,
                 report.size_bytes,
                 report.source_artifact_id,
             ) not in file_bindings:
-                raise ValueError("Humanoid report is not bound to a packaged release file.")
+                raise ValueError(
+                    "Humanoid report role and source are not bound to "
+                    "the exact packaged release file."
+                )
         return self
 
 

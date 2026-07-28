@@ -186,9 +186,11 @@ def _audit_release(
         files = descriptor.get("files")
         custody_files = {
             (
+                item.get("role"),
                 item.get("path"),
                 item.get("sha256"),
                 item.get("size_bytes"),
+                item.get("source_artifact_id"),
             )
             for item in (files if isinstance(files, list) else [])
             if isinstance(item, dict) and item.get("role") == "custody_license_evidence"
@@ -215,9 +217,11 @@ def _audit_release(
             and bool(evidence)
             and all(
                 (
+                    "custody_license_evidence",
                     item.get("release_path"),
                     item.get("sha256"),
                     item.get("size_bytes"),
+                    item.get("source_artifact_id"),
                 )
                 in custody_files
                 for item in evidence
@@ -228,6 +232,18 @@ def _audit_release(
                 f"{subject}:custody",
                 custody_ok,
                 "v2 descriptor has evaluated documented custody",
+            )
+        )
+        evidence_roles_ok = _v2_evidence_roles_reconcile(descriptor)
+        checks.append(
+            LibraryAuditCheck(
+                f"{subject}:evidence_roles",
+                evidence_roles_ok,
+                (
+                    "model, custody evidence, and humanoid report roles and sources reconcile"
+                    if evidence_roles_ok
+                    else "release evidence role or source binding is inconsistent"
+                ),
             )
         )
     if not isinstance(descriptor, dict) or not isinstance(descriptor.get("files"), list):
@@ -254,6 +270,58 @@ def _audit_file(release_root: Path, subject: str, entry: Any) -> LibraryAuditChe
         passed,
         "hash and size match descriptor" if passed else "hash or size differs from descriptor",
     )
+
+
+def _v2_evidence_roles_reconcile(descriptor: dict[str, Any]) -> bool:
+    files = descriptor.get("files")
+    if not isinstance(files, list) or not all(isinstance(item, dict) for item in files):
+        return False
+    file_bindings = {
+        (
+            item.get("role"),
+            item.get("path"),
+            item.get("sha256"),
+            item.get("size_bytes"),
+            item.get("source_artifact_id"),
+        )
+        for item in files
+    }
+    if sum(item.get("role") == "model" for item in files) != 1:
+        return False
+    custody = descriptor.get("custody")
+    if not isinstance(custody, dict):
+        return False
+    contributions = custody.get("source_contributions")
+    if not isinstance(contributions, list):
+        return False
+    for contribution in contributions:
+        if not isinstance(contribution, dict):
+            return False
+        evidence_items = contribution.get("license_evidence")
+        if not isinstance(evidence_items, list):
+            return False
+        for evidence in evidence_items:
+            if not isinstance(evidence, dict) or (
+                "custody_license_evidence",
+                evidence.get("release_path"),
+                evidence.get("sha256"),
+                evidence.get("size_bytes"),
+                evidence.get("source_artifact_id"),
+            ) not in file_bindings:
+                return False
+    humanoid = descriptor.get("humanoid_compatibility")
+    if humanoid is None:
+        return True
+    if not isinstance(humanoid, dict) or not isinstance(humanoid.get("report"), dict):
+        return False
+    report = humanoid["report"]
+    return (
+        "humanoid_compatibility_report",
+        report.get("release_path"),
+        report.get("sha256"),
+        report.get("size_bytes"),
+        report.get("source_artifact_id"),
+    ) in file_bindings
 
 
 def _orphan_checks(root: Path, cataloged: set[Path]) -> list[LibraryAuditCheck]:

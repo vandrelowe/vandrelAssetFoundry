@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import tempfile
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,11 @@ from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import AssetManifest, utc_now
-from vandrel_foundry.domain.release_descriptor import format_release_revision
+from vandrel_foundry.domain.release_descriptor import (
+    ReleaseDescriptorV2,
+    format_release_revision,
+    validate_release_descriptor,
+)
 from vandrel_foundry.services.plan_release import ReleasePlan, plan_release
 from vandrel_foundry.services.windows_acl_policy import apply_release_acl
 from vandrel_foundry.storage.atomic import write_json_temp
@@ -52,7 +57,7 @@ def publish_release(
         repository = ManifestRepository(config.foundry.workspace_root)
         manifest = repository.load(asset_id)
         plan = plan_release(config, lanes, asset_id)
-        recovery = _matching_uncataloged_release(root, plan)
+        recovery = _matching_recoverable_release(root, plan)
         effective = recovery or plan
         allowed = _allowed_transaction_paths(effective)
         unrelated = changed_paths(root, git_runner) - allowed
@@ -66,6 +71,7 @@ def publish_release(
         recovered = recovery is not None
         if not recovered:
             _stage_and_promote(config, asset_id, effective)
+        _verify_promoted_release(effective)
         apply_release_acl(config, effective.destination)
         descriptor_hash = _sha256_file(effective.destination / "asset-release.json")
         _update_catalog(root, effective, descriptor_hash)
@@ -125,42 +131,142 @@ def _copy_new(source: Path, destination: Path) -> None:
         raise FoundryError(f"Could not stage release artifact {destination.name}: {exc}") from exc
 
 
-def _matching_uncataloged_release(root: Path, plan: ReleasePlan) -> ReleasePlan | None:
+def _matching_recoverable_release(root: Path, plan: ReleasePlan) -> ReleasePlan | None:
     asset_root = root / "assets" / plan.descriptor["asset_id"]
     if not asset_root.is_dir():
         return None
-    expected = _descriptor_identity(plan.descriptor)
+    cataloged_releases = _cataloged_releases(root, plan.descriptor["asset_id"])
     matches: list[ReleasePlan] = []
     for path in asset_root.glob("r[0-9][0-9][0-9]"):
+        revision = int(path.name[1:])
+        catalog_entry = cataloged_releases.get(revision)
         descriptor_path = path / "asset-release.json"
         try:
-            descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        if _descriptor_identity(descriptor) == expected:
+            descriptor_bytes = descriptor_path.read_bytes()
+            descriptor_value = json.loads(descriptor_bytes)
+            descriptor = validate_release_descriptor(descriptor_value)
+        except (OSError, json.JSONDecodeError, ValidationError) as exc:
+            if catalog_entry is not None:
+                continue
+            raise FoundryError(
+                f"Uncataloged release descriptor is invalid: {descriptor_path}: {exc}"
+            ) from exc
+        if not isinstance(descriptor, ReleaseDescriptorV2):
+            if catalog_entry is not None:
+                continue
+            raise FoundryError(
+                f"Uncataloged release cannot recover a planned v2 publication: {descriptor_path}"
+            )
+        if descriptor.release_revision != revision:
+            if catalog_entry is not None:
+                continue
+            raise FoundryError(
+                f"Uncataloged release revision conflicts with its directory: {descriptor_path}"
+            )
+        expected_value = deepcopy(plan.descriptor)
+        expected_value["release_revision"] = revision
+        expected_bytes = _canonical_descriptor_bytes(expected_value)
+        if descriptor_bytes != _canonical_descriptor_bytes(descriptor_value):
+            if catalog_entry is not None:
+                continue
+            raise FoundryError(
+                f"Uncataloged release descriptor is not canonical: {descriptor_path}"
+            )
+        if descriptor_bytes == expected_bytes:
+            if catalog_entry is not None:
+                expected_catalog_path = _release_relative_path(
+                    ReleasePlan(revision, path, expected_value),
+                    "asset-release.json",
+                )
+                if (
+                    catalog_entry.get("path") != expected_catalog_path
+                    or catalog_entry.get("descriptor_sha256")
+                    != hashlib.sha256(descriptor_bytes).hexdigest()
+                ):
+                    raise FoundryError(
+                        "Cataloged recovery descriptor does not match its catalog entry."
+                    )
             matches.append(
                 ReleasePlan(
-                    release_revision=int(descriptor["release_revision"]),
+                    release_revision=revision,
                     destination=path,
-                    descriptor=descriptor,
+                    descriptor=descriptor.model_dump(
+                        mode="json",
+                        exclude_none=True,
+                        by_alias=True,
+                    ),
                 )
+            )
+        elif catalog_entry is None:
+            raise FoundryError(
+                f"Uncataloged release descriptor differs from the complete "
+                f"planned publication: {descriptor_path}"
             )
     if len(matches) > 1:
         raise FoundryError("Multiple matching recoverable releases require manual reconciliation.")
     return matches[0] if matches else None
 
 
-def _descriptor_identity(descriptor: dict[str, Any]) -> tuple[Any, ...]:
-    return (
-        descriptor.get("schema_version"),
-        descriptor.get("asset_id"),
-        tuple(
-            (item.get("role"), item.get("path"), item.get("sha256"), item.get("size_bytes"))
-            for item in descriptor.get("files", [])
-        ),
-        descriptor.get("provenance", {}).get("approved_at"),
-        descriptor.get("custody", {}).get("semantic_assertion_sha256"),
-    )
+def _cataloged_releases(root: Path, asset_id: str) -> dict[int, dict[str, Any]]:
+    catalog = _load_catalog(root / CATALOG_PATH)
+    entry = catalog.get("assets", {}).get(asset_id)
+    if entry is None:
+        return {}
+    if not isinstance(entry, dict) or not isinstance(entry.get("releases"), list):
+        raise FoundryError("Asset-library catalog asset entry is malformed.")
+    return {
+        item["revision"]: item
+        for item in entry["releases"]
+        if isinstance(item, dict)
+        and isinstance(item.get("revision"), int)
+        and not isinstance(item.get("revision"), bool)
+    }
+
+
+def _canonical_descriptor_bytes(value: object) -> bytes:
+    try:
+        descriptor = validate_release_descriptor(value)
+    except ValidationError as exc:
+        raise FoundryError(f"Release descriptor is invalid: {exc}") from exc
+    if not isinstance(descriptor, ReleaseDescriptorV2):
+        raise FoundryError("Publication recovery requires a release descriptor v2.")
+    canonical = descriptor.model_dump(mode="json", exclude_none=True, by_alias=True)
+    return (json.dumps(canonical, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def _verify_promoted_release(plan: ReleasePlan) -> None:
+    descriptor_path = plan.destination / "asset-release.json"
+    try:
+        descriptor_bytes = descriptor_path.read_bytes()
+    except OSError as exc:
+        raise FoundryError(f"Published release descriptor is unavailable: {exc}") from exc
+    expected_descriptor_bytes = _canonical_descriptor_bytes(plan.descriptor)
+    if descriptor_bytes != expected_descriptor_bytes:
+        raise FoundryError("Published release descriptor differs from the complete release plan.")
+    expected_files = {"asset-release.json"}
+    for item in plan.descriptor["files"]:
+        expected_files.add(item["path"])
+        path = contained_path(plan.destination, item["path"])
+        if _sha256_file(path) != item["sha256"]:
+            raise FoundryError(f"Published release artifact hash differs: {item['path']}")
+        try:
+            size = path.stat().st_size
+        except OSError as exc:
+            raise FoundryError(
+                f"Could not inspect published release artifact {item['path']}: {exc}"
+            ) from exc
+        if size != item["size_bytes"]:
+            raise FoundryError(f"Published release artifact size differs: {item['path']}")
+    try:
+        actual_files = {
+            path.relative_to(plan.destination).as_posix()
+            for path in plan.destination.rglob("*")
+            if path.is_file()
+        }
+    except OSError as exc:
+        raise FoundryError(f"Could not reconcile published release files: {exc}") from exc
+    if actual_files != expected_files:
+        raise FoundryError("Published release file set differs from the complete descriptor.")
 
 
 def _update_catalog(root: Path, plan: ReleasePlan, descriptor_hash: str) -> None:

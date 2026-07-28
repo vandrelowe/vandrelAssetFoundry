@@ -248,6 +248,9 @@ def plan_release(
                             "release_path": evidence_release_paths[evidence.binding_id],
                             "sha256": evidence.evidence_sha256,
                             "size_bytes": evidence.size_bytes,
+                            "source_artifact_id": (
+                                evidence.candidate_evidence_artifact_id
+                            ),
                             "scope_root": _portable_custody_path(evidence.scope_root),
                             "rights_semantics": evidence.rights_semantics,
                         }

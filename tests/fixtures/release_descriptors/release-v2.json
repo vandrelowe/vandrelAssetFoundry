@@ -77,6 +77,7 @@
             "release_path": "custody/evidence/license.txt",
             "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
             "size_bytes": 8,
+            "source_artifact_id": "custody-evidence-001",
             "scope_root": {
               "logical_root": "outside_assets",
               "path": "Provider/Package"

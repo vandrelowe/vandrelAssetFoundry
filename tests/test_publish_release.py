@@ -467,6 +467,156 @@ def test_publish_recovers_after_release_rename_before_catalog(
     assert (root / "catalog.json").is_file()
 
 
+def test_publish_recovers_after_catalog_before_manifest(
+    config,
+    lanes,
+    prompt: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    root = _library(config)
+    original = publication._record_manifest_release
+
+    def interrupt(*args, **kwargs):
+        raise FoundryError("simulated manifest interruption")
+
+    monkeypatch.setattr(publication, "_record_manifest_release", interrupt)
+    with pytest.raises(FoundryError, match="simulated manifest interruption"):
+        publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
+    status_paths = [
+        path
+        for path in root.rglob("*")
+        if path.is_file() and ".git" not in path.parts
+    ]
+    status = "".join(
+        f"?? {path.relative_to(root).as_posix()}\n"
+        for path in sorted(status_paths)
+    )
+    monkeypatch.setattr(publication, "_record_manifest_release", original)
+
+    result = publish_release(
+        config,
+        lanes,
+        "stone_knife_001",
+        git_runner=FakeGit(status),
+    )
+
+    assert result.recovered
+    assert result.release_revision == 1
+    catalog = json.loads((root / "catalog.json").read_text(encoding="utf-8"))
+    assert len(catalog["assets"]["stone_knife_001"]["releases"]) == 1
+    manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
+    assert manifest.release.release_revision == 1
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    ["complete_descriptor_field", "unknown_v2_field", "evidence_source_substitution"],
+)
+def test_recovery_rejects_tampered_uncataloged_descriptor_without_catalog_mutation(
+    config,
+    lanes,
+    prompt: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tamper: str,
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    root = _library(config)
+    original = publication._update_catalog
+    monkeypatch.setattr(
+        publication,
+        "_update_catalog",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            FoundryError("simulated interruption")
+        ),
+    )
+    with pytest.raises(FoundryError, match="simulated interruption"):
+        publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
+    release = root / "assets" / "stone_knife_001" / "r001"
+    descriptor_path = release / "asset-release.json"
+    descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
+    if tamper == "complete_descriptor_field":
+        descriptor["display_name"] = "Tampered Display Name"
+    elif tamper == "unknown_v2_field":
+        descriptor["technical"]["workspace_report"] = "private/report.json"
+    elif tamper == "evidence_source_substitution":
+        model = descriptor["files"][0]
+        evidence = descriptor["custody"]["source_contributions"][0]["license_evidence"][0]
+        evidence.update(
+            {
+                "release_path": model["path"],
+                "sha256": model["sha256"],
+                "size_bytes": model["size_bytes"],
+                "source_artifact_id": model["source_artifact_id"],
+            }
+        )
+    else:
+        raise AssertionError(tamper)
+    descriptor_path.write_text(
+        json.dumps(descriptor, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    status = "".join(
+        f"?? {path.relative_to(root).as_posix()}\n"
+        for path in sorted(release.rglob("*"))
+        if path.is_file()
+    )
+    monkeypatch.setattr(publication, "_update_catalog", original)
+
+    with pytest.raises(FoundryError, match="Uncataloged release"):
+        publish_release(
+            config,
+            lanes,
+            "stone_knife_001",
+            git_runner=FakeGit(status),
+        )
+
+    assert not (root / "catalog.json").exists()
+    manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
+    assert not manifest.release.released
+
+
+def test_recovery_rehashes_files_before_catalog_mutation(
+    config,
+    lanes,
+    prompt: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    root = _library(config)
+    original = publication._update_catalog
+    monkeypatch.setattr(
+        publication,
+        "_update_catalog",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            FoundryError("simulated interruption")
+        ),
+    )
+    with pytest.raises(FoundryError, match="simulated interruption"):
+        publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
+    release = root / "assets" / "stone_knife_001" / "r001"
+    (release / "model.glb").write_bytes(b"tampered model")
+    status = "".join(
+        f"?? {path.relative_to(root).as_posix()}\n"
+        for path in sorted(release.rglob("*"))
+        if path.is_file()
+    )
+    monkeypatch.setattr(publication, "_update_catalog", original)
+
+    with pytest.raises(FoundryError, match="artifact hash differs"):
+        publish_release(
+            config,
+            lanes,
+            "stone_knife_001",
+            git_runner=FakeGit(status),
+        )
+
+    assert not (root / "catalog.json").exists()
+    manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
+    assert not manifest.release.released
+
+
 def test_release_plan_rejects_stale_custody_source_binding(config, lanes, prompt: Path) -> None:
     _approved_asset(config, lanes, prompt)
     repository = ManifestRepository(config.foundry.workspace_root)

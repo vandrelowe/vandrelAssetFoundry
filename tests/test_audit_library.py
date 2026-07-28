@@ -52,6 +52,84 @@ def _write_library(root: Path) -> Path:
     return release
 
 
+def _write_tampered_v2_library(root: Path, case: str) -> None:
+    fixture = (
+        Path(__file__).parent
+        / "fixtures"
+        / "release_descriptors"
+        / "release-v2.json"
+    )
+    descriptor = json.loads(fixture.read_text(encoding="utf-8"))
+    model = b"model-content"
+    license_bytes = b"license-content"
+    model_entry, license_entry = descriptor["files"]
+    model_entry["sha256"] = _sha256(model)
+    model_entry["size_bytes"] = len(model)
+    license_entry["sha256"] = _sha256(license_bytes)
+    license_entry["size_bytes"] = len(license_bytes)
+    evidence = descriptor["custody"]["source_contributions"][0]["license_evidence"][0]
+    evidence["sha256"] = license_entry["sha256"]
+    evidence["size_bytes"] = license_entry["size_bytes"]
+    if case == "model_as_license":
+        evidence.update(
+            {
+                "release_path": model_entry["path"],
+                "sha256": model_entry["sha256"],
+                "size_bytes": model_entry["size_bytes"],
+                "source_artifact_id": model_entry["source_artifact_id"],
+            }
+        )
+    elif case == "model_as_report":
+        descriptor["humanoid_compatibility"] = {
+            "evidence_route": "retarget_mapping",
+            "candidate_only": True,
+            "vandrel_runtime_accepted": False,
+            "mapping_profile": "profile/v1",
+            "report": {
+                "release_path": model_entry["path"],
+                "sha256": model_entry["sha256"],
+                "size_bytes": model_entry["size_bytes"],
+                "source_artifact_id": model_entry["source_artifact_id"],
+            },
+            "animation_donor_asset_id": "donor_asset_001",
+            "direct_skeleton_match": True,
+            "direct_rest_transform_match": True,
+            "humanoid_retarget_candidate": True,
+        }
+    elif case == "static_role_confusion":
+        license_entry["role"] = "model"
+    elif case == "license_source_mismatch":
+        evidence["source_artifact_id"] = "different-evidence-artifact"
+    else:
+        raise AssertionError(case)
+    release = root / "assets" / descriptor["asset_id"] / "r001"
+    release.mkdir(parents=True)
+    (release / model_entry["path"]).write_bytes(model)
+    license_path = release / license_entry["path"]
+    license_path.parent.mkdir(parents=True)
+    license_path.write_bytes(license_bytes)
+    descriptor_bytes = (json.dumps(descriptor, indent=2) + "\n").encode()
+    (release / "asset-release.json").write_bytes(descriptor_bytes)
+    catalog = {
+        "schema_version": 1,
+        "assets": {
+            descriptor["asset_id"]: {
+                "latest_revision": 1,
+                "releases": [
+                    {
+                        "revision": 1,
+                        "path": (
+                            f"assets/{descriptor['asset_id']}/r001/asset-release.json"
+                        ),
+                        "descriptor_sha256": _sha256(descriptor_bytes),
+                    }
+                ],
+            }
+        },
+    }
+    (root / "catalog.json").write_text(json.dumps(catalog), encoding="utf-8")
+
+
 def test_audit_library_verifies_catalog_descriptor_and_files(config) -> None:
     _write_library(config.foundry.asset_library_root)
 
@@ -102,5 +180,29 @@ def test_audit_library_rejects_r1000_layout(config) -> None:
     assert any(
         check.subject.endswith("r1000")
         and "r001..r999" in check.detail
+        for check in result.checks
+    )
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "model_as_license",
+        "model_as_report",
+        "static_role_confusion",
+        "license_source_mismatch",
+    ],
+)
+def test_live_audit_rejects_v2_evidence_role_or_source_substitution(
+    config,
+    case: str,
+) -> None:
+    _write_tampered_v2_library(config.foundry.asset_library_root, case)
+
+    result = audit_library(config)
+
+    assert not result.passed
+    assert any(
+        check.subject.endswith(":evidence_roles") and not check.passed
         for check in result.checks
     )
