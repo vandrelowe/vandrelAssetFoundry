@@ -1,0 +1,59 @@
+{
+  "schema_version": "vandrel_foundry_custody_policy/1.0",
+  "scan_algorithm_version": "vandrel_foundry_custody_scan/1.0",
+  "source_rules": [
+    {
+      "source_id": "meshy",
+      "path_prefix": "Meshy",
+      "package_mode": "first_child"
+    },
+    {
+      "source_id": "mixamo",
+      "path_prefix": "Mixamo",
+      "package_mode": "first_child"
+    },
+    {
+      "source_id": "quaternius",
+      "path_prefix": "Quaternius",
+      "package_mode": "first_child"
+    }
+  ],
+  "packages": [
+    {
+      "package_root": "Quaternius/Fantasy Props MegaKit[Standard]",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "quaternius_fantasy_props_standard"
+      ]
+    },
+    {
+      "package_root": "Quaternius/Medieval Village MegaKit[Standard]",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "quaternius_medieval_village_standard"
+      ]
+    }
+  ],
+  "license_bindings": [
+    {
+      "binding_id": "quaternius_fantasy_props_standard",
+      "evidence_path": "Quaternius/Fantasy Props MegaKit[Standard]/License_Standard.txt",
+      "evidence_sha256": "edad12240087a33e08fc031e4e66c2b2b4b2a6d4f086339bde04f741b385fbda",
+      "scope_root": "Quaternius/Fantasy Props MegaKit[Standard]",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "quaternius_medieval_village_standard",
+      "evidence_path": "Quaternius/Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/License_Standard.txt",
+      "evidence_sha256": "ec6fd5004514cb0515a7dc1065f474644d31698861597b32e1745945ffec71de",
+      "scope_root": "Quaternius/Medieval Village MegaKit[Standard]",
+      "rights_semantics": "documented"
+    }
+  ],
+  "exclusions": [],
+  "workspace_temp_paths": [
+    "cache",
+    "locks",
+    "temp"
+  ]
+}

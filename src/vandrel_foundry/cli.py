@@ -16,6 +16,11 @@ from vandrel_foundry.services.add_source import add_external_glb, add_external_p
 from vandrel_foundry.services.apply_texture_mask import apply_texture_mask
 from vandrel_foundry.services.audit_asset import audit_asset
 from vandrel_foundry.services.audit_library import audit_library
+from vandrel_foundry.services.build_custody_inventory import (
+    build_custody_inventory,
+    validate_custody_register,
+    write_custody_outputs,
+)
 from vandrel_foundry.services.build_review_gallery import build_review_gallery
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
@@ -507,6 +512,59 @@ def audit_all(
             )
         )
     console.print(f"[green]Workspace audit passed[/green] {len(results)} candidates")
+
+
+@app.command("custody-inventory")
+def custody_inventory(
+    outside_root: Annotated[Path, typer.Option("--outside-root")],
+    workspace_root: Annotated[Path, typer.Option("--workspace-root")],
+    register: Annotated[Path, typer.Option("--register")],
+    report: Annotated[Path, typer.Option("--report")],
+    policy: Annotated[Path, typer.Option("--policy")] = Path("config/custody-policy.v1.json"),
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Build canonical custody evidence without mutating either scanned root."""
+    try:
+        settings = load_config(config)
+        result = build_custody_inventory(settings, outside_root, workspace_root, policy)
+        write_custody_outputs(
+            result,
+            register,
+            report,
+            (outside_root, workspace_root, settings.foundry.asset_library_root),
+        )
+    except FoundryError as exc:
+        fail(exc)
+    console.print(
+        "[green]Custody inventory written[/green] "
+        f"{register} sha256={result.report['canonical_register_sha256']}"
+    )
+
+
+@app.command("validate-custody-register")
+def validate_custody_register_command(
+    register: Annotated[Path, typer.Argument(help="Canonical custody register.")],
+    outside_root: Annotated[Path, typer.Option("--outside-root")],
+    workspace_root: Annotated[Path, typer.Option("--workspace-root")],
+    policy: Annotated[Path, typer.Option("--policy")] = Path("config/custody-policy.v1.json"),
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Validate canonical custody against current read-only root authority."""
+    try:
+        settings = load_config(config)
+        result = validate_custody_register(
+            register,
+            policy,
+            settings,
+            outside_root,
+            workspace_root,
+        )
+    except FoundryError as exc:
+        fail(exc)
+    console.print(
+        "[green]Custody register valid[/green] "
+        f"outside={result['outside_files']} workspace={result['workspace_files']}"
+    )
 
 
 @app.command("audit-library")

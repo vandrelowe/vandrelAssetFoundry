@@ -1,0 +1,5368 @@
+{
+  "after_fingerprints": {
+    "asset_library": "7e8aa63c89023f0cfabd3e37494fa0f8b79b60b2aa31820b3efa338562ac2483",
+    "foundry_workspace": "195b8118be0bb11947435d14d18b7ab12b6bb580329d79d788851de1074e0098",
+    "outside_assets": "88113abffcbbf864840c04111953cbd03ae954506b671c17db5a622a3e3192d6"
+  },
+  "attempts": 1,
+  "before_fingerprints": {
+    "asset_library": "7e8aa63c89023f0cfabd3e37494fa0f8b79b60b2aa31820b3efa338562ac2483",
+    "foundry_workspace": "195b8118be0bb11947435d14d18b7ab12b6bb580329d79d788851de1074e0098",
+    "outside_assets": "88113abffcbbf864840c04111953cbd03ae954506b671c17db5a622a3e3192d6"
+  },
+  "canonical_register_sha256": "9a5e006eda1dc80b45f6c4b5b99ed68989192fb3007bd702f7d2323011e99e60",
+  "counts": {
+    "duplicate_files": 490,
+    "duplicate_groups": 178,
+    "eligible_outside_files": 582,
+    "outside_files": 1648,
+    "packages": 146,
+    "potential_duplicate_bytes": 352792545,
+    "workspace_files": 1070
+  },
+  "defects": [
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Cave Female Athletic Chieftain.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Cave Female Athletic Raider.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Cave Female Athletic Shaman.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Athletic Chieftain Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Athletic Raider Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Athletic Shaman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Cave Adult Athletic Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Cave Adult Average Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Cave Adult Strong Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Cave Child Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Cave Elder Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Cave Teen Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Caveman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Dark Sorcerer Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Golden Shaggy Apeman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Grey Skulker Apeman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Female Shaman Tribe Apeman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Feral Apeman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Athletic Chieftain Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Athletic Raider Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Athletic Shaman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Cave Adult Athletic Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Cave Adult Average Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Cave Adult Strong Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Cave Child Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Cave Elder Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Cave Teen Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Caveman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Dark Sorcerer Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Golden Shaggy Apeman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Grey Skulker Apeman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Male Shaman Tribe Apeman Low Poly.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Berry_Basket_3K_0616194646_texture_fbx/Meshy_AI_Berry_Basket_3K_0616194646_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Berry_Basket_3K_0616194646_texture_fbx/Meshy_AI_Berry_Basket_3K_0616194646_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Campfire_Burned_Down__0616183332_texture_fbx/Meshy_AI_Campfire_Burned_Down__0616183332_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Campfire_Burned_Down__0616183332_texture_fbx/Meshy_AI_Campfire_Burned_Down__0616183332_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Campfire_Burning_Mid__0616183316_texture_fbx/Meshy_AI_Campfire_Burning_Mid__0616183316_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Campfire_Burning_Mid__0616183316_texture_fbx/Meshy_AI_Campfire_Burning_Mid__0616183316_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Campfire_Fresh_Wood_L_0616183259_texture_fbx/Meshy_AI_Campfire_Fresh_Wood_L_0616183259_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Campfire_Fresh_Wood_L_0616183259_texture_fbx/Meshy_AI_Campfire_Fresh_Wood_L_0616183259_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Empty_Basket_3K_0616194737_texture_fbx/Meshy_AI_Empty_Basket_3K_0616194737_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Empty_Basket_3K_0616194737_texture_fbx/Meshy_AI_Empty_Basket_3K_0616194737_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Female_Athletic_Shama_biped/Meshy_AI_Female_Athletic_Shama_biped_Animation_Walking_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Female_Athletic_Shama_biped/Meshy_AI_Female_Athletic_Shama_biped_Character_output.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Female_Athletic_Shama_biped/Meshy_AI_Female_Athletic_Shama_biped_texture_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Female_Dark_Sorcerer__0617004904_texture_fbx/Meshy_AI_Female_Dark_Sorcerer__0617004904_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Female_Dark_Sorcerer__0617004904_texture_fbx/Meshy_AI_Female_Dark_Sorcerer__0617004904_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Hide_Lean_To_5K_0616183237_texture_fbx/Meshy_AI_Hide_Lean_To_5K_0616183237_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Hide_Lean_To_5K_0616183237_texture_fbx/Meshy_AI_Hide_Lean_To_5K_0616183237_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Hide_Sleeping_Mat_3K_0616194726_texture_fbx/Meshy_AI_Hide_Sleeping_Mat_3K_0616194726_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Hide_Sleeping_Mat_3K_0616194726_texture_fbx/Meshy_AI_Hide_Sleeping_Mat_3K_0616194726_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Male_Athletic_Shaman__0617004816_texture_fbx/Meshy_AI_Male_Athletic_Shaman__0617004816_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Male_Athletic_Shaman__0617004816_texture_fbx/Meshy_AI_Male_Athletic_Shaman__0617004816_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Male_Athletic_Shaman__biped/Meshy_AI_Male_Athletic_Shaman__biped_Animation_Walking_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Male_Athletic_Shaman__biped/Meshy_AI_Male_Athletic_Shaman__biped_texture_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Male_Dark_Sorcerer_Lo_0617004839_texture_fbx/Meshy_AI_Male_Dark_Sorcerer_Lo_0617004839_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Male_Dark_Sorcerer_Lo_0617004839_texture_fbx/Meshy_AI_Male_Dark_Sorcerer_Lo_0617004839_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Male_Dark_Sorcerer_Lo_0617004843_texture_fbx/Meshy_AI_Male_Dark_Sorcerer_Lo_0617004843_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Male_Dark_Sorcerer_Lo_0617004843_texture_fbx/Meshy_AI_Male_Dark_Sorcerer_Lo_0617004843_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Meat_Rack_5K_0616183400_texture_fbx/Meshy_AI_Meat_Rack_5K_0616183400_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Meat_Rack_5K_0616183400_texture_fbx/Meshy_AI_Meat_Rack_5K_0616183400_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Animation_Attack_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Animation_Dead_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Animation_Run_03_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Animation_Running_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Animation_Skill_01_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Animation_Slow_Orc_Walk_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Animation_Unsteady_Walk_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Animation_Walking_withSkin.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_Character_output.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primal_Feral_Apeman_N_biped/Meshy_AI_Primal_Feral_Apeman_N_biped_texture_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primitive_Bone_Club_L_0617012030_texture_fbx/Meshy_AI_Primitive_Bone_Club_L_0617012030_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primitive_Bone_Club_L_0617012030_texture_fbx/Meshy_AI_Primitive_Bone_Club_L_0617012030_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primitive_Flint_Spear_0617011739_texture_fbx/Meshy_AI_Primitive_Flint_Spear_0617011739_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primitive_Flint_Spear_0617011739_texture_fbx/Meshy_AI_Primitive_Flint_Spear_0617011739_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primitive_Stone_Axe_L_0617011713_texture_fbx/Meshy_AI_Primitive_Stone_Axe_L_0617011713_texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_Primitive_Stone_Axe_L_0617011713_texture_fbx/Meshy_AI_Primitive_Stone_Axe_L_0617011713_texture.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_biped/Meshy_AI_biped_Character_output.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/Meshy_AI_biped/Meshy_AI_biped_Meshy_AI_Meshy_Merged_Animations.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Ape Female Shaman.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Ape Male Shaman.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Adult Athletic DarkSorcerer need texture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Adult Athletic DarkSorcerer2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Adult Athletic Raider.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Adult Athletic Shaman.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Adult Athletic.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Adult Average.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Adult Average2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Adult Strong.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Child.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Elder.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Female Teen.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Adult Athletic DarkSorcerer.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Adult Athletic Raider.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Adult Athletic Shaman.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Adult Athletic.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Adult Average.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Adult Average2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Adult Strong.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Child.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Elder.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Cave Male Teen.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Meshy_AI_Female_Dark_Sorcerer__biped_Meshy_AI_Meshy_Merged_Animations.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Meshy_AI_Female_Dark_Sorcerer__biped_texture_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Shaggy Female Golden.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Shaggy Male Feral.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Shaggy Male Golden.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Meshy/mixamo rigged/Skulker Male Grey.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/2hand Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Crouch Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing Disarm Underarm.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing Jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing Melee Attack 360 High.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing Melee Attack Horizontal.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing Melee Combo Attack Ver. 1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing React Large Gut.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing Run Forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Standing Taunt Chest Thump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Axe Unarmed Equip Over Shoulder.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Boxing Body Jab Cross.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Boxing Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Boxing Jab.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Boxing Medium Hit To Head.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Boxing Walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Boxing.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Breathing Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Ch31_nonPBR.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Drinking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Action Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Breathing Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Idle Female.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Idle Female2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Idle Male.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Walking Fem1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Walking Fem2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Walking Male1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Walking Male2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Erect Walking Male3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/Ch31_nonPBR.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/box idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/box turn (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/box turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/box walk arc.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/cow milking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/dig and plant seeds.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/holding idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/holding turn left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/holding turn right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/holding walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/kneeling idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/pick fruit (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/pick fruit (3).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/pick fruit.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/plant a plant.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/plant tree.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/pull plant (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/pull plant.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/watering.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/wheelbarrow dump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/wheelbarrow idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/wheelbarrow walk (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/wheelbarrow walk turn (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/wheelbarrow walk turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Farming Pack/wheelbarrow walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/Ch31_nonPBR.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/acknowledging.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/angry gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/annoyed head shake.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/being cocky.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/dismissing gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/happy hand gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/hard head nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/head nod yes.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/lengthy head nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/look away gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/relieved sigh.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/sarcastic head nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/shaking head no.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/thoughtful head shake.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Gestures Pack Basic/weight shift.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Grab And Put Back Spear.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Idle (1).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Knife Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Laying Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Laying Sleeping.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/Ch31_nonPBR.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/left strafe walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/left strafe.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/left turn 90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/left turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/right strafe walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/right strafe.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/right turn 90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/right turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/running.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Locomotion Pack/walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Crouch_Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Crouch_To_Standing_Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Crouch_Turn_Left_90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Crouch_Turn_Right_90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Crouch_Walk_Back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Crouch_Walk_Forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Crouch_Walk_Left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Crouch_Walk_Right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Dying_Backwards.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Falling_Back_Death.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Falling_Forward_Death.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Flying_Back_Death.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Laying_Hand_Gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Laying_Nodding.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Laying_Shrugging.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Laying_Sleeping.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Picking_At_Shirt.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Remy.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Sit_To_Stand.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Sitting.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Sitting__1_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Sleeping_Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Sleeping_Idle__1_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Stand_To_Sit.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_1H_Magic_Attack_01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_1H_Magic_Attack_02.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_1H_Magic_Attack_03.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_2H_Cast_Spell_01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_2H_Magic_Area_Attack_01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_2H_Magic_Area_Attack_02.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_2H_Magic_Attack_01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_2H_Magic_Attack_02.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_2H_Magic_Attack_03.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_Block_End.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_Block_Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_Block_React_Large.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_Block_Start.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_React_Large_From_Back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_React_Large_From_Front.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_React_Large_From_Left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_React_Large_From_Right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_React_Small_From_Back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_React_Small_From_Left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_React_Small_From_Right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/Standing_Sprint_Forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/acknowledging.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/angry_gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/annoyed_head_shake.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/armada.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/armada_to_esquiva.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/au.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/au_to_role.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/backward_walking_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/being_cocky.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/bencao.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/box_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/box_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/box_turn__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/box_walk_arc.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_1990.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_1990__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_1990__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_ending_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_ending_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_ending_3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_footwork_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_footwork_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_footwork_3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_footwork_to_freeze.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_footwork_to_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_footwork_to_idle__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_freeze_var_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_freeze_var_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_freeze_var_3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_freeze_var_4.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_freezes.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_ready.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_ready__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_ready__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_swipes.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_uprock.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_uprock__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_uprock_to_ground.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_uprock_to_ground__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_uprock_var_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_uprock_var_1_end.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_uprock_var_1_start.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/breakdance_uprock_var_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/brooklyn_uprock.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/capoeira.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/capoeira__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/capoeira__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/chapa-giratoria.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/chapa_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/chapa_giratoria_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/chapaeu_de_couro.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/cover_to_stand.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/cover_to_stand__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/cow_milking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/crossleg_freeze.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/crouched_sneaking_left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/crouched_sneaking_right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/dig_and_plant_seeds.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/dismissing_gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/draw_a_great_sword_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/draw_a_great_sword_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_idle_variation.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_idle_variation__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_run_backward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_run_forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_running_left_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_walk_backwards.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/drunk_walking_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/esquiva_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/esquiva_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/esquiva_3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/esquiva_4.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/esquiva_5.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/fall_a_land_to_run_forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/fall_a_land_to_standing_idle_01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/fall_a_loop.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/falling_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/falling_to_roll.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/flair.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/flair__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/flair__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/ginga_backward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/ginga_forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/ginga_sideways_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/ginga_sideways_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/ginga_sideways_to_au.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/ginga_variation_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/ginga_variation_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/ginga_variation_3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_180_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_180_turn__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_attack.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_blocking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_blocking__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_blocking__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_casting.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_crouching.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_crouching__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_crouching__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_crouching__4_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_crouching__5_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_crouching__6_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_high_spin_attack.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_idle__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_idle__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_idle__4_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_idle__5_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_impact.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_impact__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_impact__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_impact__4_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_impact__5_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_jump__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_jump_attack.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_kick.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_kick__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_power_up.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_run.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_run__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_slash.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_slash__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_slash__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_slash__4_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_slash__5_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_slide_attack.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_strafe.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_strafe__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_strafe__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_strafe__4_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_turn__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/great_sword_walk__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/happy_hand_gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/hard_head_nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/hard_landing.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/head_nod_yes.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/holding_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/holding_turn_left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/holding_turn_right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/holding_walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/idle__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/idle__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/idle__4_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/idle__5_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_backwards_turn_left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_backwards_turn_right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_hurting_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_run.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_run_backwards.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_run_backwards_left_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_run_backwards_right_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_run_jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_run_left_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_run_right_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_standing_jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_stumble_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_turn_left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_turn_right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_walk_backwards.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_walk_left_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_walk_right_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/injured_wave_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/jumping_up.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/kneeling_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/left_cover_sneak.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/left_strafe.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/left_strafe_walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/left_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/left_turn_45.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/left_turn_90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/lengthy_head_nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/look_away_gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/macaco_side.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/martelo_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/martelo_3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/martelo_do_chau.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/martelo_do_chau_sem_mao.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/meia_lua_de_compasso.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/meia_lua_de_compasso_back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/meia_lua_de_frente.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_breathing_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_dying.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_flexing_muscles.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_jumping.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_left_turn_45.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_right_turn_45.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_right_turn_45__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_run.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_swiping.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/mutant_walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/pick_fruit.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/pick_fruit__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/pick_fruit__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/plant_a_plant.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/plant_tree.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/pontera.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/pull_plant.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/pull_plant__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/queshada_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/queshada_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/rasteira_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/rasteira_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/relieved_sigh.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/right_cover_sneak.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/right_strafe.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/right_strafe_walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/right_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/right_turn_90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/run_backward_arc_right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/run_to_stop.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/running.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sarcastic_head_nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/shaking_head_no.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sheath_sword_1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sheath_sword_2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/spell_cast.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/stand_to_cover__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standard_run.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_1H_cast_spell_01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_aim_overdraw.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_aim_walk_forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_block.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_death_backward_01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_death_forward_01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_disarm_bow.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_disarm_over_shoulder.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_disarm_underarm.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_dive_forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_dodge_backward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_dodge_forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_dodge_left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_dodge_right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_draw_arrow.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_equip_bow.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_melee_attack_360_high.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_react_large_gut.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_react_small_from_front.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_react_small_from_headshot.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_run_back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_run_forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_run_forward_stop.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_run_left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_run_right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/standing_walk_back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_block.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_crouch_block__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_crouch_block_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_crouch_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_death.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_death__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_idle__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_idle__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_idle__4_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_impact.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_impact__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_impact__3_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_jump__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_kick.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_power_up.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/sword_and_shield_walk__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/unarmed_jump_running.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/unarmed_walk_back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/unarmed_walk_forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/watering.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/weight_shift.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/wheelbarrow_dump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/wheelbarrow_idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/wheelbarrow_walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/wheelbarrow_walk__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/wheelbarrow_walk_turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Complete/wheelbarrow_walk_turn__2_.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/! Remy Small/happy_hand_gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Action Adventure Pack/cover to stand.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Action Adventure Pack/crouched sneaking left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Action Adventure Pack/idle (3).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Action Adventure Pack/idle (5).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Action Adventure Pack/idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Action Adventure Pack/jumping up.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_10.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_12.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_14.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_17.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_21.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_3.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_3.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_4.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_4.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_5.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_5.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_6.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_6.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_7.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_7.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_8.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_8.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_9.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_9.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_alpha_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_alpha_0.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/Remy_alpha_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance 1990 (3).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance ending 2.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance ending 3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance ending 3.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork 1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork 1.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork 2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork 2.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork 3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork 3.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork to freeze.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork to freeze.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork to idle (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork to idle (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork to idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance footwork to idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance ready (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance uprock (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance uprock to ground (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance uprock var 2.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance uprock.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/breakdance uprock.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/brooklyn uprock.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/brooklyn uprock.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/crossleg freeze.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/crossleg freeze.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/flair (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/flair (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/flair (3).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/flair (3).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/flair.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Breakdance Pack/flair.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_15.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_15.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_16.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_16.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_17.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_17.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_18.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_18.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_19.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_19.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_2.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_2.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_20.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_20.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_21.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/Remy_4.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/armada to esquiva.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/armada.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/armada.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/au to role.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/au to role.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/au.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/au.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/bencao.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/bencao.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/capoeira (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/capoeira (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/capoeira (3).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/capoeira (3).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/capoeira.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/capoeira.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/chapa-giratoria.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/ginga sideways to au.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/ginga variation 2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/ginga variation 2.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/ginga variation 3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/ginga variation 3.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/macaco side.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/macaco side.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/martelo 2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/martelo 2.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/martelo 3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/martelo 3.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/martelo do chau sem mao.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/martelo do chau sem mao.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/martelo do chau.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/martelo do chau.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/meia lua de compasso back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/meia lua de compasso back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Capoeira Pack/queshada 2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_1.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_10.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_10.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_11.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_11.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_12.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_12.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_13.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_13.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_14.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_14.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_15.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_15.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_16.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_2.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_20.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/Remy_21.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/mutant left turn 45.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/mutant right turn 45 (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/mutant right turn 45.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Creature NPC Pack/mutant swiping.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/Remy.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/Remy.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/Remy_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/Remy_0.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/Remy_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/Remy_1.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/Remy_10.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/box turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/holding idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/holding turn right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/pick fruit (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/pull plant (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/pull plant (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/pull plant.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Farming Pack (1)/pull plant.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Great Sword Pack/Remy_6.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Great Sword Pack/Remy_7.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Great Sword Pack/Remy_7.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Great Sword Pack/Remy_8.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Great Sword Pack/Remy_8.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Great Sword Pack/Remy_9.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_14.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_17.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_2.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_20.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_20.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_21.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_21.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_3.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_3.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_4.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_4.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_5.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_5.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_6.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_6.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_7.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_7.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_8.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_9.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_9.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_alpha_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/Remy_alpha_1.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/standing run left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/standing turn 90 left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/standing walk back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/standing walk right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Longbow Locomotion Pack/standing walk right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_0.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_1.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_10.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_10.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_11.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_13.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_3.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_5.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_5.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_6.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_6.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_7.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_7.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_8.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_8.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_9.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_9.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_alpha_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_alpha_0.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_alpha_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/Remy_alpha_1.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/drunk idle variation.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/drunk idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/drunk turn.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/drunk walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/drunk walk.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/drunk walking turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/drunk walking turn.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Drunk Pack/run backward arc right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_13.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_19.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_2.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_2.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_20.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_20.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_21.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_21.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_3.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_3.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_4.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_4.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_5.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_5.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_6.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/Remy_6.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured run backwards left turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured run backwards.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured run right turn.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured run.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured run.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured standing jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured standing jump.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured stumble idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured stumble idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured turn left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured turn left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured turn right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured turn right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured walk backwards.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured walk backwards.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured walk left turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured walk left turn.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured walk right turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Injured Pack/injured walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Male Locomotion Pack/left strafe walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_12.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_12.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_13.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_13.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_14.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_14.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_15.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_15.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_16.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_16.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_17.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_17.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_18.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_18.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_19.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_19.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_2.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_5.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/Remy_alpha_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/fall a land to run forward.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing aim overdraw.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing aim walk back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing aim walk left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing aim walk left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing aim walk right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing aim walk right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing block.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing block.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing death backward 01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing death backward 01.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing death forward 01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing death forward 01.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing disarm bow.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing disarm bow.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing dive forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing dive forward.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing dodge backward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing idle 01.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing idle 02 looking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing melee kick.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing run left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing run left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing run right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing run right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing turn 90 left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing turn 90 left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing turn 90 right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing turn 90 right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing walk back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing walk back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing walk forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing walk forward.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing walk left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing walk left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing walk right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/standing walk right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Longbow Pack/unarmed idle 01.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch To Standing Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch To Standing Idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Turn Left 90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Turn Left 90.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Turn Right 90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Turn Right 90.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Walk Back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Walk Back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Walk Forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Crouch Walk Right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_18.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_2.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_20.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_20.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_21.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_21.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_3.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_3.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_4.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_4.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_5.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_5.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Remy_6.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing 2H Magic Attack 03.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing 2H Magic Attack 04.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing 2H Magic Attack 04.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing 2H Magic Attack 05.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing 2H Magic Attack 05.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Block End.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Block End.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Block Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Block Idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Block React Large.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Block React Large.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Block Start.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Block Start.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Idle 03.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Jump Running Landing.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Death Left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Large From Back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Large From Front.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Large From Right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Large From Right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Small From Back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Small From Back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Small From Front.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Small From Front.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Small From Left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Small From Left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Small From Right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing React Small From Right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Run Back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Run Back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Run Forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Run Forward.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Run Left.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/Standing Run Left.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/standing idle 02.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Magic Pack/standing idle 02.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_0.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_1.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_10.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_10.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_11.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_11.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_12.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_12.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_13.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_15.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_2.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_4.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_alpha_0.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_alpha_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/Remy_alpha_1.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/crouch idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/crouch idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/crouch to standing idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/crouch to standing idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing block idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing block idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing block react large.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing block react large.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing disarm over shoulder.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing disarm over shoulder.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing disarm underarm.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing disarm underarm.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing idle looking ver. 1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing idle looking ver. 1.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing idle looking ver. 2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing idle looking ver. 2.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing melee attack downward.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing melee combo attack ver. 2.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing react large from right.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing react large from right.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing react large gut.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing react large gut.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing run back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing run back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing run forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing run forward.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing taunt battlecry.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing taunt battlecry.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing taunt chest thump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing taunt chest thump.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing turn left 90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/standing turn left 90.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/unarmed idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/unarmed turn right 90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/unarmed turn right 90.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/unarmed walk back.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/unarmed walk back.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/unarmed walk forward.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Pro Melee Axe Pack/unarmed walk forward.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_0.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_11.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_19.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_20.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_6.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_6.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_7.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_7.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_8.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_8.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_9.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_9.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_alpha_0.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_alpha_0.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_alpha_1.png",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/Remy_alpha_1.png.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sheath sword 1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sheath sword 1.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sheath sword 2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sheath sword 2.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield 180 turn (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield 180 turn (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield 180 turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield attack (4).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield attack (4).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield block.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield crouching (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield death (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield death.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield death.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield idle (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield idle (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield idle (3).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield idle (3).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield idle (4).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield idle (4).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield idle.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield impact (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield impact (2).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield impact (3).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield impact (3).fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield impact.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield impact.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield jump (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield run (2).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield run.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield slash (4).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield strafe (4).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Mixamo Remy/Sword and Shield Pack/sword and shield walk.fbx.import",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Pick Fruit bush.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Pick Fruit ground.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Pick Fruit tree.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Shooting Arrow.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Sitting Drinking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Sleeping Idle (1).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Sleeping Idle 2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Sleeping Idle 3.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Sleeping Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Slouch Idle Male.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Slouch Idle2 Male.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Slouch Idle3 Female.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Slouch Walk.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Slouch Walk2 Female.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Spear Bayonet Stab.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Spear Block.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Spear Death.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Spear Idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Spear Run.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Spear Slash Advance.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/Walking (1).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/acknowledging.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/angry gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/annoyed head shake.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/axe Standing Idle Looking Ver. 1.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/axe Standing Idle Looking Ver. 2.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/being cocky.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/character (1).fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/character.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/dismissing gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/happy hand gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/hard head nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/head nod yes.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/idle.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/jump.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/left strafe walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/left strafe.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/left turn 90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/left turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/lengthy head nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/look away gesture.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/relieved sigh.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/right strafe walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/right strafe.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/right turn 90.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/right turn.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/running.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/sarcastic head nod.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/shaking head no.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/thoughtful head shake.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/walking.fbx",
+      "reason": "missing"
+    },
+    {
+      "kind": "custody_ineligible",
+      "path": "Mixamo/weight shift.fbx",
+      "reason": "missing"
+    }
+  ],
+  "generated_at": "2026-07-28T04:22:19.030329+00:00",
+  "physical_roots": {
+    "asset_library": "C:\\Dev\\VandrelAssetLibrary",
+    "foundry_workspace": "C:\\Dev\\VandrelFoundryWorkspace",
+    "outside_assets": "C:\\Dev\\outsideassets"
+  },
+  "schema_version": "vandrel_foundry_custody_run_report/1.0",
+  "stable_fingerprints": {
+    "asset_library": "7e8aa63c89023f0cfabd3e37494fa0f8b79b60b2aa31820b3efa338562ac2483",
+    "foundry_workspace": "195b8118be0bb11947435d14d18b7ab12b6bb580329d79d788851de1074e0098",
+    "outside_assets": "88113abffcbbf864840c04111953cbd03ae954506b671c17db5a622a3e3192d6"
+  },
+  "zero_source_mutation_observed": true
+}
