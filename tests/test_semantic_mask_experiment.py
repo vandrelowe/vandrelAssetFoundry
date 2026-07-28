@@ -56,12 +56,7 @@ def _processed_asset(config, lanes, prompt: Path, asset_id: str) -> tuple[Path, 
 
 def _strict_mask(path: Path) -> None:
     image = Image.new("RGB", (4, 4))
-    image.putdata(
-        [(255, 0, 0)] * 4
-        + [(0, 255, 0)] * 4
-        + [(0, 0, 255)] * 4
-        + [(255, 255, 255)] * 4
-    )
+    image.putdata([(255, 0, 0)] * 4 + [(0, 255, 0)] * 4 + [(0, 0, 255)] * 4 + [(255, 255, 255)] * 4)
     image.save(path)
 
 
@@ -87,9 +82,7 @@ def test_semantic_mask_experiment_records_candidate_and_isolation_evidence(
         assert input_path.read_bytes() == b"immutable glb"
         assert mask_path.read_bytes() == candidate.read_bytes()
         for name in VARIANTS:
-            Image.new("RGBA", (16, 16), (120, 80, 40, 255)).save(
-                output_root / f"{name}.png"
-            )
+            Image.new("RGBA", (16, 16), (120, 80, 40, 255)).save(output_root / f"{name}.png")
         measurement_path.write_text(
             json.dumps(
                 {
@@ -110,26 +103,20 @@ def test_semantic_mask_experiment_records_candidate_and_isolation_evidence(
         runner=fake_runner,
     )
 
-    updated = ManifestRepository(config.foundry.workspace_root).load(
-        "semantic_mask_asset_001"
-    )
+    updated = ManifestRepository(config.foundry.workspace_root).load("semantic_mask_asset_001")
     assert contact_sheet.role == "semantic_mask_experiment_contact_sheet"
     assert updated.workflow.state is WorkflowState.REVIEW
-    assert sum(
-        item.role == "semantic_mask_variant_preview" for item in updated.artifacts
-    ) == len(VARIANTS)
+    assert sum(item.role == "semantic_mask_variant_preview" for item in updated.artifacts) == len(
+        VARIANTS
+    )
     mask_artifact = next(
         item for item in updated.artifacts if item.role == "semantic_mask_candidate"
     )
     assert (asset_root / str(mask_artifact.path)).read_bytes() == candidate.read_bytes()
     report_artifact = next(
-        item
-        for item in updated.artifacts
-        if item.role == "semantic_mask_experiment_report"
+        item for item in updated.artifacts if item.role == "semantic_mask_experiment_report"
     )
-    report = json.loads(
-        (asset_root / str(report_artifact.path)).read_text(encoding="utf-8")
-    )
+    report = json.loads((asset_root / str(report_artifact.path)).read_text(encoding="utf-8"))
     assert report["source_sha256"] == digest
     assert report["mask_facts"]["strict_palette_passed"] is True
     assert report["usable_for_material_authoring"] is False

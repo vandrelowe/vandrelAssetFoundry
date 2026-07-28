@@ -40,9 +40,7 @@ def test_applies_mask_and_records_immutable_hash_bound_outputs(
     def fake_runner(arguments, cwd, environment, timeout_seconds, maximum_output_bytes):
         assert "--disable-autoexec" in arguments
         assert "MESHY_API_KEY" not in environment
-        input_path, copied_mask, output_path, report_path = map(
-            Path, arguments[-5:-1]
-        )
+        input_path, copied_mask, output_path, report_path = map(Path, arguments[-5:-1])
         assert copied_mask != mask_source
         assert copied_mask.read_bytes() == mask_source.read_bytes()
         output_path.write_bytes(input_path.read_bytes())
@@ -66,9 +64,7 @@ def test_applies_mask_and_records_immutable_hash_bound_outputs(
         runner=fake_runner,
     )
 
-    saved = ManifestRepository(config.foundry.workspace_root).load(
-        "masked_character_001"
-    )
+    saved = ManifestRepository(config.foundry.workspace_root).load("masked_character_001")
     assert result.model.artifact_id == "processed_glb_002"
     assert result.model.processor.name == "blender_texture_mask_recolor"
     assert result.model.derived_from == [
@@ -129,10 +125,6 @@ def test_failed_blender_run_removes_partial_outputs(
             runner=failing_runner,
         )
 
-    asset_root = (
-        config.foundry.workspace_root
-        / "assets"
-        / "failed_mask_character_001"
-    )
+    asset_root = config.foundry.workspace_root / "assets" / "failed_mask_character_001"
     assert not (asset_root / "processed" / "texture_mask").exists()
     assert not list((asset_root / "reports").glob("texture-mask-processing-*"))

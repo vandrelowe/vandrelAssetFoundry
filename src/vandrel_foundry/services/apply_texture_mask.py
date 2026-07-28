@@ -53,9 +53,7 @@ def apply_texture_mask(
             grayscale = image.convert("L")
             extrema = grayscale.getextrema()
             if extrema is None or extrema[1] == 0 or extrema[0] == 255:
-                raise FoundryError(
-                    "Texture mask must select a nonempty, bounded region."
-                )
+                raise FoundryError("Texture mask must select a nonempty, bounded region.")
     except OSError as exc:
         raise FoundryError(f"Texture mask is not a valid PNG: {exc}") from exc
 
@@ -82,18 +80,10 @@ def apply_texture_mask(
     number = len(candidates) + 1
     model_id = f"processed_glb_{number:03d}"
     mask_id = f"texture_region_mask_{number:03d}"
-    model_relative = RelativeManifestPath(
-        f"processed/texture_mask/{model_id}.glb"
-    )
-    mask_relative = RelativeManifestPath(
-        f"processed/texture_mask/{mask_id}.png"
-    )
-    report_relative = RelativeManifestPath(
-        f"reports/texture-mask-processing-{number:03d}.json"
-    )
-    log_relative = RelativeManifestPath(
-        f"reports/texture-mask-processing-{number:03d}.log"
-    )
+    model_relative = RelativeManifestPath(f"processed/texture_mask/{model_id}.glb")
+    mask_relative = RelativeManifestPath(f"processed/texture_mask/{mask_id}.png")
+    report_relative = RelativeManifestPath(f"reports/texture-mask-processing-{number:03d}.json")
+    log_relative = RelativeManifestPath(f"reports/texture-mask-processing-{number:03d}.log")
     model_path = contained_path(asset_root, model_relative)
     mask_path = contained_path(asset_root, mask_relative)
     report_path = contained_path(asset_root, report_relative)

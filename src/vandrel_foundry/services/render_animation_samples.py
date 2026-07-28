@@ -34,7 +34,9 @@ def render_animation_samples(
     if executable is None or not executable.is_absolute() or not executable.is_file():
         raise FoundryError("Configure tools.blender_executable as an existing absolute file.")
     sources = [
-        item for item in manifest.artifacts if item.role == "processed_model" and item.format == "glb"
+        item
+        for item in manifest.artifacts
+        if item.role == "processed_model" and item.format == "glb"
     ]
     if not sources:
         raise FoundryError(f"No processed GLB exists for animation samples: {asset_id}")
@@ -43,9 +45,7 @@ def render_animation_samples(
     source_path = contained_path(asset_root, source.path)
     _verify_artifact(source_path, source)
 
-    number = sum(
-        item.role == "animation_sample_contact_sheet" for item in manifest.artifacts
-    ) + 1
+    number = sum(item.role == "animation_sample_contact_sheet" for item in manifest.artifacts) + 1
     directory_relative = RelativeManifestPath(f"preview/animation-samples-{number:03d}")
     report_relative = RelativeManifestPath(f"reports/animation-samples-{number:03d}.json")
     log_relative = RelativeManifestPath(f"reports/animation-samples-{number:03d}.log")
@@ -139,9 +139,7 @@ def render_animation_samples(
                 role="animation_sample_preview",
                 stage="review",
                 format="png",
-                path=RelativeManifestPath(
-                    f"{directory_relative}/{path.name}"
-                ),
+                path=RelativeManifestPath(f"{directory_relative}/{path.name}"),
                 sha256=digest,
                 size_bytes=size,
                 derived_from=[source.artifact_id],
@@ -154,9 +152,7 @@ def render_animation_samples(
         role="animation_sample_contact_sheet",
         stage="review",
         format="png",
-        path=RelativeManifestPath(
-            f"{directory_relative}/{contact_sheet.name}"
-        ),
+        path=RelativeManifestPath(f"{directory_relative}/{contact_sheet.name}"),
         sha256=contact_hash,
         size_bytes=contact_size,
         derived_from=[source.artifact_id, *(item.artifact_id for item in artifacts)],
@@ -186,9 +182,7 @@ def render_animation_samples(
         derived_from=[source.artifact_id, contact_artifact.artifact_id],
         processor=processor,
     )
-    manifest.artifacts.extend(
-        [*artifacts, contact_artifact, report_artifact, log_artifact]
-    )
+    manifest.artifacts.extend([*artifacts, contact_artifact, report_artifact, log_artifact])
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(

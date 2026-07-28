@@ -139,11 +139,7 @@ def test_hash_bound_generic_blocker_blocks_candidate(
     assert saved.workflow.state is WorkflowState.BLOCKED
     assert saved.validation.result == "failed"
     assert saved.approval.approved is False
-    report_path = (
-        config.foundry.workspace_root
-        / "assets/consumer_test"
-        / str(result.report.path)
-    )
+    report_path = config.foundry.workspace_root / "assets/consumer_test" / str(result.report.path)
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["consumer_contract_revision"] == "vandrel@b8fb0762"
     assert report["grounding_audit_records"][0]["within_tolerance"] == 99

@@ -127,9 +127,7 @@ def _masked_material(material, mask_image, palette_color, tint, variant_name):
 
 
 def _tighten_camera(meshes) -> None:
-    corners = [
-        item.matrix_world @ Vector(corner) for item in meshes for corner in item.bound_box
-    ]
+    corners = [item.matrix_world @ Vector(corner) for item in meshes for corner in item.bound_box]
     minimum = Vector(tuple(min(point[axis] for point in corners) for axis in range(3)))
     maximum = Vector(tuple(max(point[axis] for point in corners) for axis in range(3)))
     center = (minimum + maximum) / 2

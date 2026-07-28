@@ -115,9 +115,9 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
     assert result.run.role == "processed_animation_run"
     assert not (asset_root / Path(str(result.model.path)).parent / "walking.fbx").exists()
     package_root = asset_root / Path(str(result.model.path)).parent
-    assert 'run/main_scene="res://wrapper.tscn"' in (
-        package_root / "project.godot"
-    ).read_text(encoding="utf-8")
+    assert 'run/main_scene="res://wrapper.tscn"' in (package_root / "project.godot").read_text(
+        encoding="utf-8"
+    )
     saved = ManifestRepository(config.foundry.workspace_root).load("native_character_001")
     assert saved.workflow.state is WorkflowState.REVIEW
     assert approval_checks_pass(saved)

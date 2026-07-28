@@ -43,15 +43,10 @@ def main() -> None:
         raise RuntimeError("Texture mask must select a nonempty, bounded region.")
 
     target_linear = np.array([_srgb_to_linear(value) for value in target_srgb])
-    luminance = (
-        source[:, 0] * 0.2126 + source[:, 1] * 0.7152 + source[:, 2] * 0.0722
-    )
+    luminance = source[:, 0] * 0.2126 + source[:, 1] * 0.7152 + source[:, 2] * 0.0722
     shade = 0.88 + np.clip(luminance, 0.0, 1.0) * 0.12
     recolored = shade[:, None] * target_linear[None, :]
-    source[:, :3] = (
-        source[:, :3] * (1.0 - weights[:, None])
-        + recolored * weights[:, None]
-    )
+    source[:, :3] = source[:, :3] * (1.0 - weights[:, None]) + recolored * weights[:, None]
     image.pixels.foreach_set(source.reshape(-1))
     image.update()
     image.pack()
@@ -72,9 +67,7 @@ def main() -> None:
                 "mask_dimensions": [width, height],
                 "selected_pixels": selected,
                 "coverage_fraction": selected / (width * height),
-                "target_color_srgb": [
-                    round(value, 6) for value in target_srgb
-                ],
+                "target_color_srgb": [round(value, 6) for value in target_srgb],
                 "mesh_objects": len(meshes),
                 "animation_count_before": animation_count,
                 "operations": [
@@ -104,9 +97,7 @@ def _base_color_image():
                 matches.append(links[0].from_node.image)
     unique = {image.name: image for image in matches if image is not None}
     if len(unique) != 1:
-        raise RuntimeError(
-            "Texture-mask processing requires exactly one base-color image."
-        )
+        raise RuntimeError("Texture-mask processing requires exactly one base-color image.")
     return next(iter(unique.values()))
 
 

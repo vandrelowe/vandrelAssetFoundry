@@ -138,9 +138,7 @@ def retarget_animations(
             raise FoundryError("Blender did not create retargeted model and report outputs.")
         report_data = json.loads(report_path.read_text(encoding="utf-8"))
         inspection = inspect_glb(model_path)
-        animation_names = tuple(
-            str(item["name"]) for item in report_data.get("animations", [])
-        )
+        animation_names = tuple(str(item["name"]) for item in report_data.get("animations", []))
         if inspection.animation_count != len(animation_names):
             raise FoundryError("Retargeted GLB animation count does not match its report.")
         if animation_names != donor_facts.animation_names:
@@ -152,9 +150,7 @@ def retarget_animations(
             {
                 "asset_id": asset_id,
                 "target": _artifact_binding(asset_id, target),
-                "animation_donor": _artifact_binding(
-                    animation_donor_asset_id, donor
-                ),
+                "animation_donor": _artifact_binding(animation_donor_asset_id, donor),
                 "output": {
                     "artifact_id": model_id,
                     "sha256": model_hash,

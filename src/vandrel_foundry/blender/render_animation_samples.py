@@ -87,9 +87,7 @@ def main() -> None:
             direction = Vector((1.4, -1.4, 0.8)).normalized()
             camera_data.clip_start = max(extent / 1000, 0.000001)
             camera_data.clip_end = max(extent * 100, 1.0)
-            camera.location = center + direction * (
-                extent / math.tan(camera_data.angle / 2) * 1.35
-            )
+            camera.location = center + direction * (extent / math.tan(camera_data.angle / 2) * 1.35)
             camera.rotation_euler = (center - camera.location).to_track_quat("-Z", "Y").to_euler()
             light_positions = (
                 center + Vector((extent * 2, -extent * 2, extent * 3)),

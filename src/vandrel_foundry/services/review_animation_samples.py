@@ -33,14 +33,8 @@ def accept_animation_samples(
     if not reviewer or not notes:
         raise FoundryError("Animation visual review requires reviewer and notes.")
     models = [item for item in manifest.artifacts if item.role == "processed_model"]
-    sheets = [
-        item
-        for item in manifest.artifacts
-        if item.role == "animation_sample_contact_sheet"
-    ]
-    reports = [
-        item for item in manifest.artifacts if item.role == "animation_sample_report"
-    ]
+    sheets = [item for item in manifest.artifacts if item.role == "animation_sample_contact_sheet"]
+    reports = [item for item in manifest.artifacts if item.role == "animation_sample_report"]
     if not models or not sheets or not reports:
         raise FoundryError("Animation visual review evidence is incomplete.")
     model = models[-1]
@@ -54,9 +48,7 @@ def accept_animation_samples(
     for artifact in (model, sheet, report):
         _verify_artifact(asset_root, artifact)
 
-    number = (
-        sum(item.role == "animation_visual_review" for item in manifest.artifacts) + 1
-    )
+    number = sum(item.role == "animation_visual_review" for item in manifest.artifacts) + 1
     relative = RelativeManifestPath(f"reports/animation-visual-review-{number:03d}.json")
     path = contained_path(asset_root, relative)
     evidence = {
@@ -105,9 +97,7 @@ def accept_animation_samples(
         "reviewer": reviewer,
     }
     manifest.validation.checks = [
-        item
-        for item in manifest.validation.checks
-        if item.get("name") != "animation_visual_review"
+        item for item in manifest.validation.checks if item.get("name") != "animation_visual_review"
     ]
     manifest.validation.checks.append(check)
     manifest.revision += 1

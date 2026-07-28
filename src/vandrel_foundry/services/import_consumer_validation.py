@@ -52,9 +52,7 @@ def import_vandrel_character_validation(
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
     if manifest.workflow.state not in ALLOWED_STATES:
-        raise FoundryError(
-            "Consumer validation import requires a processed or reviewed candidate."
-        )
+        raise FoundryError("Consumer validation import requires a processed or reviewed candidate.")
     models = [item for item in manifest.artifacts if item.role == "processed_model"]
     if not models:
         raise FoundryError("Consumer validation import requires a processed model.")
@@ -82,8 +80,7 @@ def import_vandrel_character_validation(
     blocking_findings = [
         finding
         for finding in evidence.generic_asset_defects
-        if finding.owner == "asset_foundry"
-        and finding.severity in {"error", "blocker"}
+        if finding.owner == "asset_foundry" and finding.severity in {"error", "blocker"}
     ]
     generic_gate_passed = not blocking_findings if hash_bound else None
     ground_audit_records: list[dict[str, object]] = []
@@ -95,25 +92,18 @@ def import_vandrel_character_validation(
         except ValidationError as exc:
             raise FoundryError(f"Vandrel character grounding audit is invalid: {exc}") from exc
         character_ids = {evidence.character_id, *evidence.affected_character_ids}
-        matching = [
-            item for item in audit.characters if item.character_id in character_ids
-        ]
+        matching = [item for item in audit.characters if item.character_id in character_ids]
         if not matching:
             raise FoundryError(
                 "Vandrel character grounding audit has no record for the selected asset."
             )
-        ground_audit_records = [
-            item.model_dump(mode="json") for item in matching
-        ]
+        ground_audit_records = [item.model_dump(mode="json") for item in matching]
         ground_audit_sha256 = hashlib.sha256(audit_bytes).hexdigest()
 
     number = (
-        sum(item.role == "vandrel_consumer_validation_report" for item in manifest.artifacts)
-        + 1
+        sum(item.role == "vandrel_consumer_validation_report" for item in manifest.artifacts) + 1
     )
-    relative = RelativeManifestPath(
-        f"reports/vandrel-consumer-validation-{number:03d}.json"
-    )
+    relative = RelativeManifestPath(f"reports/vandrel-consumer-validation-{number:03d}.json")
     path = contained_path(asset_root, relative)
     report = {
         "schema_version": 1,

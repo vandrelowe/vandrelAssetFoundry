@@ -73,9 +73,7 @@ def test_retargets_and_records_hash_bound_blender_output(
         runner=fake_runner,
     )
 
-    saved = ManifestRepository(config.foundry.workspace_root).load(
-        "target_character_001"
-    )
+    saved = ManifestRepository(config.foundry.workspace_root).load("target_character_001")
     assert result.animation_count == 3
     assert result.animation_names == ("clip_1", "clip_2", "clip_3")
     assert result.model.derived_from == ["processed_glb_001"]
@@ -111,9 +109,7 @@ def test_animation_samples_record_images_contact_sheet_and_evidence(
         samples = []
         for index in range(2):
             name = f"sample-{index + 1}.png"
-            Image.new("RGBA", (384, 384), (100 + index, 80, 60, 255)).save(
-                output_directory / name
-            )
+            Image.new("RGBA", (384, 384), (100 + index, 80, 60, 255)).save(output_directory / name)
             samples.append(
                 {
                     "animation": f"clip_{index + 1}",
@@ -139,9 +135,7 @@ def test_animation_samples_record_images_contact_sheet_and_evidence(
         runner=fake_runner,
     )
 
-    saved = ManifestRepository(config.foundry.workspace_root).load(
-        "sample_character_001"
-    )
+    saved = ManifestRepository(config.foundry.workspace_root).load("sample_character_001")
     assert result.role == "animation_sample_contact_sheet"
     assert sum(item.role == "animation_sample_preview" for item in saved.artifacts) == 2
     assert any(item.role == "animation_sample_report" for item in saved.artifacts)
@@ -151,9 +145,7 @@ def test_animation_samples_record_images_contact_sheet_and_evidence(
         version="fixture",
     )
     saved.validation.result = "passed"
-    saved.validation.checks = [
-        {"name": name, "passed": True} for name in sorted(REQUIRED_CHECKS)
-    ]
+    saved.validation.checks = [{"name": name, "passed": True} for name in sorted(REQUIRED_CHECKS)]
     saved.revision += 1
     ManifestRepository(config.foundry.workspace_root).save(
         saved,
@@ -168,8 +160,6 @@ def test_animation_samples_record_images_contact_sheet_and_evidence(
         notes="Reviewed all representative fixture poses.",
     )
 
-    accepted = ManifestRepository(config.foundry.workspace_root).load(
-        "sample_character_001"
-    )
+    accepted = ManifestRepository(config.foundry.workspace_root).load("sample_character_001")
     assert review.role == "animation_visual_review"
     assert not approval_checks_pass(accepted)

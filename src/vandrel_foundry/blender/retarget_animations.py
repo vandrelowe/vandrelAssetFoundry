@@ -97,12 +97,12 @@ def main() -> None:
                         donor_bone.matrix.to_quaternion()
                         @ donor_rest[name].to_quaternion().inverted()
                     )
-                    target_rotation = (
-                        donor_world_delta @ target_rest[name].to_quaternion()
+                    target_rotation = donor_world_delta @ target_rest[name].to_quaternion()
+                    target_translation = (
+                        target_rest[name].translation
+                        + (donor_bone.matrix.translation - donor_rest[name].translation)
+                        * scale_ratio
                     )
-                    target_translation = target_rest[name].translation + (
-                        donor_bone.matrix.translation - donor_rest[name].translation
-                    ) * scale_ratio
                     pose_bone.matrix = Matrix.LocRotScale(
                         target_translation,
                         target_rotation,

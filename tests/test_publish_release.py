@@ -256,13 +256,8 @@ def test_publish_allows_new_approved_candidate_after_prior_release(
 
     assert result.release_revision == 2
     assert (result.destination / "model.glb").read_bytes() == model
-    catalog = json.loads(
-        (config.foundry.asset_library_root / "catalog.json").read_text()
-    )
-    assert [
-        item["revision"]
-        for item in catalog["assets"]["stone_knife_001"]["releases"]
-    ] == [1, 2]
+    catalog = json.loads((config.foundry.asset_library_root / "catalog.json").read_text())
+    assert [item["revision"] for item in catalog["assets"]["stone_knife_001"]["releases"]] == [1, 2]
 
 
 def test_cli_list_and_status_show_published_revision(

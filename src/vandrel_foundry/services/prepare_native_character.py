@@ -480,12 +480,8 @@ def prepare_provider_native_character(
             "skin_binding_passed": int(report_data["visible_skinned_mesh_count"]) > 0
             and int(report_data["visible_skinned_triangle_count"]) > 0,
             "visible_skinned_mesh_count": int(report_data["visible_skinned_mesh_count"]),
-            "visible_unskinned_mesh_count": int(
-                report_data["visible_unskinned_mesh_count"]
-            ),
-            "visible_skinned_triangle_count": int(
-                report_data["visible_skinned_triangle_count"]
-            ),
+            "visible_unskinned_mesh_count": int(report_data["visible_unskinned_mesh_count"]),
+            "visible_skinned_triangle_count": int(report_data["visible_skinned_triangle_count"]),
         },
         {"name": "geometry_present", "passed": int(report_data["mesh_count"]) > 0},
         {
@@ -500,12 +496,8 @@ def prepare_provider_native_character(
             "name": "character_skin_binding",
             "passed": int(report_data["visible_skinned_mesh_count"]) > 0
             and int(report_data["visible_skinned_triangle_count"]) > 0,
-            "observed_visible_skinned_meshes": int(
-                report_data["visible_skinned_mesh_count"]
-            ),
-            "observed_visible_unskinned_meshes": int(
-                report_data["visible_unskinned_mesh_count"]
-            ),
+            "observed_visible_skinned_meshes": int(report_data["visible_skinned_mesh_count"]),
+            "observed_visible_unskinned_meshes": int(report_data["visible_unskinned_mesh_count"]),
             "observed_visible_skinned_triangles": int(
                 report_data["visible_skinned_triangle_count"]
             ),
@@ -520,12 +512,8 @@ def prepare_provider_native_character(
             "mesh_count": int(report_data["mesh_count"]),
             "visible_mesh_count": int(report_data["visible_mesh_count"]),
             "visible_skinned_mesh_count": int(report_data["visible_skinned_mesh_count"]),
-            "visible_unskinned_mesh_count": int(
-                report_data["visible_unskinned_mesh_count"]
-            ),
-            "visible_skinned_triangle_count": int(
-                report_data["visible_skinned_triangle_count"]
-            ),
+            "visible_unskinned_mesh_count": int(report_data["visible_unskinned_mesh_count"]),
+            "visible_skinned_triangle_count": int(report_data["visible_skinned_triangle_count"]),
             "material_count": int(report_data["material_count"]),
             "bone_count": int(report_data["bone_count"]),
             "animation_source": "meshy_same_rigging_task",
@@ -651,10 +639,7 @@ def _repair_native_artifact_id_collisions(manifest: AssetManifest) -> bool:
     active_native_renames: dict[str, str] = {}
     changed = False
     for artifact in manifest.artifacts:
-        is_native = (
-            artifact.processor is not None
-            and artifact.processor.name == PROCESSOR_NAME
-        )
+        is_native = artifact.processor is not None and artifact.processor.name == PROCESSOR_NAME
         if is_native:
             artifact.derived_from = [
                 active_native_renames.get(source_id, source_id)

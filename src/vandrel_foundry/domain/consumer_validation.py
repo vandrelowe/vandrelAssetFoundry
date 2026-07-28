@@ -38,11 +38,14 @@ class VandrelCharacterAcceptanceLedger(ConsumerEvidenceModel):
     schema_version: Literal["1.0"]
     consumer: Literal["vandrel"]
     generated_utc: datetime | None = None
-    foundry_ingestion_policy: Literal[
-        "generic defects are promotion-affecting only when "
-        "foundry_binding.model_sha256 exactly matches the candidate; "
-        "unbound legacy evidence is diagnostic-only"
-    ] | None = None
+    foundry_ingestion_policy: (
+        Literal[
+            "generic defects are promotion-affecting only when "
+            "foundry_binding.model_sha256 exactly matches the candidate; "
+            "unbound legacy evidence is diagnostic-only"
+        ]
+        | None
+    ) = None
     assets: dict[str, ConsumerAssetEvidence]
 
 

@@ -63,9 +63,7 @@ def experiment_semantic_mask(
     _verify(source_path, source)
     mask_facts = _inspect_mask(candidate_mask)
 
-    number = sum(
-        item.role == "semantic_mask_experiment_report" for item in manifest.artifacts
-    ) + 1
+    number = sum(item.role == "semantic_mask_experiment_report" for item in manifest.artifacts) + 1
     experiment_name = f"semantic-mask-experiment-{number:03d}"
     mask_relative = RelativeManifestPath(f"masks/{experiment_name}.png")
     mask_path = contained_path(asset_root, mask_relative)
@@ -99,9 +97,7 @@ def experiment_semantic_mask(
             str(measurements_path),
         ]
         safe_environment = {
-            key: value
-            for key, value in os.environ.items()
-            if key.upper() in SAFE_ENVIRONMENT_KEYS
+            key: value for key, value in os.environ.items() if key.upper() in SAFE_ENVIRONMENT_KEYS
         }
         result = (runner or run_bounded_process)(
             arguments,
