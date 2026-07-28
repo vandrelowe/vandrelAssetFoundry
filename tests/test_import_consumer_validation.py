@@ -12,6 +12,7 @@ from vandrel_foundry.services.import_consumer_validation import (
     import_vandrel_character_validation,
 )
 from vandrel_foundry.services.inspect_assets import initialize_workspace
+from vandrel_foundry.services.review_asset import reject_asset
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath
 
@@ -201,3 +202,26 @@ def test_unbound_evidence_requires_explicit_diagnostic_mode(
     saved = ManifestRepository(config.foundry.workspace_root).load("consumer_test")
     assert saved.workflow.state is WorkflowState.REVIEW
     assert saved.validation.result == "passed"
+
+
+def test_hash_bound_blocked_candidate_can_be_explicitly_rejected(
+    config,
+    humanoid_lanes,
+    prompt: Path,
+    tmp_path: Path,
+) -> None:
+    digest = _candidate(config, humanoid_lanes, prompt)
+    ledger = tmp_path / "acceptance.json"
+    _ledger(ledger, "consumer_test", digest, "blocker")
+    import_vandrel_character_validation(
+        config,
+        "consumer_test",
+        ledger,
+        "consumer_character",
+    )
+
+    rejected = reject_asset(config, "consumer_test", "Cross-render gate requires redesign.")
+
+    assert rejected.workflow.state is WorkflowState.REJECTED
+    assert rejected.approval.approved is False
+    assert rejected.approval.notes == "Cross-render gate requires redesign."

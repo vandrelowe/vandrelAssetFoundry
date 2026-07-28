@@ -120,8 +120,8 @@ def reject_asset(
 ) -> AssetManifest:
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
-    if manifest.workflow.state is not WorkflowState.REVIEW:
-        raise FoundryError(f"Rejection requires review state: {asset_id}")
+    if manifest.workflow.state not in {WorkflowState.REVIEW, WorkflowState.BLOCKED}:
+        raise FoundryError(f"Rejection requires review or blocked state: {asset_id}")
     reason = reason.strip()
     if not reason:
         raise FoundryError("Rejection requires a reason.")

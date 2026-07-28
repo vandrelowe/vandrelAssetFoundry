@@ -170,7 +170,9 @@ settings amplify a source-topology defect.
 
 Ownership remains **Asset Foundry**, with the most likely origin being
 provider-generated hair/headdress geometry. It is not a Vandrel gameplay,
-lighting, camera, or grounding concern.
+camera, or grounding concern. DM-005 later confirmed the hair geometry in both
+renderers; renderer and lighting differences remain relevant only to the
+separate face-band diagnosis.
 
 ## Existing immutable-artifact comparison
 
