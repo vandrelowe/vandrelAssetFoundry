@@ -24,6 +24,8 @@
 | Machine configuration and lane loading | `src/vandrel_foundry/config.py` |
 | Asset identity rules | `src/vandrel_foundry/domain/ids.py` |
 | Manifest shape and validation | `src/vandrel_foundry/domain/manifest.py` |
+| Logical custody roots, portable custody paths, register and storage-class vocabulary | `src/vandrel_foundry/domain/custody.py` |
+| Custody assertion hashing and freshness semantics | `src/vandrel_foundry/domain/custody_assertion.py` |
 | Workflow state and next actions | `src/vandrel_foundry/domain/states.py` |
 | Versioned static batch plan and ledger shapes | `src/vandrel_foundry/domain/batch.py` |
 | Portable path validation and containment | `src/vandrel_foundry/storage/paths.py` |
@@ -36,6 +38,8 @@
 | Health checks | `src/vandrel_foundry/services/doctor.py` |
 | Read-only artifact integrity audit | `src/vandrel_foundry/services/audit_asset.py` |
 | Read-only custody root readability preflight | `src/vandrel_foundry/services/preflight_custody_readability.py` |
+| Deterministic custody inventory, typed workspace classification, and register validation | `src/vandrel_foundry/services/build_custody_inventory.py` |
+| Explicit candidate custody evaluation and retained evidence | `src/vandrel_foundry/services/candidate_custody.py` |
 | Offline review gallery snapshots | `src/vandrel_foundry/services/build_review_gallery.py` |
 | Provider task status vocabulary | `src/vandrel_foundry/domain/provider.py` |
 | Recursive provider evidence redaction | `src/vandrel_foundry/providers/redaction.py` |
@@ -90,6 +94,10 @@ contract and must match it exactly.
 - No approved artifact may change in place.
 - No release revision may change after publication.
 - No Foundry field grants Vandrel runtime authority.
+- No physical root path is portable custody authority; portable records use a
+  closed logical root plus normalized relative POSIX path.
+- A historical or parse-compatible custody record is not current evidence
+  unless its version and freshness checks pass.
 
 ## Cross-repository handoff
 

@@ -9,10 +9,11 @@ import shutil
 from pathlib import Path
 
 from vandrel_foundry.config import FoundryConfig
-from vandrel_foundry.domain.custody import CustodyRegister
+from vandrel_foundry.domain.custody import CustodyRegister, PortableCustodyPath
 from vandrel_foundry.domain.custody_assertion import (
-    CUSTODY_SCHEMA,
+    CUSTODY_SCHEMA_V1_1,
     current_source_inputs,
+    evidence_freshness_sha256,
     semantic_assertion_sha256,
 )
 from vandrel_foundry.domain.errors import FoundryError
@@ -46,7 +47,7 @@ def bind_candidate_custody(
 ) -> AssetManifest:
     if not package_ids or len(package_ids) != len(set(package_ids)):
         raise FoundryError("Custody evaluation requires unique package IDs.")
-    validate_custody_register(
+    validation = validate_custody_register(
         register_path,
         policy_path,
         config,
@@ -131,7 +132,10 @@ def bind_candidate_custody(
                     contribution_id=f"source_{index:03d}",
                     source_id=package.source_id or "unknown",
                     package_id=package.package_id,
-                    package_root=package.package_root,
+                    package_root=PortableCustodyPath(
+                        logical_root="outside_assets",
+                        path=package.package_root,
+                    ),
                     source_inputs=sorted(
                         assignments[package_id],
                         key=lambda item: item.artifact_id,
@@ -149,14 +153,26 @@ def bind_candidate_custody(
             else "documented"
         )
         semantic_sha = semantic_assertion_sha256(contributions)
+        register_sha = hashlib.sha256(register_bytes).hexdigest()
+        policy_sha = hashlib.sha256(policy_bytes).hexdigest()
+        root_fingerprints = validation["root_fingerprints"]
+        evidence_fingerprint = evidence_freshness_sha256(
+            policy.schema_version,
+            policy_sha,
+            register.schema_version,
+            register_sha,
+            root_fingerprints,
+        )
         assertion = CustodyAssertion(
-            schema_version=CUSTODY_SCHEMA,
+            schema_version=CUSTODY_SCHEMA_V1_1,
             assessment_status="evaluated",
             source_contributions=contributions,
             policy_schema_version=policy.schema_version,
-            policy_sha256=hashlib.sha256(policy_bytes).hexdigest(),
+            policy_sha256=policy_sha,
             register_schema_version=register.schema_version,
-            register_sha256=hashlib.sha256(register_bytes).hexdigest(),
+            register_sha256=register_sha,
+            register_root_fingerprints=root_fingerprints,
+            evidence_fingerprint_sha256=evidence_fingerprint,
             evaluated_manifest_revision=manifest.revision,
             effective_rights_status=effective,
             semantic_assertion_sha256=semantic_sha,
@@ -222,10 +238,16 @@ def _retain_license_evidence(
         artifact_id = existing_artifact.artifact_id
         evidence = CustodyLicenseEvidence(
             binding_id=binding_id,
-            original_evidence_path=evidence_path,
+            original_evidence_path=PortableCustodyPath(
+                logical_root="outside_assets",
+                path=evidence_path,
+            ),
             evidence_sha256=evidence_sha256,
             size_bytes=len(content),
-            scope_root=scope_root,
+            scope_root=PortableCustodyPath(
+                logical_root="outside_assets",
+                path=scope_root,
+            ),
             rights_semantics="documented",
             candidate_evidence_artifact_id=artifact_id,
         )
@@ -255,10 +277,16 @@ def _retain_license_evidence(
     )
     evidence = CustodyLicenseEvidence(
         binding_id=binding_id,
-        original_evidence_path=evidence_path,
+        original_evidence_path=PortableCustodyPath(
+            logical_root="outside_assets",
+            path=evidence_path,
+        ),
         evidence_sha256=evidence_sha256,
         size_bytes=len(content),
-        scope_root=scope_root,
+        scope_root=PortableCustodyPath(
+            logical_root="outside_assets",
+            path=scope_root,
+        ),
         rights_semantics="documented",
         candidate_evidence_artifact_id=artifact_id,
     )

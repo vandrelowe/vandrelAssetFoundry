@@ -18,8 +18,12 @@ Register and run-report destinations must be outside both scanned roots.
 
 - `vandrel_foundry_custody_policy/1.0` declares logical roots, source/package
   rules, license evidence and scope, explicit exclusions, and cache/temp paths.
-- `vandrel_foundry_custody_register/1.0` is canonical. Its bytes depend only on
-  normalized paths, file bytes, and canonical policy bytes.
+- `vandrel_foundry_custody_register/1.1` is the current canonical decision
+  record. Its bytes depend only on normalized paths, file bytes, canonical
+  policy bytes, and the three authoritative root fingerprints.
+- `vandrel_foundry_custody_register/1.0` remains parseable for historical
+  inspection, but validation rejects it as stale for custody decisions. It
+  must be rebuilt as 1.1; historical counts are not reusable evidence.
 - `vandrel_foundry_custody_run_report/1.0` is operational and may contain UTC
   run time and physical roots.
 - `vandrel_foundry_custody_readability_preflight/1.0` is operational evidence
@@ -30,8 +34,18 @@ in the same evidence shape and block inventory. It is not part of the
 canonical register.
 
 Canonical content contains no absolute paths, mtimes, run timestamp, or
-platform separators. Paths are root-relative POSIX strings and arrays are
-ordinally sorted. SHA-256 values are lowercase.
+platform separators. Every 1.1 file, package, and defect path is qualified by
+one of the closed logical roots `outside_assets`, `foundry_workspace`, or
+`asset_library`; its path component is a normalized, nonempty, root-relative
+POSIX string. Absolute, drive-qualified, UNC, backslash, dot, and traversal
+paths are invalid. Arrays are ordinally sorted and SHA-256 values are
+lowercase.
+
+The 1.1 register embeds fingerprints for all three authoritative roots.
+Validation rebuilds the authoritative register and rejects any root
+fingerprint or policy SHA-256 mismatch explicitly. A syntactically valid,
+previously generated register is not fresh evidence after any authoritative
+root or policy change.
 
 ## Outside Assets rules
 
@@ -56,13 +70,26 @@ valid evidence bindings. It remains separate from Foundry workflow approval.
 
 ## Workspace rules
 
-Every regular file is classified as `candidate_manifest`,
-`managed_manifest_artifact`, `generated_cache_or_temp`, or
-`unregistered_file`. Cache/temp classification requires an explicit policy
-path rule, never a filename extension guess. Candidate summaries compose the
-existing candidate audit and record manifest revision/state, artifact-record
-count, physical file/byte totals, released revision, storage class counts, and
-additive retention holds:
+Every regular file is classified as exactly one of:
+
+- `candidate_manifest` for current manifest authority;
+- `candidate_input` for the creation prompt;
+- `manifest_recovery_history` for the immediately retained manifest recovery
+  record;
+- `event_audit_log` for the append-only candidate event log;
+- `managed_manifest_artifact` for current manifest-owned artifacts;
+- `managed_historical_artifact` for artifacts retained only by manifest
+  recovery history;
+- `generated_cache_or_temp` for explicitly governed staging/cache content;
+- `operational_report` for non-authoritative review and run reports; or
+- `unregistered_file`.
+
+Current manifest ownership wins over historical ownership. Cache/temp
+classification requires an explicit policy path rule or the governed Godot
+staging cache location, never a filename extension guess. Candidate summaries
+compose the existing candidate audit and record manifest revision/state,
+artifact-record count, physical file/byte totals, released revision, storage
+class counts, and additive retention holds:
 
 - `active_workflow`;
 - `approval_or_release_history`;

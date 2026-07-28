@@ -4,6 +4,8 @@ from pathlib import Path
 import pytest
 
 from tests.test_custody_inventory import _policy
+from vandrel_foundry.domain.custody import PortableCustodyPath
+from vandrel_foundry.domain.custody_assertion import custody_freshness
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact
 from vandrel_foundry.domain.states import WorkflowState
@@ -79,11 +81,27 @@ def test_bind_candidate_custody_retains_exact_evidence_and_semantic_binding(
 
     assert manifest.schema_version == 2
     assert manifest.custody is not None
+    assert manifest.custody.schema_version == "vandrel_foundry_candidate_custody/1.1"
     assert manifest.custody.assessment_status == "evaluated"
     assert manifest.custody.effective_rights_status == "documented"
+    assert manifest.custody.register_schema_version == "vandrel_foundry_custody_register/1.1"
+    assert manifest.custody.register_root_fingerprints is not None
+    assert manifest.custody.evidence_fingerprint_sha256 is not None
     contribution = manifest.custody.source_contributions[0]
+    assert contribution.package_root == PortableCustodyPath(
+        logical_root="outside_assets",
+        path="Source/Pack",
+    )
     assert [item.artifact_id for item in contribution.source_inputs] == ["source-model-001"]
     evidence = contribution.license_evidence[0]
+    assert evidence.original_evidence_path == PortableCustodyPath(
+        logical_root="outside_assets",
+        path="Source/Pack/LICENSE.txt",
+    )
+    assert evidence.scope_root == PortableCustodyPath(
+        logical_root="outside_assets",
+        path="Source/Pack",
+    )
     retained = next(
         item
         for item in manifest.artifacts
@@ -91,6 +109,29 @@ def test_bind_candidate_custody_retains_exact_evidence_and_semantic_binding(
     )
     assert (asset_root / retained.path).read_bytes() == b"documented license"
     assert retained.sha256 == evidence.evidence_sha256
+    assert custody_freshness(manifest) == (True, [])
+
+
+def test_stale_evidence_fingerprint_is_an_explicit_custody_blocker(
+    config, lanes, prompt, tmp_path
+) -> None:
+    outside, policy, register, package_id, _ = _candidate(config, lanes, prompt, tmp_path)
+    manifest = bind_candidate_custody(
+        config,
+        "custody_asset_001",
+        outside,
+        register,
+        policy,
+        [package_id],
+    )
+    assert manifest.custody is not None
+    assert manifest.custody.register_root_fingerprints is not None
+    manifest.custody.register_root_fingerprints["outside_assets"] = "f" * 64
+
+    fresh, blockers = custody_freshness(manifest)
+
+    assert not fresh
+    assert "custody_evidence_fingerprint_stale" in blockers
 
 
 @pytest.mark.parametrize("rights", ["missing", "disputed"])

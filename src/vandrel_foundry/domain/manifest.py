@@ -3,6 +3,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from vandrel_foundry.domain.custody import PortableCustodyPath
 from vandrel_foundry.domain.ids import validate_asset_id
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
@@ -101,10 +102,10 @@ class CustodySourceInput(StrictModel):
 
 class CustodyLicenseEvidence(StrictModel):
     binding_id: str = Field(min_length=1)
-    original_evidence_path: RelativeManifestPath
+    original_evidence_path: RelativeManifestPath | PortableCustodyPath
     evidence_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     size_bytes: int = Field(ge=0)
-    scope_root: RelativeManifestPath
+    scope_root: RelativeManifestPath | PortableCustodyPath
     rights_semantics: Literal["documented"]
     candidate_evidence_artifact_id: str = Field(min_length=1)
 
@@ -113,7 +114,7 @@ class CustodySourceContribution(StrictModel):
     contribution_id: str = Field(min_length=1)
     source_id: str = Field(min_length=1)
     package_id: str = Field(min_length=1)
-    package_root: RelativeManifestPath
+    package_root: RelativeManifestPath | PortableCustodyPath
     source_inputs: list[CustodySourceInput] = Field(default_factory=list)
     rights_status: Literal["documented", "missing", "disputed"]
     license_evidence: list[CustodyLicenseEvidence] = Field(default_factory=list)
@@ -130,13 +131,20 @@ class CustodySourceContribution(StrictModel):
 
 
 class CustodyAssertion(StrictModel):
-    schema_version: Literal["vandrel_foundry_candidate_custody/1.0"]
+    schema_version: Literal[
+        "vandrel_foundry_candidate_custody/1.0",
+        "vandrel_foundry_candidate_custody/1.1",
+    ]
     assessment_status: Literal["absent", "historical_unassessed", "evaluated"]
     source_contributions: list[CustodySourceContribution] = Field(default_factory=list)
     policy_schema_version: str | None = None
     policy_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     register_schema_version: str | None = None
     register_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    register_root_fingerprints: dict[
+        Literal["outside_assets", "foundry_workspace", "asset_library"], str
+    ] | None = None
+    evidence_fingerprint_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     evaluated_manifest_revision: int | None = Field(default=None, ge=1)
     effective_rights_status: Literal["documented", "missing", "disputed"] | None = None
     semantic_assertion_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
@@ -152,8 +160,17 @@ class CustodyAssertion(StrictModel):
             self.effective_rights_status,
             self.semantic_assertion_sha256,
         )
+        freshness_fields = (
+            self.register_root_fingerprints,
+            self.evidence_fingerprint_sha256,
+        )
         if self.assessment_status == "evaluated":
-            if any(value is None for value in evaluated_fields) or not self.source_contributions:
+            required_fields = (
+                (*evaluated_fields, *freshness_fields)
+                if self.schema_version.endswith("/1.1")
+                else evaluated_fields
+            )
+            if any(value is None for value in required_fields) or not self.source_contributions:
                 raise ValueError(
                     "Evaluated custody requires complete identity and source bindings."
                 )
@@ -167,7 +184,44 @@ class CustodyAssertion(StrictModel):
             )
             if self.effective_rights_status != expected:
                 raise ValueError("Effective custody rights do not match contributions.")
-        elif any(value is not None for value in evaluated_fields) or self.source_contributions:
+            portable_paths = [
+                value
+                for contribution in self.source_contributions
+                for value in (
+                    contribution.package_root,
+                    *(
+                        path
+                        for evidence in contribution.license_evidence
+                        for path in (evidence.original_evidence_path, evidence.scope_root)
+                    ),
+                )
+            ]
+            if self.schema_version.endswith("/1.0"):
+                if self.register_root_fingerprints is not None:
+                    raise ValueError("Custody assertion 1.0 cannot carry root fingerprints.")
+                if self.evidence_fingerprint_sha256 is not None:
+                    raise ValueError("Custody assertion 1.0 cannot carry evidence freshness.")
+                if any(isinstance(value, PortableCustodyPath) for value in portable_paths):
+                    raise ValueError("Custody assertion 1.0 requires legacy relative paths.")
+            else:
+                expected_roots = {"outside_assets", "foundry_workspace", "asset_library"}
+                if (
+                    self.register_root_fingerprints is None
+                    or set(self.register_root_fingerprints) != expected_roots
+                ):
+                    raise ValueError("Custody assertion 1.1 requires all root fingerprints.")
+                if any(
+                    not isinstance(value, PortableCustodyPath)
+                    or value.logical_root != "outside_assets"
+                    for value in portable_paths
+                ):
+                    raise ValueError(
+                        "Custody assertion 1.1 paths require the outside_assets logical root."
+                    )
+        elif (
+            any(value is not None for value in (*evaluated_fields, *freshness_fields))
+            or self.source_contributions
+        ):
             raise ValueError("Unevaluated custody cannot carry evaluated facts.")
         return self
 

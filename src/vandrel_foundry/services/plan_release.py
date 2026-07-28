@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from vandrel_foundry.config import FoundryConfig
+from vandrel_foundry.domain.custody import PortableCustodyPath
 from vandrel_foundry.domain.custody_assertion import approval_custody_freshness
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
@@ -165,7 +166,7 @@ def plan_release(
                     "contribution_id": contribution.contribution_id,
                     "source_id": contribution.source_id,
                     "package_id": contribution.package_id,
-                    "package_root": str(contribution.package_root),
+                    "package_root": _custody_path_string(contribution.package_root),
                     "rights_status": contribution.rights_status,
                     "source_inputs": [
                         item.model_dump(mode="json") for item in contribution.source_inputs
@@ -173,11 +174,13 @@ def plan_release(
                     "license_evidence": [
                         {
                             "binding_id": evidence.binding_id,
-                            "original_evidence_path": str(evidence.original_evidence_path),
+                            "original_evidence_path": _custody_path_string(
+                                evidence.original_evidence_path
+                            ),
                             "release_path": evidence_release_paths[evidence.binding_id],
                             "sha256": evidence.evidence_sha256,
                             "size_bytes": evidence.size_bytes,
-                            "scope_root": str(evidence.scope_root),
+                            "scope_root": _custody_path_string(evidence.scope_root),
                             "rights_semantics": evidence.rights_semantics,
                         }
                         for evidence in contribution.license_evidence
@@ -316,3 +319,9 @@ def _approved_artifact(
     artifact = candidates[-1]
     _verify_artifact(asset_root, artifact)
     return artifact
+
+
+def _custody_path_string(value: object) -> str:
+    if isinstance(value, PortableCustodyPath):
+        return value.path
+    return str(value)

@@ -5,8 +5,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
 
+from vandrel_foundry.domain.custody import CustodyRegister, PortableCustodyPath
 from vandrel_foundry.domain.errors import FoundryError
+from vandrel_foundry.domain.manifest import Artifact
 from vandrel_foundry.services.build_custody_inventory import (
     _reject_reparse_ancestors,
     _scan_root,
@@ -17,6 +20,8 @@ from vandrel_foundry.services.build_custody_inventory import (
     validate_custody_register,
     write_custody_outputs,
 )
+from vandrel_foundry.services.create_asset import create_asset
+from vandrel_foundry.storage.manifests import ManifestRepository
 
 
 def _sha(content: bytes) -> str:
@@ -94,6 +99,21 @@ def test_inventory_is_deterministic_and_reconciles_duplicates(config, tmp_path: 
     second = build_custody_inventory(config, outside, workspace, policy)
 
     assert first.register_bytes == second.register_bytes
+    assert first.register["schema_version"] == "vandrel_foundry_custody_register/1.1"
+    assert set(first.register["root_fingerprints"]) == {
+        "outside_assets",
+        "foundry_workspace",
+        "asset_library",
+    }
+    assert all(
+        item["logical_root"] == "outside_assets" for item in first.register["outside_files"]
+    )
+    assert all(
+        item["logical_root"] == "foundry_workspace"
+        for item in first.register["workspace_files"]
+    )
+    legacy_digest = hashlib.sha256(b"source\nSource/Pack").hexdigest()[:24]
+    assert first.register["packages"][0]["package_id"] == f"pkg:source:{legacy_digest}"
     assert first.register["coverage"]["outside_assets"] == {
         "discovered_files": 4,
         "represented_files": 4,
@@ -120,6 +140,162 @@ def test_inventory_is_deterministic_and_reconciles_duplicates(config, tmp_path: 
         first, register, report, (outside, workspace, config.foundry.asset_library_root)
     )
     assert validate_custody_register(register, policy, config, outside, workspace)["valid"]
+
+
+@pytest.mark.parametrize(
+    "malicious",
+    [
+        "/absolute/path",
+        "C:/drive/path",
+        "C:\\drive\\path",
+        "\\\\server\\share\\file",
+        "//server/share/file",
+        "../escape",
+        "safe/../escape",
+        "safe\\file",
+    ],
+)
+def test_portable_custody_path_rejects_absolute_unc_and_traversal(malicious: str) -> None:
+    with pytest.raises(ValidationError, match="normalized relative POSIX"):
+        PortableCustodyPath(logical_root="outside_assets", path=malicious)
+
+
+def test_portable_custody_path_rejects_unknown_logical_root() -> None:
+    with pytest.raises(ValidationError):
+        PortableCustodyPath.model_validate(
+            {"logical_root": "machine_path", "path": "Source/Pack/model.glb"}
+        )
+
+
+def test_register_v1_is_parseable_but_explicitly_stale_for_decisions(
+    config, tmp_path: Path
+) -> None:
+    outside, workspace, _library = _roots(config, tmp_path)
+    license_bytes = b"license"
+    (outside / "Source/Pack/LICENSE.txt").write_bytes(license_bytes)
+    policy = _policy(tmp_path / "policy.json", _sha(license_bytes))
+    result = build_custody_inventory(config, outside, workspace, policy)
+    legacy = json.loads(result.register_bytes)
+    legacy["schema_version"] = "vandrel_foundry_custody_register/1.0"
+    legacy.pop("root_fingerprints")
+    for collection in ("outside_files", "packages", "workspace_files", "defects"):
+        for item in legacy[collection]:
+            item.pop("logical_root")
+    legacy_bytes = canonical_json(legacy)
+    CustodyRegister.model_validate_json(legacy_bytes)
+    register = tmp_path / "legacy-register.json"
+    register.write_bytes(legacy_bytes)
+
+    with pytest.raises(FoundryError, match="compatible for parsing but stale"):
+        validate_custody_register(register, policy, config, outside, workspace)
+
+
+def test_stale_root_fingerprint_is_rejected_explicitly(config, tmp_path: Path) -> None:
+    outside, workspace, _library = _roots(config, tmp_path)
+    license_bytes = b"license"
+    (outside / "Source/Pack/LICENSE.txt").write_bytes(license_bytes)
+    policy = _policy(tmp_path / "policy.json", _sha(license_bytes))
+    result = build_custody_inventory(config, outside, workspace, policy)
+    stale = json.loads(result.register_bytes)
+    stale["root_fingerprints"]["outside_assets"] = "f" * 64
+    register = tmp_path / "stale-register.json"
+    register.write_bytes(canonical_json(stale))
+
+    with pytest.raises(FoundryError, match="root fingerprints are stale"):
+        validate_custody_register(register, policy, config, outside, workspace)
+
+
+def test_stale_policy_fingerprint_is_rejected_explicitly(config, tmp_path: Path) -> None:
+    outside, workspace, _library = _roots(config, tmp_path)
+    license_bytes = b"license"
+    (outside / "Source/Pack/LICENSE.txt").write_bytes(license_bytes)
+    policy = _policy(tmp_path / "policy.json", _sha(license_bytes))
+    result = build_custody_inventory(config, outside, workspace, policy)
+    stale = json.loads(result.register_bytes)
+    stale["policy"]["sha256"] = "f" * 64
+    register = tmp_path / "stale-policy-register.json"
+    register.write_bytes(canonical_json(stale))
+
+    with pytest.raises(FoundryError, match="policy hash does not match"):
+        validate_custody_register(register, policy, config, outside, workspace)
+
+
+def test_workspace_storage_classes_cover_recovery_audit_history_cache_and_reports(
+    config, lanes, prompt, tmp_path: Path
+) -> None:
+    outside, workspace, _library = _roots(config, tmp_path)
+    license_bytes = b"license"
+    (outside / "Source/Pack/LICENSE.txt").write_bytes(license_bytes)
+    policy = _policy(tmp_path / "policy.json", _sha(license_bytes))
+    create_asset(config, lanes, "storage_classes_001", "static_prop", "Storage", prompt)
+    repository = ManifestRepository(workspace)
+    asset_root = workspace / "assets" / "storage_classes_001"
+    historical_path = asset_root / "reports" / "historical.json"
+    historical_path.parent.mkdir(parents=True, exist_ok=True)
+    historical_path.write_bytes(b"historical")
+    manifest = repository.load("storage_classes_001")
+    manifest.artifacts.append(
+        Artifact(
+            artifact_id="historical-report",
+            role="technical_report",
+            stage="validation",
+            format="json",
+            path="reports/historical.json",
+            sha256=_sha(b"historical"),
+            size_bytes=len(b"historical"),
+        )
+    )
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+    current_path = asset_root / "reports" / "current.json"
+    current_path.write_bytes(b"current")
+    manifest = repository.load("storage_classes_001")
+    manifest.artifacts = [
+        Artifact(
+            artifact_id="current-report",
+            role="technical_report",
+            stage="validation",
+            format="json",
+            path="reports/current.json",
+            sha256=_sha(b"current"),
+            size_bytes=len(b"current"),
+        )
+    ]
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+    generated = asset_root / "godot_staging" / "fixture" / ".godot" / "cache.bin"
+    generated.parent.mkdir(parents=True)
+    generated.write_bytes(b"cache")
+    operational = asset_root / "reports" / "unbound.json"
+    operational.write_bytes(b"operational")
+
+    result = build_custody_inventory(config, outside, workspace, policy)
+    classes = {
+        item["path"]: item["storage_class"]
+        for item in result.register["workspace_files"]
+        if item["asset_id"] == "storage_classes_001"
+    }
+
+    assert classes["assets/storage_classes_001/manifest.json"] == "candidate_manifest"
+    assert (
+        classes["assets/storage_classes_001/manifest.previous.json"]
+        == "manifest_recovery_history"
+    )
+    assert classes["assets/storage_classes_001/events.jsonl"] == "event_audit_log"
+    assert classes["assets/storage_classes_001/input/prompt.txt"] == "candidate_input"
+    assert (
+        classes["assets/storage_classes_001/reports/historical.json"]
+        == "managed_historical_artifact"
+    )
+    assert (
+        classes["assets/storage_classes_001/reports/current.json"]
+        == "managed_manifest_artifact"
+    )
+    assert (
+        classes["assets/storage_classes_001/godot_staging/fixture/.godot/cache.bin"]
+        == "generated_cache_or_temp"
+    )
+    assert classes["assets/storage_classes_001/reports/unbound.json"] == "operational_report"
 
 
 def test_validator_rejects_tampered_rights_eligibility_and_noncanonical_bytes(

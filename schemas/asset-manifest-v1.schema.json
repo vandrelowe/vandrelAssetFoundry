@@ -189,7 +189,10 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "vandrel_foundry_candidate_custody/1.0",
+          "enum": [
+            "vandrel_foundry_candidate_custody/1.0",
+            "vandrel_foundry_candidate_custody/1.1"
+          ],
           "title": "Schema Version",
           "type": "string"
         },
@@ -259,6 +262,41 @@
           "default": null,
           "title": "Register Sha256"
         },
+        "register_root_fingerprints": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "propertyNames": {
+                "enum": [
+                  "outside_assets",
+                  "foundry_workspace",
+                  "asset_library"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Register Root Fingerprints"
+        },
+        "evidence_fingerprint_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Fingerprint Sha256"
+        },
         "evaluated_manifest_revision": {
           "anyOf": [
             {
@@ -319,10 +357,17 @@
           "type": "string"
         },
         "original_evidence_path": {
-          "description": "Forward-slash workspace-relative path without traversal",
-          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
-          "title": "Original Evidence Path",
-          "type": "string"
+          "anyOf": [
+            {
+              "description": "Forward-slash workspace-relative path without traversal",
+              "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/PortableCustodyPath"
+            }
+          ],
+          "title": "Original Evidence Path"
         },
         "evidence_sha256": {
           "pattern": "^[a-f0-9]{64}$",
@@ -335,10 +380,17 @@
           "type": "integer"
         },
         "scope_root": {
-          "description": "Forward-slash workspace-relative path without traversal",
-          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
-          "title": "Scope Root",
-          "type": "string"
+          "anyOf": [
+            {
+              "description": "Forward-slash workspace-relative path without traversal",
+              "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/PortableCustodyPath"
+            }
+          ],
+          "title": "Scope Root"
         },
         "rights_semantics": {
           "const": "documented",
@@ -382,10 +434,17 @@
           "type": "string"
         },
         "package_root": {
-          "description": "Forward-slash workspace-relative path without traversal",
-          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
-          "title": "Package Root",
-          "type": "string"
+          "anyOf": [
+            {
+              "description": "Forward-slash workspace-relative path without traversal",
+              "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/PortableCustodyPath"
+            }
+          ],
+          "title": "Package Root"
         },
         "source_inputs": {
           "items": {
@@ -518,6 +577,31 @@
         }
       },
       "title": "Input",
+      "type": "object"
+    },
+    "PortableCustodyPath": {
+      "additionalProperties": false,
+      "properties": {
+        "logical_root": {
+          "enum": [
+            "outside_assets",
+            "foundry_workspace",
+            "asset_library"
+          ],
+          "title": "Logical Root",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "logical_root",
+        "path"
+      ],
+      "title": "PortableCustodyPath",
       "type": "object"
     },
     "Processor": {

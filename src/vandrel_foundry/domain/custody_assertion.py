@@ -3,6 +3,7 @@
 import hashlib
 import json
 
+from vandrel_foundry.domain.custody import PortableCustodyPath
 from vandrel_foundry.domain.manifest import (
     AssetManifest,
     CustodySourceContribution,
@@ -10,6 +11,8 @@ from vandrel_foundry.domain.manifest import (
 )
 
 CUSTODY_SCHEMA = "vandrel_foundry_candidate_custody/1.0"
+CUSTODY_SCHEMA_V1_1 = "vandrel_foundry_candidate_custody/1.1"
+EVIDENCE_FRESHNESS_SCHEMA = "vandrel_foundry_custody_evidence_freshness/1.0"
 
 
 def current_source_inputs(manifest: AssetManifest) -> list[CustodySourceInput]:
@@ -31,14 +34,22 @@ def current_source_inputs(manifest: AssetManifest) -> list[CustodySourceInput]:
 def semantic_assertion_sha256(
     contributions: list[CustodySourceContribution],
 ) -> str:
+    schema_version = (
+        CUSTODY_SCHEMA_V1_1
+        if any(
+            isinstance(item.package_root, PortableCustodyPath)
+            for item in contributions
+        )
+        else CUSTODY_SCHEMA
+    )
     semantic = {
-        "schema_version": CUSTODY_SCHEMA,
+        "schema_version": schema_version,
         "source_contributions": [
             {
                 "contribution_id": item.contribution_id,
                 "source_id": item.source_id,
                 "package_id": item.package_id,
-                "package_root": str(item.package_root),
+                "package_root": _custody_path_value(item.package_root),
                 "source_inputs": [
                     value.model_dump(mode="json")
                     for value in sorted(item.source_inputs, key=lambda value: value.artifact_id)
@@ -47,10 +58,12 @@ def semantic_assertion_sha256(
                 "license_evidence": [
                     {
                         "binding_id": value.binding_id,
-                        "original_evidence_path": str(value.original_evidence_path),
+                        "original_evidence_path": _custody_path_value(
+                            value.original_evidence_path
+                        ),
                         "evidence_sha256": value.evidence_sha256,
                         "size_bytes": value.size_bytes,
-                        "scope_root": str(value.scope_root),
+                        "scope_root": _custody_path_value(value.scope_root),
                         "rights_semantics": value.rights_semantics,
                     }
                     for value in sorted(
@@ -63,6 +76,29 @@ def semantic_assertion_sha256(
         ],
     }
     canonical = (json.dumps(semantic, sort_keys=True, indent=2, ensure_ascii=True) + "\n").encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def evidence_freshness_sha256(
+    policy_schema_version: str,
+    policy_sha256: str,
+    register_schema_version: str,
+    register_sha256: str,
+    root_fingerprints: dict[str, str],
+) -> str:
+    evidence = {
+        "schema_version": EVIDENCE_FRESHNESS_SCHEMA,
+        "policy": {
+            "schema_version": policy_schema_version,
+            "sha256": policy_sha256,
+        },
+        "register": {
+            "schema_version": register_schema_version,
+            "sha256": register_sha256,
+        },
+        "root_fingerprints": dict(sorted(root_fingerprints.items())),
+    }
+    canonical = (json.dumps(evidence, sort_keys=True, indent=2, ensure_ascii=True) + "\n").encode()
     return hashlib.sha256(canonical).hexdigest()
 
 
@@ -80,6 +116,30 @@ def custody_freshness(manifest: AssetManifest) -> tuple[bool, list[str]]:
     semantic = semantic_assertion_sha256(assertion.source_contributions)
     if semantic != assertion.semantic_assertion_sha256:
         blockers.append("custody_semantic_hash_stale")
+    if assertion.schema_version.endswith("/1.1"):
+        root_fingerprints = assertion.register_root_fingerprints or {}
+        expected_roots = {"outside_assets", "foundry_workspace", "asset_library"}
+        valid_roots = set(root_fingerprints) == expected_roots and all(
+            len(value) == 64 and all(character in "0123456789abcdef" for character in value)
+            for value in root_fingerprints.values()
+        )
+        if not valid_roots:
+            blockers.append("custody_evidence_root_fingerprints_invalid")
+        elif (
+            assertion.policy_schema_version is None
+            or assertion.policy_sha256 is None
+            or assertion.register_schema_version is None
+            or assertion.register_sha256 is None
+            or assertion.evidence_fingerprint_sha256
+            != evidence_freshness_sha256(
+                assertion.policy_schema_version,
+                assertion.policy_sha256,
+                assertion.register_schema_version,
+                assertion.register_sha256,
+                root_fingerprints,
+            )
+        ):
+            blockers.append("custody_evidence_fingerprint_stale")
     bound_inputs = sorted(
         (
             item
@@ -141,3 +201,9 @@ def custody_display_status(manifest: AssetManifest) -> str:
     if manifest.custody.assessment_status == "absent":
         return "absent"
     return f"evaluated_{manifest.custody.effective_rights_status}"
+
+
+def _custody_path_value(value: object) -> object:
+    if isinstance(value, PortableCustodyPath):
+        return value.model_dump(mode="json")
+    return str(value)

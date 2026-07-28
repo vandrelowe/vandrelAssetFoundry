@@ -17,13 +17,14 @@ from pydantic import ValidationError
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.custody import CustodyPolicy, CustodyRegister
 from vandrel_foundry.domain.errors import FoundryError
+from vandrel_foundry.domain.manifest import AssetManifest
 from vandrel_foundry.services.audit_asset import audit_asset
 from vandrel_foundry.services.preflight_custody_readability import (
     require_custody_readability_preflight,
 )
 from vandrel_foundry.storage.manifests import ManifestRepository
 
-REGISTER_SCHEMA = "vandrel_foundry_custody_register/1.0"
+REGISTER_SCHEMA = "vandrel_foundry_custody_register/1.1"
 REPORT_SCHEMA = "vandrel_foundry_custody_run_report/1.0"
 BUFFER_SIZE = 1024 * 1024
 REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
@@ -35,6 +36,12 @@ class CustodyInventoryResult:
     report: dict[str, Any]
     register_bytes: bytes
     report_bytes: bytes
+
+
+@dataclass(frozen=True)
+class WorkspaceOwnership:
+    asset_id: str
+    storage_class: str
 
 
 def canonical_json(value: object) -> bytes:
@@ -118,9 +125,14 @@ def validate_custody_register(
         register = CustodyRegister.model_validate_json(raw_bytes)
     except (OSError, ValidationError) as exc:
         raise FoundryError(f"Invalid custody register: {exc}") from exc
-    canonical = canonical_json(register.model_dump(mode="json"))
+    canonical = canonical_json(_portable_register_dump(register))
     if raw_bytes != canonical:
         raise FoundryError("Custody register is not canonical JSON.")
+    if register.schema_version.endswith("/1.0"):
+        raise FoundryError(
+            "Custody register 1.0 is compatible for parsing but stale for custody decisions; "
+            "rebuild version 1.1."
+        )
     expected_policy_hash = hashlib.sha256(policy_bytes).hexdigest()
     if register.policy.sha256 != expected_policy_hash:
         raise FoundryError("Custody register policy hash does not match.")
@@ -202,6 +214,7 @@ def validate_custody_register(
             expected_defects.append(
                 {
                     "kind": "custody_ineligible",
+                    "logical_root": "outside_assets",
                     "path": entry.path,
                     "reason": expected_rights,
                 }
@@ -295,12 +308,15 @@ def validate_custody_register(
         workspace_root,
         policy_path,
     )
+    if authoritative.register["root_fingerprints"] != register.root_fingerprints:
+        raise FoundryError("Custody register root fingerprints are stale.")
     if authoritative.register_bytes != raw_bytes:
         raise FoundryError("Custody register does not match current root authority.")
     return {
-        "schema_version": REGISTER_SCHEMA,
+        "schema_version": register.schema_version,
         "valid": True,
         "policy_sha256": expected_policy_hash,
+        "root_fingerprints": dict(register.root_fingerprints or {}),
         "outside_files": len(outside),
         "workspace_files": len(workspace),
     }
@@ -354,6 +370,16 @@ def write_custody_outputs(
         temporary_report.unlink(missing_ok=True)
 
 
+def _portable_register_dump(register: CustodyRegister) -> dict[str, Any]:
+    value = register.model_dump(mode="json")
+    if register.schema_version.endswith("/1.0"):
+        value.pop("root_fingerprints")
+        for collection in ("outside_files", "packages", "workspace_files", "defects"):
+            for item in value[collection]:
+                item.pop("logical_root")
+    return value
+
+
 def _scan_all(
     config: FoundryConfig,
     outside_root: Path,
@@ -369,6 +395,11 @@ def _scan_all(
     workspace_entries, candidates = _workspace_entries(
         config, workspace_root, workspace_physical, policy
     )
+    source_fingerprints = {
+        "outside_assets": _records_fingerprint(outside_physical),
+        "foundry_workspace": _records_fingerprint(workspace_physical),
+        "asset_library": _records_fingerprint(library_physical),
+    }
     groups: dict[str, list[dict[str, Any]]] = {}
     for entry in outside_entries:
         if (not entry["excluded"] or entry["exclusion_duplicate_participating"]) and entry[
@@ -397,6 +428,7 @@ def _scan_all(
     defects = [
         {
             "kind": "custody_ineligible",
+            "logical_root": "outside_assets",
             "path": entry["path"],
             "reason": entry["effective_rights_status"],
         }
@@ -407,6 +439,7 @@ def _scan_all(
         "schema_version": REGISTER_SCHEMA,
         "scan_algorithm_version": policy.scan_algorithm_version,
         "roots": ["outside_assets", "foundry_workspace"],
+        "root_fingerprints": source_fingerprints,
         "policy": {
             "schema_version": policy.schema_version,
             "sha256": hashlib.sha256(policy_bytes).hexdigest(),
@@ -447,11 +480,7 @@ def _scan_all(
     }
     return {
         "register": register,
-        "source_fingerprints": {
-            "outside_assets": _records_fingerprint(outside_physical),
-            "foundry_workspace": _records_fingerprint(workspace_physical),
-            "asset_library": _records_fingerprint(library_physical),
-        },
+        "source_fingerprints": source_fingerprints,
     }
 
 
@@ -589,6 +618,7 @@ def _outside_entries(
         package_records.setdefault(
             package_id,
             {
+                "logical_root": "outside_assets",
                 "package_id": package_id,
                 "package_root": package_root,
                 "source_id": source_id,
@@ -599,6 +629,7 @@ def _outside_entries(
         )
         results.append(
             {
+                "logical_root": "outside_assets",
                 "path": path,
                 "entry_kind": "regular_file",
                 "size_bytes": physical["size_bytes"],
@@ -634,12 +665,33 @@ def _workspace_entries(
         for child in sorted(assets_root.iterdir(), key=lambda item: item.name):
             if child.is_dir() and (child / "manifest.json").is_file():
                 manifests[child.name] = repository.load(child.name)
-    managed: dict[str, tuple[str, str]] = {}
+    managed: dict[str, WorkspaceOwnership] = {}
     for asset_id, manifest in manifests.items():
-        managed[f"assets/{asset_id}/manifest.json"] = (asset_id, "candidate_manifest")
-        managed[f"assets/{asset_id}/events.jsonl"] = (asset_id, "managed_manifest_artifact")
+        prefix = f"assets/{asset_id}"
+        managed[f"{prefix}/manifest.json"] = WorkspaceOwnership(
+            asset_id, "candidate_manifest"
+        )
+        managed[f"{prefix}/manifest.previous.json"] = WorkspaceOwnership(
+            asset_id, "manifest_recovery_history"
+        )
+        managed[f"{prefix}/events.jsonl"] = WorkspaceOwnership(asset_id, "event_audit_log")
+        managed[f"{prefix}/input/prompt.txt"] = WorkspaceOwnership(asset_id, "candidate_input")
+        previous_path = workspace_root / prefix / "manifest.previous.json"
+        if previous_path.is_file():
+            try:
+                previous = AssetManifest.model_validate_json(
+                    previous_path.read_text(encoding="utf-8")
+                )
+            except (OSError, ValidationError):
+                previous = None
+            if previous is not None:
+                for artifact in previous.artifacts:
+                    managed.setdefault(
+                        f"{prefix}/{artifact.path}",
+                        WorkspaceOwnership(asset_id, "managed_historical_artifact"),
+                    )
         for artifact in manifest.artifacts:
-            managed[f"assets/{asset_id}/{artifact.path}"] = (
+            managed[f"{prefix}/{artifact.path}"] = WorkspaceOwnership(
                 asset_id,
                 "managed_manifest_artifact",
             )
@@ -648,14 +700,17 @@ def _workspace_entries(
     for physical in files:
         path = physical["path"]
         owner = managed.get(path)
-        asset_id = owner[0] if owner else _candidate_id_from_path(path, manifests)
+        asset_id = owner.asset_id if owner else _candidate_id_from_path(path, manifests)
         if owner:
-            storage_class = owner[1]
-        elif any(_path_in_scope(path, rule) for rule in policy.workspace_temp_paths):
+            storage_class = owner.storage_class
+        elif _is_generated_workspace_path(path, policy):
             storage_class = "generated_cache_or_temp"
+        elif _is_operational_report_path(path, manifests):
+            storage_class = "operational_report"
         else:
             storage_class = "unregistered_file"
         entry = {
+            "logical_root": "foundry_workspace",
             "path": path,
             "entry_kind": "regular_file",
             "size_bytes": physical["size_bytes"],
@@ -813,6 +868,30 @@ def _candidate_id_from_path(path: str, manifests: dict[str, Any]) -> str | None:
     if len(parts) >= 3 and parts[0] == "assets" and parts[1] in manifests:
         return parts[1]
     return None
+
+
+def _is_generated_workspace_path(path: str, policy: CustodyPolicy) -> bool:
+    if any(_path_in_scope(path, rule) for rule in policy.workspace_temp_paths):
+        return True
+    parts = PurePosixPath(path).parts
+    return (
+        len(parts) >= 4
+        and parts[0] == "assets"
+        and parts[2] == "godot_staging"
+        and ".godot" in parts[3:]
+    )
+
+
+def _is_operational_report_path(path: str, manifests: dict[str, Any]) -> bool:
+    parts = PurePosixPath(path).parts
+    if parts and parts[0] == "review_reports":
+        return True
+    return (
+        len(parts) >= 4
+        and parts[0] == "assets"
+        and parts[1] in manifests
+        and parts[2] == "reports"
+    )
 
 
 def _is_within(path: Path, root: Path) -> bool:
