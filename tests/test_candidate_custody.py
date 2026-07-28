@@ -66,9 +66,7 @@ def _candidate(config, lanes, prompt: Path, tmp_path: Path, *, rights="documente
 def test_bind_candidate_custody_retains_exact_evidence_and_semantic_binding(
     config, lanes, prompt, tmp_path
 ):
-    outside, policy, register, package_id, asset_root = _candidate(
-        config, lanes, prompt, tmp_path
-    )
+    outside, policy, register, package_id, asset_root = _candidate(config, lanes, prompt, tmp_path)
 
     manifest = bind_candidate_custody(
         config,
@@ -95,11 +93,12 @@ def test_bind_candidate_custody_retains_exact_evidence_and_semantic_binding(
     assert retained.sha256 == evidence.evidence_sha256
 
 
-def test_missing_rights_evaluates_but_approval_fails_closed(
-    config, lanes, prompt, tmp_path
+@pytest.mark.parametrize("rights", ["missing", "disputed"])
+def test_ineligible_rights_evaluate_but_approval_fails_closed(
+    config, lanes, prompt, tmp_path, rights
 ):
     outside, policy, register, package_id, _ = _candidate(
-        config, lanes, prompt, tmp_path, rights="missing"
+        config, lanes, prompt, tmp_path, rights=rights
     )
     manifest = bind_candidate_custody(
         config,
@@ -111,7 +110,7 @@ def test_missing_rights_evaluates_but_approval_fails_closed(
     )
 
     assert manifest.custody is not None
-    assert manifest.custody.effective_rights_status == "missing"
+    assert manifest.custody.effective_rights_status == rights
     manifest.workflow.state = WorkflowState.REVIEW
     manifest.validation.result = "passed"
     manifest.validation.checks = [
@@ -136,9 +135,7 @@ def test_missing_rights_evaluates_but_approval_fails_closed(
 def test_unrelated_register_change_does_not_stale_semantic_approval_binding(
     config, lanes, prompt, tmp_path
 ):
-    outside, policy, register, package_id, _ = _candidate(
-        config, lanes, prompt, tmp_path
-    )
+    outside, policy, register, package_id, _ = _candidate(config, lanes, prompt, tmp_path)
     first = bind_candidate_custody(
         config,
         "custody_asset_001",
@@ -175,7 +172,4 @@ def test_unrelated_register_change_does_not_stale_semantic_approval_binding(
 
     assert second.approval.approved
     assert second.custody is not None
-    assert (
-        second.approval.custody_assertion_sha256
-        == second.custody.semantic_assertion_sha256
-    )
+    assert second.approval.custody_assertion_sha256 == second.custody.semantic_assertion_sha256

@@ -141,9 +141,7 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
         "observed_visible_skinned_triangles": 12000,
     }
 
-    approvable = ManifestRepository(config.foundry.workspace_root).load(
-        "native_character_001"
-    )
+    approvable = ManifestRepository(config.foundry.workspace_root).load("native_character_001")
     bind_documented_test_custody(approvable, asset_root)
     approvable.revision += 1
     ManifestRepository(config.foundry.workspace_root).save(

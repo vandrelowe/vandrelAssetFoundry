@@ -121,9 +121,7 @@ def bind_documented_test_custody(manifest, asset_root: Path) -> None:
     (asset_root / "custody" / "evidence" / "license.txt").write_bytes(evidence)
     evidence_sha = hashlib.sha256(evidence).hexdigest()
     root_sources = [
-        item
-        for item in manifest.artifacts
-        if item.stage == "source" and not item.derived_from
+        item for item in manifest.artifacts if item.stage == "source" and not item.derived_from
     ]
     if not root_sources:
         source = b"source fixture"

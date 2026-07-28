@@ -9,9 +9,16 @@ from typer.testing import CliRunner
 import vandrel_foundry.services.publish_release as publication
 from tests.conftest import bind_documented_test_custody, write_config
 from vandrel_foundry.cli import app
+from vandrel_foundry.domain.custody_assertion import semantic_assertion_sha256
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
-from vandrel_foundry.domain.manifest import Artifact, utc_now
+from vandrel_foundry.domain.manifest import (
+    Artifact,
+    CustodyLicenseEvidence,
+    CustodySourceContribution,
+    CustodySourceInput,
+    utc_now,
+)
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.plan_release import plan_release
@@ -219,9 +226,7 @@ def test_publish_creates_immutable_release_catalog_and_manifest_record(
     assert descriptor["asset_id"] == "stone_knife_001"
     assert descriptor["schema_version"] == 2
     assert descriptor["custody"]["assessment_status"] == "evaluated"
-    custody_evidence = descriptor["custody"]["source_contributions"][0][
-        "license_evidence"
-    ][0]
+    custody_evidence = descriptor["custody"]["source_contributions"][0]["license_evidence"][0]
     assert custody_evidence["original_evidence_path"] == "licenses/fixture.txt"
     assert (result.destination / custody_evidence["release_path"]).read_bytes() == (
         b"license fixture"
@@ -358,3 +363,125 @@ def test_publish_recovers_after_release_rename_before_catalog(
     assert result.recovered
     assert result.release_revision == 1
     assert (root / "catalog.json").is_file()
+
+
+def test_release_plan_rejects_stale_custody_source_binding(config, lanes, prompt: Path) -> None:
+    _approved_asset(config, lanes, prompt)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("stone_knife_001")
+    source = next(item for item in manifest.artifacts if item.stage == "source")
+    source.sha256 = "f" * 64
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+
+    with pytest.raises(FoundryError, match="custody_source_inputs_stale_or_incomplete"):
+        plan_release(config, lanes, "stone_knife_001")
+
+
+def test_release_plan_rejects_tampered_retained_custody_evidence(
+    config, lanes, prompt: Path
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
+    evidence = next(item for item in manifest.artifacts if item.role == "custody_license_evidence")
+    asset_root = config.foundry.workspace_root / "assets" / "stone_knife_001"
+    (asset_root / evidence.path).write_bytes(b"tampered license")
+
+    with pytest.raises(FoundryError, match="Approved release artifact changed"):
+        plan_release(config, lanes, "stone_knife_001")
+
+
+def test_release_plan_rejects_stale_semantic_and_approval_snapshots(
+    config, lanes, prompt: Path
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("stone_knife_001")
+    assert manifest.custody is not None
+    manifest.custody.semantic_assertion_sha256 = "0" * 64
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+    with pytest.raises(FoundryError, match="custody_semantic_hash_stale"):
+        plan_release(config, lanes, "stone_knife_001")
+
+    manifest = repository.load("stone_knife_001")
+    manifest.custody.semantic_assertion_sha256 = semantic_assertion_sha256(
+        manifest.custody.source_contributions
+    )
+    manifest.approval.custody_assertion_sha256 = "0" * 64
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+    with pytest.raises(FoundryError, match="approval_custody_assertion_stale"):
+        plan_release(config, lanes, "stone_knife_001")
+
+
+def test_compound_exact_source_union_emits_multiple_evidence_files(
+    config, lanes, prompt: Path
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("stone_knife_001")
+    root = config.foundry.workspace_root / "assets" / "stone_knife_001"
+    source_bytes = b"second source"
+    evidence_bytes = b"second license"
+    (root / "source/second.glb").write_bytes(source_bytes)
+    (root / "custody/evidence/second-license.txt").write_bytes(evidence_bytes)
+    source = Artifact(
+        artifact_id="source-fixture-002",
+        role="provider_source_model",
+        stage="source",
+        format="glb",
+        path="source/second.glb",
+        sha256=_sha256(source_bytes),
+        size_bytes=len(source_bytes),
+    )
+    evidence_artifact = Artifact(
+        artifact_id="custody-evidence-002",
+        role="custody_license_evidence",
+        stage="custody",
+        format="txt",
+        path="custody/evidence/second-license.txt",
+        sha256=_sha256(evidence_bytes),
+        size_bytes=len(evidence_bytes),
+    )
+    manifest.artifacts.extend([source, evidence_artifact])
+    assert manifest.custody is not None
+    second_input = CustodySourceInput(
+        artifact_id=source.artifact_id,
+        role=source.role,
+        sha256=source.sha256,
+        size_bytes=source.size_bytes,
+    )
+    second = CustodySourceContribution(
+        contribution_id="fixture-contribution-002",
+        source_id="fixture-provider-002",
+        package_id="fixture-package-002",
+        package_root="fixture-package-002",
+        source_inputs=[second_input],
+        rights_status="documented",
+        license_evidence=[
+            CustodyLicenseEvidence(
+                binding_id="fixture-license-002",
+                original_evidence_path="licenses/fixture-002.txt",
+                evidence_sha256=evidence_artifact.sha256,
+                size_bytes=evidence_artifact.size_bytes,
+                scope_root="fixture-package-002",
+                rights_semantics="documented",
+                candidate_evidence_artifact_id=evidence_artifact.artifact_id,
+            )
+        ],
+    )
+    manifest.custody.source_contributions.append(second)
+    assertion_sha = semantic_assertion_sha256(manifest.custody.source_contributions)
+    manifest.custody.semantic_assertion_sha256 = assertion_sha
+    manifest.approval.custody_assertion_sha256 = assertion_sha
+    manifest.approval.custody_source_inputs.append(second_input)
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+
+    plan = plan_release(config, lanes, "stone_knife_001")
+    assert len(plan.descriptor["custody"]["source_contributions"]) == 2
+    evidence_files = [
+        item for item in plan.descriptor["files"] if item["role"] == "custody_license_evidence"
+    ]
+    assert len(evidence_files) == 2

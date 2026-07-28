@@ -50,8 +50,7 @@ def plan_release(
     custody_fresh, custody_blockers = approval_custody_freshness(manifest)
     if not custody_fresh:
         raise FoundryError(
-            "Release planning requires approved fresh custody: "
-            + ", ".join(custody_blockers)
+            "Release planning requires approved fresh custody: " + ", ".join(custody_blockers)
         )
     lane = lanes.lanes.get(manifest.asset.lane)
     if lane is None or not lane.release_enabled:
@@ -113,14 +112,11 @@ def plan_release(
                 )
             _verify_artifact(asset_root, artifact)
             suffix = f".{artifact.format}" if artifact.format else ".bin"
-            safe_binding_id = UNSAFE_RELEASE_COMPONENT.sub("-", evidence.binding_id).strip(
-                ".-"
-            )
+            safe_binding_id = UNSAFE_RELEASE_COMPONENT.sub("-", evidence.binding_id).strip(".-")
             if not safe_binding_id:
                 safe_binding_id = "evidence"
             release_path = (
-                f"custody/evidence/{safe_binding_id}-{evidence.evidence_sha256[:12]}"
-                f"{suffix}"
+                f"custody/evidence/{safe_binding_id}-{evidence.evidence_sha256[:12]}{suffix}"
             )
             evidence_release_paths[evidence.binding_id] = release_path
             files.append(
@@ -172,15 +168,12 @@ def plan_release(
                     "package_root": str(contribution.package_root),
                     "rights_status": contribution.rights_status,
                     "source_inputs": [
-                        item.model_dump(mode="json")
-                        for item in contribution.source_inputs
+                        item.model_dump(mode="json") for item in contribution.source_inputs
                     ],
                     "license_evidence": [
                         {
                             "binding_id": evidence.binding_id,
-                            "original_evidence_path": str(
-                                evidence.original_evidence_path
-                            ),
+                            "original_evidence_path": str(evidence.original_evidence_path),
                             "release_path": evidence_release_paths[evidence.binding_id],
                             "sha256": evidence.evidence_sha256,
                             "size_bytes": evidence.size_bytes,

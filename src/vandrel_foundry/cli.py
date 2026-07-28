@@ -553,9 +553,7 @@ def bind_candidate_custody_command(
     outside_root: Annotated[Path, typer.Option("--outside-root")],
     register: Annotated[Path, typer.Option("--register")],
     package_id: Annotated[list[str], typer.Option("--package-id")],
-    policy: Annotated[Path, typer.Option("--policy")] = Path(
-        "config/custody-policy.v1.json"
-    ),
+    policy: Annotated[Path, typer.Option("--policy")] = Path("config/custody-policy.v1.json"),
     config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
 ) -> None:
     """Bind exact candidate source inputs to validated custody contributions."""

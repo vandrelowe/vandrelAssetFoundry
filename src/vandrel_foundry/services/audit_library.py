@@ -163,8 +163,7 @@ def _audit_release(
                 item.get("size_bytes"),
             )
             for item in (files if isinstance(files, list) else [])
-            if isinstance(item, dict)
-            and item.get("role") == "custody_license_evidence"
+            if isinstance(item, dict) and item.get("role") == "custody_license_evidence"
         }
         evidence = (
             [

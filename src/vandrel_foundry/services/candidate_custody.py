@@ -73,7 +73,9 @@ def bind_candidate_custody(
         for item in register.outside_files
         if item.package_id in package_ids and not item.excluded
     ]
-    assignments: dict[str, list[CustodySourceInput]] = {package_id: [] for package_id in package_ids}
+    assignments: dict[str, list[CustodySourceInput]] = {
+        package_id: [] for package_id in package_ids
+    }
     for source in source_inputs:
         matches = {
             item.package_id
@@ -161,8 +163,7 @@ def bind_candidate_custody(
         )
         previous_sha = (
             manifest.custody.semantic_assertion_sha256
-            if manifest.custody is not None
-            and manifest.custody.assessment_status == "evaluated"
+            if manifest.custody is not None and manifest.custody.assessment_status == "evaluated"
             else None
         )
         if manifest.approval.approved and previous_sha != semantic_sha:

@@ -154,7 +154,9 @@ class CustodyAssertion(StrictModel):
         )
         if self.assessment_status == "evaluated":
             if any(value is None for value in evaluated_fields) or not self.source_contributions:
-                raise ValueError("Evaluated custody requires complete identity and source bindings.")
+                raise ValueError(
+                    "Evaluated custody requires complete identity and source bindings."
+                )
             statuses = {item.rights_status for item in self.source_contributions}
             expected = (
                 "disputed"

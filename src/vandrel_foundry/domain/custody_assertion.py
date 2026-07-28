@@ -62,9 +62,7 @@ def semantic_assertion_sha256(
             for item in sorted(contributions, key=lambda item: item.contribution_id)
         ],
     }
-    canonical = (
-        json.dumps(semantic, sort_keys=True, indent=2, ensure_ascii=True) + "\n"
-    ).encode()
+    canonical = (json.dumps(semantic, sort_keys=True, indent=2, ensure_ascii=True) + "\n").encode()
     return hashlib.sha256(canonical).hexdigest()
 
 

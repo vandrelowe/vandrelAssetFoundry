@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "asset_id": "dm006_quaternius_chest_wood_001",
+  "manifest_revision": 15,
+  "workflow_state": "review",
+  "integrity": {
+    "status": "passing",
+    "artifact_checks": 63,
+    "failed_checks": []
+  },
+  "technical_validation_result": "passed",
+  "approval": {
+    "status": "unapproved",
+    "binding_status": "unbound",
+    "reviewer": null,
+    "approved_at": null,
+    "bound_hashes": {}
+  },
+  "custody": {
+    "assessment_status": "evaluated",
+    "display_status": "evaluated_documented",
+    "effective_rights_status": "documented",
+    "freshness_status": "exact",
+    "blockers": []
+  },
+  "library": {
+    "status": "absent",
+    "latest_revision": null,
+    "historical_releases": []
+  },
+  "vandrel_consumer": {
+    "evidence_status": "absent",
+    "acceptance_status": "unknown"
+  },
+  "release_eligibility": {
+    "eligible": false,
+    "blockers": [
+      "Release planning requires approved state: dm006_quaternius_chest_wood_001"
+    ],
+    "proposed_revision": null
+  }
+}

@@ -83,8 +83,7 @@ def approve_asset(
     custody_fresh, custody_blockers = custody_freshness(manifest)
     if not custody_fresh:
         raise FoundryError(
-            "Approval requires evaluated, documented, fresh custody: "
-            + ", ".join(custody_blockers)
+            "Approval requires evaluated, documented, fresh custody: " + ", ".join(custody_blockers)
         )
     reviewer = reviewer.strip()
     if not reviewer:
@@ -124,9 +123,7 @@ def approve_asset(
     manifest.approval.approved = True
     manifest.approval.approved_at = utc_now()
     manifest.approval.approved_artifact_hashes = bindings
-    manifest.approval.custody_assertion_sha256 = (
-        manifest.custody.semantic_assertion_sha256
-    )
+    manifest.approval.custody_assertion_sha256 = manifest.custody.semantic_assertion_sha256
     manifest.approval.custody_source_inputs = current_source_inputs(manifest)
     manifest.approval.reviewer = reviewer
     manifest.approval.notes = notes.strip()

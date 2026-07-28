@@ -219,10 +219,7 @@ def test_historical_release_does_not_match_current_approved_set(config, lanes, p
     assert view.library.status == "mismatched"
     assert view.library.matches_current_approved_set is False
     assert view.library.historical_releases[0].revision == 1
-    assert (
-        view.library.historical_releases[0].custody_assessment
-        == "historical_v1_unassessed"
-    )
+    assert view.library.historical_releases[0].custody_assessment == "historical_v1_unassessed"
 
 
 def test_published_current_set_remains_separate_from_absent_consumer(config, lanes, prompt):
