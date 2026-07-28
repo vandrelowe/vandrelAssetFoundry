@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.consumer_validation import (
+    CharacterGroundAudit,
     ConsumerAssetEvidence,
     VandrelCharacterAcceptanceLedger,
 )
@@ -20,6 +21,8 @@ from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 MAX_LEDGER_BYTES = 4 * 1024 * 1024
 PROCESSOR_NAME = "vandrel_consumer_validation_import"
 PROCESSOR_VERSION = "1"
+CONSUMER_CONTRACT = "vandrel_character_asset_acceptance/1.0"
+CONSUMER_CONTRACT_REVISION = "vandrel@b8fb0762"
 ALLOWED_STATES = {
     WorkflowState.PROCESSED,
     WorkflowState.REVIEW,
@@ -44,6 +47,7 @@ def import_vandrel_character_validation(
     consumer_asset_key: str,
     *,
     allow_unbound_diagnostic: bool = False,
+    ground_audit_path: Path | None = None,
 ) -> ConsumerValidationImport:
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
@@ -82,6 +86,26 @@ def import_vandrel_character_validation(
         and finding.severity in {"error", "blocker"}
     ]
     generic_gate_passed = not blocking_findings if hash_bound else None
+    ground_audit_records: list[dict[str, object]] = []
+    ground_audit_sha256: str | None = None
+    if ground_audit_path is not None:
+        audit_bytes = _read_bounded(ground_audit_path)
+        try:
+            audit = CharacterGroundAudit.model_validate_json(audit_bytes)
+        except ValidationError as exc:
+            raise FoundryError(f"Vandrel character grounding audit is invalid: {exc}") from exc
+        character_ids = {evidence.character_id, *evidence.affected_character_ids}
+        matching = [
+            item for item in audit.characters if item.character_id in character_ids
+        ]
+        if not matching:
+            raise FoundryError(
+                "Vandrel character grounding audit has no record for the selected asset."
+            )
+        ground_audit_records = [
+            item.model_dump(mode="json") for item in matching
+        ]
+        ground_audit_sha256 = hashlib.sha256(audit_bytes).hexdigest()
 
     number = (
         sum(item.role == "vandrel_consumer_validation_report" for item in manifest.artifacts)
@@ -98,12 +122,15 @@ def import_vandrel_character_validation(
             "artifact_id": model.artifact_id,
             "sha256": model.sha256,
         },
-        "consumer_contract": "vandrel_character_asset_acceptance/1.0",
+        "consumer_contract": CONSUMER_CONTRACT,
+        "consumer_contract_revision": CONSUMER_CONTRACT_REVISION,
         "consumer_asset_key": consumer_asset_key,
         "consumer_status": evidence.status,
         "hash_bound": hash_bound,
         "generic_gate_passed": generic_gate_passed,
         "source_ledger_sha256": hashlib.sha256(ledger_bytes).hexdigest(),
+        "source_ground_audit_sha256": ground_audit_sha256,
+        "grounding_audit_records": ground_audit_records,
         "source_generated_utc": (
             ledger.generated_utc.isoformat() if ledger.generated_utc else None
         ),

@@ -87,6 +87,32 @@ def _ledger(path: Path, asset_id: str, digest: str | None, severity: str) -> Non
     )
 
 
+def _ground_audit(path: Path) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "tolerance_m": 0.03,
+                "characters": [
+                    {
+                        "character_id": "consumer_character",
+                        "scene_path": "res://character.tscn",
+                        "scale": 1.0,
+                        "current_base_offset_y": -0.12,
+                        "sampled_animation_count": 99,
+                        "residual_min_y_m": -0.02,
+                        "residual_max_y_m": 0.02,
+                        "within_tolerance": 99,
+                        "recommended_base_offset_y": -0.12,
+                        "review_directory": "C:/consumer/debug_output/review",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_hash_bound_generic_blocker_blocks_candidate(
     config,
     humanoid_lanes,
@@ -95,13 +121,16 @@ def test_hash_bound_generic_blocker_blocks_candidate(
 ) -> None:
     digest = _candidate(config, humanoid_lanes, prompt)
     ledger = tmp_path / "acceptance.json"
+    ground_audit = tmp_path / "ground-audit.json"
     _ledger(ledger, "consumer_test", digest, "blocker")
+    _ground_audit(ground_audit)
 
     result = import_vandrel_character_validation(
         config,
         "consumer_test",
         ledger,
         "consumer_character",
+        ground_audit_path=ground_audit,
     )
 
     assert result.hash_bound
@@ -110,6 +139,14 @@ def test_hash_bound_generic_blocker_blocks_candidate(
     assert saved.workflow.state is WorkflowState.BLOCKED
     assert saved.validation.result == "failed"
     assert saved.approval.approved is False
+    report_path = (
+        config.foundry.workspace_root
+        / "assets/consumer_test"
+        / str(result.report.path)
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["consumer_contract_revision"] == "vandrel@b8fb0762"
+    assert report["grounding_audit_records"][0]["within_tolerance"] == 99
 
 
 def test_unbound_evidence_requires_explicit_diagnostic_mode(

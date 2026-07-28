@@ -982,6 +982,13 @@ def import_vandrel_validation(
             help="Allow unbound legacy evidence; it cannot affect promotion.",
         ),
     ] = False,
+    ground_audit: Annotated[
+        Path | None,
+        typer.Option(
+            "--ground-audit",
+            help="Optional versioned Vandrel catalog grounding-audit JSON.",
+        ),
+    ] = None,
     config: Annotated[Path | None, typer.Option("--config")] = None,
 ) -> None:
     """Import versioned Vandrel character evidence with exact-hash gating."""
@@ -993,6 +1000,7 @@ def import_vandrel_validation(
             ledger,
             consumer_asset_key,
             allow_unbound_diagnostic=diagnostic_only,
+            ground_audit_path=ground_audit,
         )
         mode = "hash-bound gate" if result.hash_bound else "unbound diagnostic"
         console.print(f"[green]Imported Vandrel character evidence[/green] {result.report.path}")
