@@ -58,6 +58,11 @@ to the currently selected source and current processed artifact. Read-only
 integrity audit is deliberately repeatable and exempt from fail-on-complete.
 When stop-on-failure prevents later candidates from running, their IDs remain
 explicit in the ledger's `not_run_candidates` list.
+The orchestrator reserves the new ledger destination before executing the
+first candidate stage. A missing or unwritable ledger parent, an existing
+destination, or failure to reserve the file therefore fails before candidate
+state can change. Controlled failure before the final ledger flush removes
+only that empty reservation.
 
 Multi-angle batch records measure each generated PNG's nonzero-alpha pixel
 fraction and foreground bounding-box fraction. A bounding-box fraction below

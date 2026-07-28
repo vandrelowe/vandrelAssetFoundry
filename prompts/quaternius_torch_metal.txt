@@ -1,0 +1,3 @@
+External rights-documented Quaternius Torch_Metal static-prop intake.
+Preserve the source geometry, metal torch basket and shaft, and authored materials.
+Do not infer or add flame, emissive, light, particle, collision, or gameplay behavior.

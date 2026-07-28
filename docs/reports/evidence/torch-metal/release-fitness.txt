@@ -1,0 +1,11 @@
+Candidate: quaternius_torch_metal_001
+Manifest revision: 9
+Workflow: review
+Integrity: passing (24 artifacts)
+Technical validation: passed
+Custody: evaluated / documented / exact
+Approval: unapproved / unbound
+Library release: absent
+Vandrel consumer evidence: absent
+Release eligible: false
+Release planner blocker: approval required

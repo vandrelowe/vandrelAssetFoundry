@@ -2,9 +2,11 @@ import json
 import struct
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from vandrel_foundry.domain.batch import BatchPlan
+from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.services.run_static_batch import _execute_stage, run_static_batch
 from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.manifests import ManifestRepository
@@ -111,6 +113,87 @@ def test_batch_continues_after_unsafe_candidate_with_accurate_deltas(
         assert ManifestRepository(config.foundry.workspace_root).load(asset_id).revision == 4
     assert not config.foundry.asset_library_root.exists()
     assert not config.vandrel.reference_repo_root.exists()
+
+
+def test_unwritable_ledger_fails_before_candidate_mutation(
+    tmp_path: Path, config, lanes, monkeypatch
+) -> None:
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("ledger preflight", encoding="utf-8")
+    ledger_path = tmp_path / "denied" / "ledger.json"
+    plan = BatchPlan.model_validate(
+        {
+            "schema_version": 1,
+            "candidates": [
+                {
+                    "asset_id": "batch_ledger_denied",
+                    "lane": "static_prop",
+                    "display_name": "Ledger Denied",
+                    "prompt_file": prompt,
+                    "stages": ["create"],
+                }
+            ],
+        }
+    )
+    original_open = Path.open
+
+    def deny_ledger_open(path: Path, *args, **kwargs):
+        if path == ledger_path:
+            raise PermissionError("ledger destination denied")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", deny_ledger_open)
+
+    with pytest.raises(FoundryError, match="Could not reserve batch ledger"):
+        run_static_batch(config, lanes, plan, ledger_path)
+
+    assert not (config.foundry.workspace_root / "assets" / "batch_ledger_denied").exists()
+
+
+def test_existing_ledger_is_preserved_before_candidate_mutation(
+    tmp_path: Path, config, lanes
+) -> None:
+    ledger_path = tmp_path / "ledger.json"
+    ledger_path.write_text("user evidence", encoding="utf-8")
+    plan = BatchPlan.model_validate(
+        {
+            "schema_version": 1,
+            "candidates": [
+                {
+                    "asset_id": "batch_existing_ledger",
+                    "lane": "static_prop",
+                    "display_name": "Existing Ledger",
+                    "prompt_file": tmp_path / "prompt.txt",
+                    "stages": ["create"],
+                }
+            ],
+        }
+    )
+
+    with pytest.raises(FoundryError, match="Could not reserve batch ledger"):
+        run_static_batch(config, lanes, plan, ledger_path)
+
+    assert ledger_path.read_text(encoding="utf-8") == "user evidence"
+    assert not (config.foundry.workspace_root / "assets" / "batch_existing_ledger").exists()
+
+
+@pytest.mark.parametrize("forbidden_stage", ["bind-custody", "approve", "release"])
+def test_static_batch_rejects_governance_and_publication_stages(
+    forbidden_stage: str,
+) -> None:
+    with pytest.raises(ValueError, match="Input should be"):
+        BatchPlan.model_validate(
+            {
+                "schema_version": 1,
+                "candidates": [
+                    {
+                        "asset_id": "batch_boundary_guard",
+                        "lane": "static_prop",
+                        "stages": [forbidden_stage],
+                    }
+                ],
+            }
+        )
 
 
 def test_resume_skips_completed_immutable_stages(tmp_path: Path, config, lanes) -> None:

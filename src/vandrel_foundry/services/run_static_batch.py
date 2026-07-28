@@ -4,6 +4,7 @@ import os
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TextIO
 
 from PIL import Image
 from pydantic import ValidationError
@@ -49,49 +50,55 @@ def run_static_batch(
     plan: BatchPlan,
     ledger_path: Path,
 ) -> BatchLedger:
-    if ledger_path.exists():
-        raise FoundryError(f"Batch ledger destination already exists: {ledger_path}")
-    started = _now()
-    records: list[BatchStageRecord] = []
-    failed_candidates = 0
-    completed_candidates = 0
-    attempted_candidates: set[str] = set()
-    stop = False
-    for candidate in plan.candidates:
-        if stop:
-            break
-        attempted_candidates.add(candidate.asset_id)
-        candidate_failed = False
-        for stage in candidate.stages:
-            record = _run_stage(config, lanes, plan, candidate, stage)
-            records.append(record)
-            if record.result == "failed":
-                candidate_failed = True
-                if plan.failure_policy == "stop":
-                    stop = True
+    ledger_stream = _reserve_ledger(ledger_path)
+    ledger_written = False
+    try:
+        started = _now()
+        records: list[BatchStageRecord] = []
+        failed_candidates = 0
+        completed_candidates = 0
+        attempted_candidates: set[str] = set()
+        stop = False
+        for candidate in plan.candidates:
+            if stop:
                 break
-        if candidate_failed:
-            failed_candidates += 1
-        else:
-            completed_candidates += 1
-    ledger = BatchLedger(
-        plan_schema_version=plan.schema_version,
-        started_at=started,
-        ended_at=_now(),
-        failure_policy=plan.failure_policy,
-        rerun_policy=plan.rerun_policy,
-        records=records,
-        planned_candidates=len(plan.candidates),
-        completed_candidates=completed_candidates,
-        failed_candidates=failed_candidates,
-        not_run_candidates=[
-            candidate.asset_id
-            for candidate in plan.candidates
-            if candidate.asset_id not in attempted_candidates
-        ],
-    )
-    _write_new_json(ledger_path, ledger.model_dump(mode="json"))
-    return ledger
+            attempted_candidates.add(candidate.asset_id)
+            candidate_failed = False
+            for stage in candidate.stages:
+                record = _run_stage(config, lanes, plan, candidate, stage)
+                records.append(record)
+                if record.result == "failed":
+                    candidate_failed = True
+                    if plan.failure_policy == "stop":
+                        stop = True
+                    break
+            if candidate_failed:
+                failed_candidates += 1
+            else:
+                completed_candidates += 1
+        ledger = BatchLedger(
+            plan_schema_version=plan.schema_version,
+            started_at=started,
+            ended_at=_now(),
+            failure_policy=plan.failure_policy,
+            rerun_policy=plan.rerun_policy,
+            records=records,
+            planned_candidates=len(plan.candidates),
+            completed_candidates=completed_candidates,
+            failed_candidates=failed_candidates,
+            not_run_candidates=[
+                candidate.asset_id
+                for candidate in plan.candidates
+                if candidate.asset_id not in attempted_candidates
+            ],
+        )
+        _write_reserved_ledger(ledger_stream, ledger_path, ledger.model_dump(mode="json"))
+        ledger_written = True
+        return ledger
+    finally:
+        ledger_stream.close()
+        if not ledger_written:
+            ledger_path.unlink(missing_ok=True)
 
 
 def _run_stage(
@@ -373,14 +380,19 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
-def _write_new_json(path: Path, value: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _reserve_ledger(path: Path) -> TextIO:
     try:
-        with path.open("x", encoding="utf-8", newline="\n") as stream:
-            json.dump(value, stream, ensure_ascii=False, indent=2)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path.open("x", encoding="utf-8", newline="\n")
     except OSError as exc:
-        path.unlink(missing_ok=True)
+        raise FoundryError(f"Could not reserve batch ledger {path}: {exc}") from exc
+
+
+def _write_reserved_ledger(stream: TextIO, path: Path, value: object) -> None:
+    try:
+        json.dump(value, stream, ensure_ascii=False, indent=2)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    except OSError as exc:
         raise FoundryError(f"Could not write batch ledger {path}: {exc}") from exc

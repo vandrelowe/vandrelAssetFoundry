@@ -1,0 +1,68 @@
+{
+  "schema_version": "vandrel_foundry_intake_execution_transcript/1.0",
+  "candidate": "quaternius_torch_metal_001",
+  "native_batch_ledger_status": "capture_failed_after_candidate_completion",
+  "native_batch_ledger_error": "Permission denied creating the requested repository ledger path.",
+  "candidate_started_at": "2026-07-28T17:51:47.015570Z",
+  "candidate_completed_at": "2026-07-28T17:53:00.664546Z",
+  "candidate_elapsed_seconds": 73.648976,
+  "records": [
+    {
+      "revision": 1,
+      "event": "asset.created",
+      "timestamp": "2026-07-28T17:51:47.015570Z"
+    },
+    {
+      "revision": 2,
+      "event": "source.external_package_added",
+      "timestamp": "2026-07-28T17:52:02.335470Z"
+    },
+    {
+      "revision": 3,
+      "event": "asset.processed",
+      "timestamp": "2026-07-28T17:52:02.493301Z"
+    },
+    {
+      "revision": 4,
+      "event": "asset.inspected",
+      "timestamp": "2026-07-28T17:52:02.560796Z"
+    },
+    {
+      "revision": 5,
+      "event": "godot.sandbox_staged",
+      "timestamp": "2026-07-28T17:52:02.791634Z"
+    },
+    {
+      "revision": 6,
+      "event": "godot.sandbox_validated",
+      "timestamp": "2026-07-28T17:52:24.667367Z"
+    },
+    {
+      "revision": 7,
+      "event": "preview.rendered",
+      "timestamp": "2026-07-28T17:52:40.156988Z"
+    },
+    {
+      "revision": 8,
+      "event": "preview.multi_angle_rendered",
+      "timestamp": "2026-07-28T17:53:00.664546Z"
+    }
+  ],
+  "separate_candidate_audit": {
+    "status": "passing",
+    "artifact_checks": 23
+  },
+  "authority_boundary": {
+    "workflow_state": "review",
+    "approved": false,
+    "released": false
+  },
+  "follow_up_evidence": {
+    "custody_register_sha256": "88ee0e18780d16342e598b4b9f758f4a1a19dba4dc4d7f678d4f7a26cc10ceba",
+    "custody_report_sha256": "29def49d1848210af4177a8d2ca3872826f6d95742ca03bb4b1000f84df76592",
+    "bound_manifest_revision": 9,
+    "custody_semantic_assertion_sha256": "2563b86f262d0ec65439b938b9fdc053182ed747e2bb25cffed33f39f0f862e5",
+    "native_resume_ledger_sha256": "f40b5fa40611a4049f7e2f924c944a09ef569805945d221d33b7faa6bb7ac3bc",
+    "native_resume_result": "eight immutable stages skipped; read-only audit completed; candidate unchanged"
+  }
+}

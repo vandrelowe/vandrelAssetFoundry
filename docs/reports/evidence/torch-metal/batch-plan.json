@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "failure_policy": "stop",
+  "rerun_policy": "resume",
+  "candidates": [
+    {
+      "asset_id": "quaternius_torch_metal_001",
+      "lane": "static_prop",
+      "display_name": "Quaternius Torch Metal",
+      "prompt_file": "prompts/quaternius_torch_metal.txt",
+      "source": "C:/Dev/outsideassets/Quaternius/Fantasy Props MegaKit[Standard]/Exports/glTF/Torch_Metal.gltf",
+      "stages": [
+        "create",
+        "add-source",
+        "process",
+        "inspect",
+        "prepare-godot",
+        "validate-godot",
+        "render-preview",
+        "render-multi-angle-preview",
+        "audit"
+      ]
+    }
+  ]
+}
