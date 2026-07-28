@@ -9,7 +9,10 @@ recovery, and checksummed source downloads.
 
 It is not the Vandrel game, a mod manager, or an asset database. It can invoke
 explicitly configured Godot and Blender executables only through bounded local
-workflows. It never writes into the Vandrel repository.
+workflows. Normal Foundry commands never write into the Vandrel repository.
+The governance contract separately permits a narrowly bounded, asset-scoped
+consumer-validation step for an approved immutable release; that step does not
+grant Foundry gameplay or runtime authority.
 
 ## Windows setup
 
@@ -156,8 +159,10 @@ without a Meshy key or credits.
 - The configured asset-library Git repository contains approved immutable
   releases. `release --apply` writes only after clean-tree and Git LFS checks;
   it never commits or pushes those changes.
-- `C:\dev\Vandrel` is reference-only. `doctor` may check for `project.godot`;
-  Foundry refuses configurations that enable writes.
+- `C:\dev\Vandrel` is reference-only to normal Foundry commands. `doctor` may
+  check for `project.godot`; Foundry refuses configurations that enable writes.
+  The standing governance exception permits only bounded consumer validation
+  of an approved immutable release, with Vandrel retaining ownership.
 - A future mod manager owns gameplay metadata, dependencies, overrides, and load
   order.
 
@@ -209,9 +214,13 @@ explicitly records that Vandrel runtime acceptance remains false.
 
 The local character corridor includes bounded Blender rest-pose retargeting for
 exact-name/hierarchy Meshy rigs, 30 FPS action baking, representative animation
-sample sheets, renewed GLB/Godot validation, and immutable follow-up release
-revisions. Foundry still does not assign gameplay clip semantics or claim
-consumer-side animation acceptance.
+sample sheets, and renewed GLB/Godot validation. Production approval of that
+processor is suspended: a live character test exposed a unit-sensitive hips
+translation bake and a Godot skin/import failure that Blender stills did not
+catch. It remains available only for bounded forensic experiments. The current
+preferred character route preserves Meshy's provider-native FBX rig and uses
+same-task `withSkin` animations imported directly by Godot. Foundry still does
+not assign gameplay clip semantics or claim consumer-side animation acceptance.
 
 The optional Blender processor uses the absolute executable configured at
 `tools.blender_executable`. The current machine uses the Steam installation at

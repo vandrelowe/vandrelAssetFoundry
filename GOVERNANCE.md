@@ -49,7 +49,7 @@ authority.
 | Configuration and CLI | `docs/systems/MANIFEST_WORKSPACE_CONTRACT.md` | Active, Phase 1 |
 | Provider jobs and downloads | `docs/systems/PROVIDER_PIPELINE_CONTRACT.md` | Active Phase 2; retexture/rigging live-verified, text-preview live verification pending |
 | Processing and technical inspection | `docs/systems/PROCESSING_VALIDATION_CONTRACT.md` | Active — immutable local processing, review evidence, and sandbox validation |
-| Review, approval, and release | `docs/systems/RELEASE_CONTRACT.md` | Partial; design only, no publication yet |
+| Review, approval, and release | `docs/systems/RELEASE_CONTRACT.md` | Active; manual hash-bound approval and explicit immutable publication |
 | Vandrel/library interoperability | `docs/systems/INTEROPERABILITY_CONTRACT.md` | Active boundary; import handshake remains versioned |
 
 Do not implement a stubbed corridor merely because future fields or directories
