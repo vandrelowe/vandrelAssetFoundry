@@ -61,14 +61,18 @@ its shared animation vocabulary.
 
 Vandrel character-lab conclusions use the versioned
 `vandrel_character_asset_acceptance/1.0` consumer contract, currently tracked
-at Vandrel commit `b8fb0762`. Foundry may import one asset-keyed entry and its
-matching catalog-grounding audit record as immutable evidence. A consumer finding affects
-Foundry promotion only when its `foundry_binding.asset_id` and
-`foundry_binding.model_sha256` exactly match the current processed model and
-the finding is owned by `asset_foundry`. Unbound legacy entries are accepted
-only through an explicit diagnostic-only option. Vandrel runtime corrections,
-scene paths, animation semantics, and gameplay policy remain consumer-owned
-even when their evidence is retained by Foundry.
+at Vandrel commit `16cbf78d`. The additive binding fields supported at that
+revision include the Foundry manifest revision, exact model/walk/run artifact
+IDs and hashes, provider task identity, and optional matching library revision.
+These are retained as evidence; only the asset ID and current processed-model
+hash control the promotion-affecting generic-defect gate. Foundry may import one
+asset-keyed entry and its matching catalog-grounding audit record as immutable
+evidence. A consumer finding affects Foundry promotion only when its
+`foundry_binding.asset_id` and `foundry_binding.model_sha256` exactly match the
+current processed model and the finding is owned by `asset_foundry`. Unbound
+legacy entries are accepted only through an explicit diagnostic-only option.
+Vandrel runtime corrections, scene paths, animation semantics, and gameplay
+policy remain consumer-owned even when their evidence is retained by Foundry.
 
 ## Compatibility strategy
 

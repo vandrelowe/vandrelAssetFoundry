@@ -22,7 +22,7 @@ MAX_LEDGER_BYTES = 4 * 1024 * 1024
 PROCESSOR_NAME = "vandrel_consumer_validation_import"
 PROCESSOR_VERSION = "1"
 CONSUMER_CONTRACT = "vandrel_character_asset_acceptance/1.0"
-CONSUMER_CONTRACT_REVISION = "vandrel@b8fb0762"
+CONSUMER_CONTRACT_REVISION = "vandrel@16cbf78d"
 ALLOWED_STATES = {
     WorkflowState.PROCESSED,
     WorkflowState.REVIEW,

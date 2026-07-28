@@ -54,7 +54,14 @@ def _candidate(config, humanoid_lanes, prompt: Path, asset_id: str = "consumer_t
     return digest
 
 
-def _ledger(path: Path, asset_id: str, digest: str | None, severity: str) -> None:
+def _ledger(
+    path: Path,
+    asset_id: str,
+    digest: str | None,
+    severity: str,
+    *,
+    exact_provenance: bool = False,
+) -> None:
     evidence = {
         "character_id": "consumer_character",
         "consumer_scene_path": "res://character.tscn",
@@ -75,6 +82,20 @@ def _ledger(path: Path, asset_id: str, digest: str | None, severity: str) -> Non
             "asset_id": asset_id,
             "model_sha256": digest,
         }
+        if exact_provenance:
+            evidence["foundry_binding"].update(
+                {
+                    "manifest_revision": 84,
+                    "model_artifact_id": "processed_fbx_012",
+                    "walk_artifact_id": "processed_animation_walk_006",
+                    "walk_sha256": "4" * 64,
+                    "run_artifact_id": "processed_animation_run_006",
+                    "run_sha256": "f" * 64,
+                    "provider_task_key": "meshy_rigging_001",
+                    "provider_task_id": "provider-task-id",
+                    "matching_library_revision": None,
+                }
+            )
     path.write_text(
         json.dumps(
             {
@@ -122,7 +143,7 @@ def test_hash_bound_generic_blocker_blocks_candidate(
     digest = _candidate(config, humanoid_lanes, prompt)
     ledger = tmp_path / "acceptance.json"
     ground_audit = tmp_path / "ground-audit.json"
-    _ledger(ledger, "consumer_test", digest, "blocker")
+    _ledger(ledger, "consumer_test", digest, "blocker", exact_provenance=True)
     _ground_audit(ground_audit)
 
     result = import_vandrel_character_validation(
@@ -141,7 +162,12 @@ def test_hash_bound_generic_blocker_blocks_candidate(
     assert saved.approval.approved is False
     report_path = config.foundry.workspace_root / "assets/consumer_test" / str(result.report.path)
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report["consumer_contract_revision"] == "vandrel@b8fb0762"
+    assert report["consumer_contract_revision"] == "vandrel@16cbf78d"
+    assert report["asset_evidence"]["foundry_binding"]["manifest_revision"] == 84
+    assert (
+        report["asset_evidence"]["foundry_binding"]["walk_artifact_id"]
+        == "processed_animation_walk_006"
+    )
     assert report["grounding_audit_records"][0]["within_tolerance"] == 99
 
 

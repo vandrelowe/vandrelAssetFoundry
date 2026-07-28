@@ -20,7 +20,16 @@ class FoundryBinding(BaseModel):
 
     asset_id: str = Field(min_length=1)
     release_revision: str | None = Field(default=None, min_length=1)
+    manifest_revision: int | None = Field(default=None, ge=1)
+    model_artifact_id: str | None = Field(default=None, min_length=1)
     model_sha256: str = Field(pattern=r"^[A-Fa-f0-9]{64}$")
+    walk_artifact_id: str | None = Field(default=None, min_length=1)
+    walk_sha256: str | None = Field(default=None, pattern=r"^[A-Fa-f0-9]{64}$")
+    run_artifact_id: str | None = Field(default=None, min_length=1)
+    run_sha256: str | None = Field(default=None, pattern=r"^[A-Fa-f0-9]{64}$")
+    provider_task_key: str | None = Field(default=None, min_length=1)
+    provider_task_id: str | None = Field(default=None, min_length=1)
+    matching_library_revision: str | None = Field(default=None, min_length=1)
 
 
 class ConsumerAssetEvidence(ConsumerEvidenceModel):
