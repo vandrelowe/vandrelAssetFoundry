@@ -70,6 +70,7 @@ def _write_tampered_v2_library(root: Path, case: str) -> None:
     evidence = descriptor["custody"]["source_contributions"][0]["license_evidence"][0]
     evidence["sha256"] = license_entry["sha256"]
     evidence["size_bytes"] = license_entry["size_bytes"]
+    extra_payloads: list[tuple[dict, bytes]] = []
     if case == "model_as_license":
         evidence.update(
             {
@@ -100,6 +101,33 @@ def _write_tampered_v2_library(root: Path, case: str) -> None:
         license_entry["role"] = "model"
     elif case == "license_source_mismatch":
         evidence["source_artifact_id"] = "different-evidence-artifact"
+    elif case == "humanoid_report_source_mismatch":
+        report_bytes = b'{"passed":true}\n'
+        report_entry = {
+            "role": "humanoid_compatibility_report",
+            "path": "evidence/humanoid/report.json",
+            "sha256": _sha256(report_bytes),
+            "size_bytes": len(report_bytes),
+            "source_artifact_id": "humanoid-report-001",
+        }
+        descriptor["files"].append(report_entry)
+        descriptor["humanoid_compatibility"] = {
+            "evidence_route": "retarget_mapping",
+            "candidate_only": True,
+            "vandrel_runtime_accepted": False,
+            "mapping_profile": "profile/v1",
+            "report": {
+                "release_path": report_entry["path"],
+                "sha256": report_entry["sha256"],
+                "size_bytes": report_entry["size_bytes"],
+                "source_artifact_id": "different-humanoid-report",
+            },
+            "animation_donor_asset_id": "donor_asset_001",
+            "direct_skeleton_match": True,
+            "direct_rest_transform_match": True,
+            "humanoid_retarget_candidate": True,
+        }
+        extra_payloads.append((report_entry, report_bytes))
     else:
         raise AssertionError(case)
     release = root / "assets" / descriptor["asset_id"] / "r001"
@@ -108,6 +136,10 @@ def _write_tampered_v2_library(root: Path, case: str) -> None:
     license_path = release / license_entry["path"]
     license_path.parent.mkdir(parents=True)
     license_path.write_bytes(license_bytes)
+    for entry, payload in extra_payloads:
+        extra_path = release / entry["path"]
+        extra_path.parent.mkdir(parents=True, exist_ok=True)
+        extra_path.write_bytes(payload)
     descriptor_bytes = (json.dumps(descriptor, indent=2) + "\n").encode()
     (release / "asset-release.json").write_bytes(descriptor_bytes)
     catalog = {
@@ -191,6 +223,7 @@ def test_audit_library_rejects_r1000_layout(config) -> None:
         "model_as_report",
         "static_role_confusion",
         "license_source_mismatch",
+        "humanoid_report_source_mismatch",
     ],
 )
 def test_live_audit_rejects_v2_evidence_role_or_source_substitution(

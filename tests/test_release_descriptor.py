@@ -21,6 +21,35 @@ def _fixture(name: str) -> dict:
     return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
 
+def _fixture_with_humanoid_report() -> dict:
+    value = _fixture("release-v2.json")
+    report = {
+        "role": "humanoid_compatibility_report",
+        "path": "evidence/humanoid/report.json",
+        "sha256": "a" * 64,
+        "size_bytes": 17,
+        "source_artifact_id": "humanoid-report-001",
+    }
+    value["files"].append(report)
+    value["humanoid_compatibility"] = {
+        "evidence_route": "retarget_mapping",
+        "candidate_only": True,
+        "vandrel_runtime_accepted": False,
+        "mapping_profile": "profile/v1",
+        "report": {
+            "release_path": report["path"],
+            "sha256": report["sha256"],
+            "size_bytes": report["size_bytes"],
+            "source_artifact_id": report["source_artifact_id"],
+        },
+        "animation_donor_asset_id": "donor_asset_001",
+        "direct_skeleton_match": True,
+        "direct_rest_transform_match": True,
+        "humanoid_retarget_candidate": True,
+    }
+    return value
+
+
 def test_historical_v1_fixture_is_parseable_and_byte_stable() -> None:
     path = FIXTURES / "release-v1.json"
     before = path.read_bytes()
@@ -203,6 +232,16 @@ def test_v2_rejects_model_substituted_for_humanoid_report() -> None:
         "direct_rest_transform_match": True,
         "humanoid_retarget_candidate": True,
     }
+
+    with pytest.raises(ValidationError, match="Humanoid report role and source"):
+        ReleaseDescriptorV2.model_validate(value)
+
+
+def test_v2_rejects_humanoid_report_source_mismatch() -> None:
+    value = _fixture_with_humanoid_report()
+    value["humanoid_compatibility"]["report"][
+        "source_artifact_id"
+    ] = "different-humanoid-report"
 
     with pytest.raises(ValidationError, match="Humanoid report role and source"):
         ReleaseDescriptorV2.model_validate(value)

@@ -26,6 +26,9 @@ of an open raw dictionary:
   the same executable v2 contract, requires canonical byte equality to the
   current complete plan, and rechecks the exact release file set, hashes, and
   sizes before any catalog mutation;
+- final-revision interruption recovery evaluates an existing `r999` journal
+  through an explicit revision-999 plan after normal next-revision planning
+  reaches the cap; it never allocates `r1000`;
 - planner, descriptor models, publication layout helpers, and Library audit
   reject revisions outside `1..999`.
 
@@ -64,6 +67,11 @@ Runtime and checked-JSON-schema tests reject:
   tampering in an uncataloged recovery journal, with catalog and Foundry
   manifest remaining unchanged;
 - changed or undeclared recovered release files before catalog mutation;
+- schema-valid mutations across lane, file source, Godot, technical, custody,
+  humanoid, and provenance field families, plus revision/directory mismatch;
+- noncanonical descriptor bytes and missing declared recovery files;
+- both post-rename/pre-catalog and post-catalog/pre-manifest recovery at
+  `r999`, with a byte-identical `r998` catalog on mismatch;
 - `r000` and `r1000` descriptor/planner/audit layouts.
 
 The Torch resume-ledger redaction contract now recursively checks all string
@@ -112,8 +120,8 @@ only under ignored `temp/` and removed after validation.
 
 ## Verification
 
-- Focused descriptor/planner/publication/audit suite: 50 passed.
-- Full suite: 290 passed, 3 expected platform/symlink skips (293 collected).
+- Focused descriptor/planner/publication/audit suite: 67 passed.
+- Full suite: 307 passed, 3 expected platform/symlink skips (310 collected).
 - Ruff and `git diff --check`: passed.
 - Checked manifest and release schemas exactly match their executable models.
 - Live read-only Asset Library audit: 65 checks passed across all 11 immutable

@@ -147,6 +147,13 @@ size before catalog replacement. Partial identity tuples, unknown descriptor
 fields, role/source substitution, undeclared files, and changed bytes are not
 recoverable and must leave the catalog and Foundry manifest unchanged.
 
+Recovery is evaluated before a prospective revision-cap failure becomes final.
+When a visible `r999` might be the publication journal, publication may build
+the exact current plan explicitly for revision 999 and run the same complete
+recovery comparison. This exception can only finish that matching interrupted
+transaction; it cannot allocate `r1000`, republish mismatched content, or weaken
+the `r001..r999` cap for new releases.
+
 Abandoned staging directories are never treated as releases and are not
 silently deleted. They must not affect revision allocation. A retry uses a new
 unique staging directory. Status checks permit only the exact matching

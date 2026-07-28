@@ -72,6 +72,8 @@ def plan_release(
     config: FoundryConfig,
     lanes: LaneConfiguration,
     asset_id: str,
+    *,
+    release_revision: int | None = None,
 ) -> ReleasePlan:
     manifest = ManifestRepository(config.foundry.workspace_root).load(asset_id)
     if manifest.workflow.state is not WorkflowState.APPROVED or not manifest.approval.approved:
@@ -85,7 +87,12 @@ def plan_release(
     if lane is None or not lane.release_enabled:
         raise FoundryError(f"Release is disabled for lane: {manifest.asset.lane}")
     library_asset_root = config.foundry.asset_library_root / "assets" / asset_id
-    revision = _next_revision(library_asset_root)
+    revision = (
+        _next_revision(library_asset_root)
+        if release_revision is None
+        else release_revision
+    )
+    format_release_revision(revision)
     asset_root = config.foundry.workspace_root / "assets" / asset_id
     files: list[dict[str, Any]] = []
     humanoid_compatibility, humanoid_report = _humanoid_release_evidence(

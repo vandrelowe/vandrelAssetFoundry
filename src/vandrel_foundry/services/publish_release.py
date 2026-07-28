@@ -56,8 +56,7 @@ def publish_release(
     with AssetLock(lock):
         repository = ManifestRepository(config.foundry.workspace_root)
         manifest = repository.load(asset_id)
-        plan = plan_release(config, lanes, asset_id)
-        recovery = _matching_recoverable_release(root, plan)
+        plan, recovery = _plan_with_recovery(config, lanes, asset_id, root)
         effective = recovery or plan
         allowed = _allowed_transaction_paths(effective)
         unrelated = changed_paths(root, git_runner) - allowed
@@ -81,6 +80,36 @@ def publish_release(
             release_revision=effective.release_revision,
             recovered=recovered,
         )
+
+
+def _plan_with_recovery(
+    config: FoundryConfig,
+    lanes: LaneConfiguration,
+    asset_id: str,
+    library_root: Path,
+) -> tuple[ReleasePlan, ReleasePlan | None]:
+    try:
+        plan = plan_release(config, lanes, asset_id)
+    except FoundryError:
+        final_destination = (
+            library_root
+            / "assets"
+            / asset_id
+            / format_release_revision(999)
+        )
+        if not final_destination.is_dir():
+            raise
+        final_plan = plan_release(
+            config,
+            lanes,
+            asset_id,
+            release_revision=999,
+        )
+        recovery = _matching_recoverable_release(library_root, final_plan)
+        if recovery is None:
+            raise
+        return final_plan, recovery
+    return plan, _matching_recoverable_release(library_root, plan)
 
 
 def _stage_and_promote(config: FoundryConfig, asset_id: str, plan: ReleasePlan) -> None:
