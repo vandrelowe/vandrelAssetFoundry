@@ -40,6 +40,9 @@ from vandrel_foundry.services.offline_vision_rehearsal import (
 )
 from vandrel_foundry.services.plan_release import plan_release
 from vandrel_foundry.services.poll_task import poll_text_task
+from vandrel_foundry.services.preflight_custody_readability import (
+    preflight_custody_readability,
+)
 from vandrel_foundry.services.prepare_native_character import (
     prepare_provider_native_character,
 )
@@ -582,6 +585,45 @@ def custody_inventory(
         "[green]Custody inventory written[/green] "
         f"{register} sha256={result.report['canonical_register_sha256']}"
     )
+
+
+@app.command("custody-preflight")
+def custody_preflight(
+    outside_root: Annotated[Path, typer.Option("--outside-root")],
+    workspace_root: Annotated[Path, typer.Option("--workspace-root")],
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Emit complete versioned machine-readable evidence."),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Check custody root readability without hashing files or changing ACLs."""
+    try:
+        settings = load_config(config)
+        result = preflight_custody_readability(settings, outside_root, workspace_root)
+    except FoundryError as exc:
+        fail(exc)
+    if json_output:
+        console.print_json(result.model_dump_json(indent=2))
+    else:
+        table = Table("Kind", "Target", "Result")
+        for target in result.governed_targets:
+            table.add_row(
+                target.kind,
+                target.path,
+                "pass" if target.readable else f"BLOCKED ({target.issue_count})",
+            )
+        console.print(
+            f"Custody readability preflight: {result.status} "
+            f"principal={result.principal.account} ({result.principal.identifier})"
+        )
+        console.print(table)
+        for issue in result.unreadable_targets:
+            error_console.print(
+                f"[red]{issue.logical_root}[/red] {issue.operation} {issue.path}: {issue.detail}"
+            )
+    if not result.ready_for_inventory:
+        raise typer.Exit(code=1)
 
 
 @app.command("bind-candidate-custody")

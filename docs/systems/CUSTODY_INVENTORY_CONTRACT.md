@@ -22,6 +22,12 @@ Register and run-report destinations must be outside both scanned roots.
   normalized paths, file bytes, and canonical policy bytes.
 - `vandrel_foundry_custody_run_report/1.0` is operational and may contain UTC
   run time and physical roots.
+- `vandrel_foundry_custody_readability_preflight/1.0` is operational evidence
+  identifying the current OS principal, all discovered candidate and release
+roots, root-level readability, exact unreadable targets, and bounded probe
+counts. Principal resolution and root setup failures are explicit setup issues
+in the same evidence shape and block inventory. It is not part of the
+canonical register.
 
 Canonical content contains no absolute paths, mtimes, run timestamp, or
 platform separators. Paths are root-relative POSIX strings and arrays are
@@ -68,6 +74,17 @@ Rejected, released, historical, or unregistered evidence is never inferred to
 be deletable.
 
 ## Fail-closed behavior
+
+Before hashing, the scanner performs a bounded readability preflight over the
+same authoritative Outside Assets, Foundry workspace, and Asset Library roots.
+It recursively enumerates directories and opens regular files read-only
+without reading their contents. It records the current principal and exact
+candidate/release roots, rejects symlinks and reparse points, and stops before
+inventory hashing if any directory, metadata record, or file cannot be read.
+The standalone `custody-preflight` command emits the complete versioned result
+with `--json` and exits nonzero when blocked. Neither the preflight nor its
+inventory guard changes ACLs, ownership, inheritance, file bytes, manifests,
+catalogs, or workflow state.
 
 Traversal, reparse points/symlinks, unreadable files, hash drift, malformed
 policy, conflicting license scopes, missing evidence targets, and evidence hash

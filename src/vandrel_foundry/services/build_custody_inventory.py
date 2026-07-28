@@ -18,6 +18,9 @@ from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.custody import CustodyPolicy, CustodyRegister
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.services.audit_asset import audit_asset
+from vandrel_foundry.services.preflight_custody_readability import (
+    require_custody_readability_preflight,
+)
 from vandrel_foundry.storage.manifests import ManifestRepository
 
 REGISTER_SCHEMA = "vandrel_foundry_custody_register/1.0"
@@ -46,6 +49,7 @@ def build_custody_inventory(
     *,
     maximum_attempts: int = 2,
 ) -> CustodyInventoryResult:
+    require_custody_readability_preflight(config, outside_root, workspace_root)
     outside_root = outside_root.resolve(strict=True)
     workspace_root = workspace_root.resolve(strict=True)
     if (

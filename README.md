@@ -54,6 +54,10 @@ foundry review-gallery
 foundry release-fitness stone_knife_001
 foundry release-fitness stone_knife_001 --json
 
+# Fail quickly with versioned evidence if custody roots are not fully readable.
+foundry custody-preflight --outside-root C:\Dev\outsideassets `
+  --workspace-root C:\Dev\VandrelFoundryWorkspace --json
+
 # Run an explicit versioned, sequential local-only static batch plan.
 foundry run-static-batch .\batch-plan.json --ledger .\batch-ledger.json
 foundry scan-sources C:\Dev\outsideassets
@@ -75,6 +79,12 @@ packages and suggests static-prop or humanoid intake lanes; it does not copy,
 convert, submit, or create asset records.
 `audit` is also read-only. It rehashes every manifest artifact and checks
 artifact IDs, paths, derivation references, and approval bindings.
+`custody-preflight` enumerates the three configured custody roots, records the
+current OS principal and exact candidate/release roots, and opens regular files
+read-only without hashing their contents. It exits nonzero with versioned JSON
+evidence when an ACL or other readability boundary would block the longer
+inventory. `custody-inventory` runs the same guard automatically before
+hashing.
 
 Phase 2 adds guarded Meshy commands:
 
