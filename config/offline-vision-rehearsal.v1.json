@@ -1,0 +1,148 @@
+{
+  "schema_version": "vandrel_foundry_offline_vision_rehearsal/1.0",
+  "readiness": "blocked",
+  "network_policy": "deny",
+  "write_policy": "new_declared_roots_only",
+  "runtime": {
+    "python": "3.12.13",
+    "packages": {
+      "torch": "2.11.0+cu130",
+      "torchvision": "0.26.0+cu130",
+      "transformers": "5.14.1",
+      "pillow": "12.3.0",
+      "numpy": "2.5.1"
+    }
+  },
+  "storage": {
+    "minimum_additional_free_bytes": 8589934592,
+    "retained_bytes": 4094597769
+  },
+  "wheelhouse": {
+    "status": "missing",
+    "wheels": []
+  },
+  "models": [
+    {
+      "path": "models/grounding-dino-tiny/model.safetensors",
+      "size_bytes": 689359096,
+      "sha256": "1a2412ef99bd74bcd3c2a246fa1e48581f8889a1300c9051974741314fc042f3",
+      "model_id": "IDEA-Research/grounding-dino-tiny",
+      "snapshot": "a2bb814dd30d776dcf7e30523b00659f4f141c71"
+    },
+    {
+      "path": "models/sam2.1-hiera-small/model.safetensors",
+      "size_bytes": 184305280,
+      "sha256": "0a4067b11ce1e23d5229203f11c718a823060d15a4b23fa2372a7d4b77cbbc60",
+      "model_id": "facebook/sam2.1-hiera-small",
+      "snapshot": "ee5bba1d82bb8749febdf90f45e84b687142ba03"
+    }
+  ],
+  "fixtures": [
+    {
+      "path": "fixtures/beauty-00.png",
+      "size_bytes": 345316,
+      "sha256": "742983f04bdc81ed0051ae54482ceb5009852f56e8ab3e410291b7469e5b0df4"
+    },
+    {
+      "path": "fixtures/uv-float-00.rgba32f",
+      "size_bytes": 67108864,
+      "sha256": "44bb0010c06ee57945421a78778c856da832553661baede6f63ebe06ce401b3d"
+    },
+    {
+      "path": "fixtures/beauty-01.png",
+      "size_bytes": 339341,
+      "sha256": "311aa1344099e9c141a3c32f151c5c17c84354dde83a336344129aab37694f59"
+    },
+    {
+      "path": "fixtures/uv-float-01.rgba32f",
+      "size_bytes": 67108864,
+      "sha256": "b3a6e9df50f20bd305fd007c64cba47bbeba9cb7d453af814fe91faf1fdd557d"
+    },
+    {
+      "path": "fixtures/beauty-02.png",
+      "size_bytes": 301719,
+      "sha256": "3939a287d9fafd5fd8d918bc65d11863960ddf7c9a045a6d8b575197471ea0d7"
+    },
+    {
+      "path": "fixtures/uv-float-02.rgba32f",
+      "size_bytes": 67108864,
+      "sha256": "907a707e9f01472d2b822d41db4eef7ce049f59ed469f328a57334f4b52b747b"
+    },
+    {
+      "path": "fixtures/beauty-03.png",
+      "size_bytes": 330569,
+      "sha256": "8ec45ee2f22e29cb883688e7cbb5c1891664b3d8f136f5aa29b78b512b0dadf1"
+    },
+    {
+      "path": "fixtures/uv-float-03.rgba32f",
+      "size_bytes": 67108864,
+      "sha256": "a60de83bc98bcbe89b67c056ed6e00f149ee1f6d36b2006d9c7030d5d82c8ea5"
+    },
+    {
+      "path": "fixtures/beauty-04.png",
+      "size_bytes": 326626,
+      "sha256": "aec47a519681dcbdd90f7cc21e41ae4b833a0c19fcfd1214c3ea82f550f9f009"
+    },
+    {
+      "path": "fixtures/uv-float-04.rgba32f",
+      "size_bytes": 67108864,
+      "sha256": "a80a392cc43c118dc7562dc2653e26b04071e64259c6f9ec931922e2ac7b0e37"
+    },
+    {
+      "path": "fixtures/beauty-05.png",
+      "size_bytes": 330547,
+      "sha256": "d509c858d4ff4cf64e06ac5c3e9aa61948e76144d5cade8d2970539760142401"
+    },
+    {
+      "path": "fixtures/uv-float-05.rgba32f",
+      "size_bytes": 67108864,
+      "sha256": "2399f5beb0a55fca0759f479453c7fab7cd0186525245b1b0fe2fb9ecbc808cb"
+    },
+    {
+      "path": "fixtures/beauty-06.png",
+      "size_bytes": 299959,
+      "sha256": "4ff7977cdac0816c1f895e854ea549c470ae5603a0ee52c8aeb1ea249cb36772"
+    },
+    {
+      "path": "fixtures/uv-float-06.rgba32f",
+      "size_bytes": 67108864,
+      "sha256": "bfd15855e829ae286a0989c5b38ab0bf88e10d17c907b8ae90635154105f5673"
+    },
+    {
+      "path": "fixtures/beauty-07.png",
+      "size_bytes": 338216,
+      "sha256": "3e1c23e60bf024b82d44128aec5fbdb5da0d37d6b04f876f44e7e3aafc64e812"
+    },
+    {
+      "path": "fixtures/uv-float-07.rgba32f",
+      "size_bytes": 67108864,
+      "sha256": "3a348d07ca2d0bc670683eb873e3fd43e21cabafcdc4ab232353764b2cb96c82"
+    }
+  ],
+  "goldens": {
+    "status": "reference_only",
+    "dino_canonical_sha256": null,
+    "sam_raw_mask_sha256": [],
+    "end_to_end_diagnostic_sha256": null,
+    "end_to_end_mask_sha256": null,
+    "legacy_references": [
+      {
+        "path": "legacy/diagnostic.json",
+        "size_bytes": 20881,
+        "sha256": "ff1fea5c4b5f8d43539e5df082ba86a03a3650a17a453bf06bb9b7f9e1188d19"
+      },
+      {
+        "path": "legacy/semantic-mask.png",
+        "size_bytes": 567195,
+        "sha256": "de27f1745c98b2159b662def7dd6187b15d2e81e09c9ff9880f688cbacb4ff69"
+      }
+    ]
+  },
+  "blockers": [
+    "sealed_hash_locked_wheelhouse_missing",
+    "accepted_dino_canonical_golden_missing",
+    "accepted_sam_raw_mask_goldens_missing",
+    "accepted_end_to_end_goldens_missing",
+    "execution_not_implemented_or_authorized"
+  ]
+}

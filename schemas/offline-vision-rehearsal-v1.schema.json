@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vandrel.local/schemas/offline-vision-rehearsal-v1.schema.json",
+  "title": "Vandrel Foundry Offline Vision Rehearsal Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "readiness",
+    "network_policy",
+    "write_policy",
+    "runtime",
+    "storage",
+    "wheelhouse",
+    "models",
+    "fixtures",
+    "goldens",
+    "blockers"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "vandrel_foundry_offline_vision_rehearsal/1.0"
+    },
+    "readiness": {
+      "enum": ["blocked", "ready"]
+    },
+    "network_policy": {
+      "const": "deny"
+    },
+    "write_policy": {
+      "const": "new_declared_roots_only"
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python", "packages"],
+      "properties": {
+        "python": {"type": "string", "minLength": 1},
+        "packages": {
+          "type": "object",
+          "additionalProperties": {"type": "string", "minLength": 1},
+          "required": ["torch", "torchvision", "transformers", "pillow", "numpy"]
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_additional_free_bytes", "retained_bytes"],
+      "properties": {
+        "minimum_additional_free_bytes": {"type": "integer", "minimum": 8589934592},
+        "retained_bytes": {"const": 4094597769}
+      }
+    },
+    "wheelhouse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "wheels"],
+      "properties": {
+        "status": {"enum": ["missing", "complete"]},
+        "wheels": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/hashedFile"}
+        }
+      }
+    },
+    "models": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "size_bytes",
+          "sha256",
+          "model_id",
+          "snapshot"
+        ],
+        "properties": {
+          "path": {"$ref": "#/$defs/portablePath"},
+          "size_bytes": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "model_id": {"type": "string", "minLength": 1},
+          "snapshot": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+        }
+      }
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/hashedFile"}
+    },
+    "goldens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "dino_canonical_sha256",
+        "sam_raw_mask_sha256",
+        "end_to_end_diagnostic_sha256",
+        "end_to_end_mask_sha256",
+        "legacy_references"
+      ],
+      "properties": {
+        "status": {"enum": ["reference_only", "accepted"]},
+        "dino_canonical_sha256": {"$ref": "#/$defs/nullableHash"},
+        "sam_raw_mask_sha256": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        },
+        "end_to_end_diagnostic_sha256": {"$ref": "#/$defs/nullableHash"},
+        "end_to_end_mask_sha256": {"$ref": "#/$defs/nullableHash"},
+        "legacy_references": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/hashedFile"}
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "portablePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "nullableHash": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "hashedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size_bytes", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/portablePath"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

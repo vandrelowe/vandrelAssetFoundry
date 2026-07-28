@@ -35,6 +35,9 @@ from vandrel_foundry.services.import_consumer_validation import (
 from vandrel_foundry.services.init_library import initialize_asset_library
 from vandrel_foundry.services.inspect_assets import discover_assets, initialize_workspace
 from vandrel_foundry.services.inspect_glb import inspect_processed_glb
+from vandrel_foundry.services.offline_vision_rehearsal import (
+    assess_offline_vision_rehearsal,
+)
 from vandrel_foundry.services.plan_release import plan_release
 from vandrel_foundry.services.poll_task import poll_text_task
 from vandrel_foundry.services.prepare_native_character import (
@@ -356,6 +359,40 @@ def status(
     table.add_row("Revision", str(manifest.revision))
     table.add_row("Next actions", ", ".join(actions) if actions else "none")
     console.print(table)
+
+
+@app.command("offline-vision-rehearsal")
+def offline_vision_rehearsal(
+    manifest: Annotated[Path, typer.Option("--manifest", help="Versioned rehearsal manifest.")],
+    schema: Annotated[Path, typer.Option("--schema", help="Rehearsal JSON Schema.")],
+    allow_network: Annotated[
+        bool,
+        typer.Option("--allow-network", help="Forbidden guard; always fails closed."),
+    ] = False,
+    allow_writes: Annotated[
+        bool,
+        typer.Option("--allow-writes", help="Forbidden guard; always fails closed."),
+    ] = False,
+    execute: Annotated[
+        bool, typer.Option("--execute", help="Unimplemented guard; always fails closed.")
+    ] = False,
+) -> None:
+    """Validate recovery readiness; never install, infer, write, or use network."""
+    try:
+        readiness = assess_offline_vision_rehearsal(
+            manifest,
+            schema,
+            allow_network=allow_network,
+            allow_writes=allow_writes,
+            execute=execute,
+        )
+        console.print(f"Offline vision rehearsal: {'ready' if readiness.ready else 'blocked'}")
+        for blocker in readiness.blockers:
+            console.print(f"- {blocker}")
+        if not readiness.ready:
+            fail(FoundryError("Offline vision rehearsal remains blocked."))
+    except FoundryError as exc:
+        fail(exc)
 
 
 @app.command("release-fitness")

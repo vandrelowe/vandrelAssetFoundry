@@ -97,6 +97,17 @@ workflow reviews the isolation evidence for crossing. This experiment performs
 no provider call, changes no source texture or model, preserves workflow and
 approval state, and cannot promote or release the candidate.
 
+The offline-vision recovery rehearsal manifest is a separate validation-only
+contract. Its schema and blocked template inventory exact runtime, model,
+fixture, and legacy-reference identities while real wheel hashes and accepted
+canonical inference goldens remain absent. The readiness service performs JSON
+Schema and fail-closed blocker validation only: it has no installer, network,
+model-loading, inference, cache-write, cleanup, approval, or publication path.
+Network, write, and execution requests fail before the manifest is read. A
+manifest cannot declare readiness while any derived or declared blocker
+remains. Adding a future execution path requires a separately ratified
+contract revision, hash-locked recovery inputs, and bounded subprocess rules.
+
 Deterministic texture-region recoloring is an explicit local processor. It
 accepts a caller-supplied grayscale PNG aligned to the current GLB's sole
 base-color texture and a declared RGB color. The mask must select a nonempty,

@@ -58,6 +58,7 @@
 | Deterministic texture-region recoloring | `src/vandrel_foundry/services/apply_texture_mask.py` |
 | Missing-preview batch selection | `src/vandrel_foundry/services/render_missing_previews.py` |
 | Sequential fail-isolated static batch orchestration and timing ledger | `src/vandrel_foundry/services/run_static_batch.py` |
+| Validation-only offline-vision recovery rehearsal readiness | `src/vandrel_foundry/services/offline_vision_rehearsal.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |
