@@ -156,6 +156,7 @@ def _descriptor_identity(descriptor: dict[str, Any]) -> tuple[Any, ...]:
             for item in descriptor.get("files", [])
         ),
         descriptor.get("provenance", {}).get("approved_at"),
+        descriptor.get("custody", {}).get("semantic_assertion_sha256"),
     )
 
 

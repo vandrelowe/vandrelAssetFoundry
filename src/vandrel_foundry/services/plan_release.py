@@ -1,9 +1,11 @@
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from vandrel_foundry.config import FoundryConfig
+from vandrel_foundry.domain.custody_assertion import approval_custody_freshness
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest
@@ -27,6 +29,7 @@ OPTIONAL_RELEASE_ROLES = {
 }
 HUMANOID_LANE = "humanoid"
 HUMANOID_COMPATIBILITY_CHECK = "humanoid_retarget_compatibility"
+UNSAFE_RELEASE_COMPONENT = re.compile(r"[^a-zA-Z0-9._-]+")
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,12 @@ def plan_release(
     manifest = ManifestRepository(config.foundry.workspace_root).load(asset_id)
     if manifest.workflow.state is not WorkflowState.APPROVED or not manifest.approval.approved:
         raise FoundryError(f"Release planning requires approved state: {asset_id}")
+    custody_fresh, custody_blockers = approval_custody_freshness(manifest)
+    if not custody_fresh:
+        raise FoundryError(
+            "Release planning requires approved fresh custody: "
+            + ", ".join(custody_blockers)
+        )
     lane = lanes.lanes.get(manifest.asset.lane)
     if lane is None or not lane.release_enabled:
         raise FoundryError(f"Release is disabled for lane: {manifest.asset.lane}")
@@ -84,11 +93,50 @@ def plan_release(
                 "source_artifact_id": artifact.artifact_id,
             }
         )
+    assert manifest.custody is not None
+    evidence_release_paths: dict[str, str] = {}
+    for contribution in manifest.custody.source_contributions:
+        for evidence in contribution.license_evidence:
+            if evidence.binding_id in evidence_release_paths:
+                continue
+            artifact = next(
+                (
+                    item
+                    for item in manifest.artifacts
+                    if item.artifact_id == evidence.candidate_evidence_artifact_id
+                ),
+                None,
+            )
+            if artifact is None:
+                raise FoundryError(
+                    f"Custody evidence artifact is unavailable: {evidence.binding_id}"
+                )
+            _verify_artifact(asset_root, artifact)
+            suffix = f".{artifact.format}" if artifact.format else ".bin"
+            safe_binding_id = UNSAFE_RELEASE_COMPONENT.sub("-", evidence.binding_id).strip(
+                ".-"
+            )
+            if not safe_binding_id:
+                safe_binding_id = "evidence"
+            release_path = (
+                f"custody/evidence/{safe_binding_id}-{evidence.evidence_sha256[:12]}"
+                f"{suffix}"
+            )
+            evidence_release_paths[evidence.binding_id] = release_path
+            files.append(
+                {
+                    "role": "custody_license_evidence",
+                    "path": release_path,
+                    "sha256": artifact.sha256,
+                    "size_bytes": artifact.size_bytes,
+                    "source_artifact_id": artifact.artifact_id,
+                }
+            )
     godot_checks = [
         check for check in manifest.validation.checks if check.get("name") == "godot_sandbox_import"
     ]
     descriptor = {
-        "schema_version": 1,
+        "schema_version": 2,
         "asset_id": asset_id,
         "release_revision": revision,
         "display_name": manifest.asset.display_name,
@@ -101,6 +149,49 @@ def plan_release(
         "technical": {
             **manifest.quality.observed,
             "collision_recommendation": lane.collision_policy,
+        },
+        "custody": {
+            "schema_version": manifest.custody.schema_version,
+            "assessment_status": manifest.custody.assessment_status,
+            "effective_rights_status": manifest.custody.effective_rights_status,
+            "semantic_assertion_sha256": manifest.custody.semantic_assertion_sha256,
+            "policy": {
+                "schema_version": manifest.custody.policy_schema_version,
+                "sha256": manifest.custody.policy_sha256,
+            },
+            "register": {
+                "schema_version": manifest.custody.register_schema_version,
+                "sha256": manifest.custody.register_sha256,
+            },
+            "evaluated_manifest_revision": manifest.custody.evaluated_manifest_revision,
+            "source_contributions": [
+                {
+                    "contribution_id": contribution.contribution_id,
+                    "source_id": contribution.source_id,
+                    "package_id": contribution.package_id,
+                    "package_root": str(contribution.package_root),
+                    "rights_status": contribution.rights_status,
+                    "source_inputs": [
+                        item.model_dump(mode="json")
+                        for item in contribution.source_inputs
+                    ],
+                    "license_evidence": [
+                        {
+                            "binding_id": evidence.binding_id,
+                            "original_evidence_path": str(
+                                evidence.original_evidence_path
+                            ),
+                            "release_path": evidence_release_paths[evidence.binding_id],
+                            "sha256": evidence.evidence_sha256,
+                            "size_bytes": evidence.size_bytes,
+                            "scope_root": str(evidence.scope_root),
+                            "rights_semantics": evidence.rights_semantics,
+                        }
+                        for evidence in contribution.license_evidence
+                    ],
+                }
+                for contribution in manifest.custody.source_contributions
+            ],
         },
         **(
             {"humanoid_compatibility": humanoid_compatibility}

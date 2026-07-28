@@ -2,6 +2,10 @@ import hashlib
 from pathlib import Path
 
 from vandrel_foundry.config import FoundryConfig
+from vandrel_foundry.domain.custody_assertion import (
+    current_source_inputs,
+    custody_freshness,
+)
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest, utc_now
 from vandrel_foundry.domain.states import WorkflowState
@@ -76,6 +80,12 @@ def approve_asset(
         raise FoundryError(f"Approval requires review state: {asset_id}")
     if not approval_checks_pass(manifest):
         raise FoundryError("Approval requires every recorded validation check to pass.")
+    custody_fresh, custody_blockers = custody_freshness(manifest)
+    if not custody_fresh:
+        raise FoundryError(
+            "Approval requires evaluated, documented, fresh custody: "
+            + ", ".join(custody_blockers)
+        )
     reviewer = reviewer.strip()
     if not reviewer:
         raise FoundryError("Approval requires a reviewer name.")
@@ -97,9 +107,27 @@ def approve_asset(
         artifact = candidates[-1]
         _verify_artifact(asset_root, artifact)
         bindings[role] = artifact.sha256
+    assert manifest.custody is not None
+    for contribution in manifest.custody.source_contributions:
+        for evidence in contribution.license_evidence:
+            artifact = next(
+                (
+                    item
+                    for item in manifest.artifacts
+                    if item.artifact_id == evidence.candidate_evidence_artifact_id
+                ),
+                None,
+            )
+            if artifact is None:
+                raise FoundryError(f"Custody evidence artifact is missing: {evidence.binding_id}")
+            _verify_artifact(asset_root, artifact)
     manifest.approval.approved = True
     manifest.approval.approved_at = utc_now()
     manifest.approval.approved_artifact_hashes = bindings
+    manifest.approval.custody_assertion_sha256 = (
+        manifest.custody.semantic_assertion_sha256
+    )
+    manifest.approval.custody_source_inputs = current_source_inputs(manifest)
     manifest.approval.reviewer = reviewer
     manifest.approval.notes = notes.strip()
     manifest.workflow.state = WorkflowState.APPROVED
@@ -128,6 +156,10 @@ def reject_asset(
     manifest.approval.approved = False
     manifest.approval.approved_at = None
     manifest.approval.approved_artifact_hashes = {}
+    manifest.approval.custody_assertion_sha256 = None
+    manifest.approval.custody_source_inputs = []
+    manifest.approval.custody_assertion_sha256 = None
+    manifest.approval.custody_source_inputs = []
     manifest.approval.reviewer = None
     manifest.approval.notes = reason
     manifest.workflow.state = WorkflowState.REJECTED

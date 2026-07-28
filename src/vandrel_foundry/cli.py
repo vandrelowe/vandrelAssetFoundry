@@ -22,6 +22,7 @@ from vandrel_foundry.services.build_custody_inventory import (
     write_custody_outputs,
 )
 from vandrel_foundry.services.build_review_gallery import build_review_gallery
+from vandrel_foundry.services.candidate_custody import bind_candidate_custody
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
@@ -417,6 +418,11 @@ def release_fitness(
             f"binding={view.approval.binding_status}; "
             f"bound hashes: {json.dumps(view.approval.bound_hashes, sort_keys=True)}"
         )
+        console.print(
+            f"Custody: {view.custody.display_status}; "
+            f"freshness={view.custody.freshness_status}; "
+            f"blockers={view.custody.blockers or ['none']}"
+        )
         latest = view.library.latest_revision
         console.print(
             f"Publication: {view.library.status}; latest: "
@@ -538,6 +544,38 @@ def custody_inventory(
     console.print(
         "[green]Custody inventory written[/green] "
         f"{register} sha256={result.report['canonical_register_sha256']}"
+    )
+
+
+@app.command("bind-candidate-custody")
+def bind_candidate_custody_command(
+    asset_id: str,
+    outside_root: Annotated[Path, typer.Option("--outside-root")],
+    register: Annotated[Path, typer.Option("--register")],
+    package_id: Annotated[list[str], typer.Option("--package-id")],
+    policy: Annotated[Path, typer.Option("--policy")] = Path(
+        "config/custody-policy.v1.json"
+    ),
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Bind exact candidate source inputs to validated custody contributions."""
+    try:
+        settings = load_config(config)
+        manifest = bind_candidate_custody(
+            settings,
+            asset_id,
+            outside_root,
+            register,
+            policy,
+            package_id,
+        )
+    except FoundryError as exc:
+        fail(exc)
+    assert manifest.custody is not None
+    console.print(
+        "[green]Candidate custody evaluated[/green] "
+        f"{asset_id} rights={manifest.custody.effective_rights_status} "
+        f"assertion={manifest.custody.semantic_assertion_sha256}"
     )
 
 

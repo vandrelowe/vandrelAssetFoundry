@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.conftest import bind_documented_test_custody
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor
 from vandrel_foundry.domain.states import WorkflowState
@@ -140,6 +141,16 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
         "observed_visible_skinned_triangles": 12000,
     }
 
+    approvable = ManifestRepository(config.foundry.workspace_root).load(
+        "native_character_001"
+    )
+    bind_documented_test_custody(approvable, asset_root)
+    approvable.revision += 1
+    ManifestRepository(config.foundry.workspace_root).save(
+        approvable,
+        "fixture.custody",
+        expected_revision=approvable.revision - 1,
+    )
     approve_asset(config, "native_character_001", "Automated test")
     release = plan_release(config, humanoid_lanes, "native_character_001")
     assert [item["path"] for item in release.descriptor["files"]] == [
@@ -148,6 +159,7 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
         "godot/animation_loader.gd",
         "animations/walk.res",
         "animations/run.res",
+        "custody/evidence/fixture-license-ac8d7c599b43.txt",
     ]
     assert release.descriptor["humanoid_compatibility"] == {
         "candidate_only": True,

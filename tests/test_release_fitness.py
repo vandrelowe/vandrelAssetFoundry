@@ -4,7 +4,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from tests.conftest import write_config
+from tests.conftest import bind_documented_test_custody, write_config
 from vandrel_foundry.cli import app
 from vandrel_foundry.domain.manifest import Artifact, utc_now
 from vandrel_foundry.domain.states import WorkflowState
@@ -74,6 +74,8 @@ def _candidate(config, lanes, prompt: Path, asset_id: str = "fitness_asset_001")
 
 def _approve(repository, asset_id: str, model: bytes, wrapper: bytes) -> None:
     manifest = repository.load(asset_id)
+    root = repository.workspace_root / "assets" / asset_id
+    bind_documented_test_custody(manifest, root)
     manifest.workflow.state = WorkflowState.APPROVED
     manifest.approval.approved = True
     manifest.approval.approved_at = utc_now()
@@ -200,6 +202,8 @@ def test_approved_unpublished_static_candidate_is_release_eligible(config, lanes
 
     assert view.approval.status == "approved"
     assert view.approval.binding_status == "exact"
+    assert view.custody.display_status == "evaluated_documented"
+    assert view.custody.freshness_status == "exact"
     assert view.library.status == "absent"
     assert view.release_eligibility.eligible
     assert view.release_eligibility.proposed_revision == 1
@@ -215,6 +219,10 @@ def test_historical_release_does_not_match_current_approved_set(config, lanes, p
     assert view.library.status == "mismatched"
     assert view.library.matches_current_approved_set is False
     assert view.library.historical_releases[0].revision == 1
+    assert (
+        view.library.historical_releases[0].custody_assessment
+        == "historical_v1_unassessed"
+    )
 
 
 def test_published_current_set_remains_separate_from_absent_consumer(config, lanes, prompt):

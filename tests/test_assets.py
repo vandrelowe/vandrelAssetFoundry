@@ -18,7 +18,7 @@ def test_create_asset_layout_prompt_manifest_and_event(config, lanes, prompt: Pa
     assert manifest.workflow.state.value == "draft"
     assert all((root / relative).is_dir() for relative in ASSET_DIRECTORIES)
     assert (root / "input/prompt.txt").read_text(encoding="utf-8") == "a rough stone knife"
-    assert json.loads((root / "manifest.json").read_text(encoding="utf-8"))["schema_version"] == 1
+    assert json.loads((root / "manifest.json").read_text(encoding="utf-8"))["schema_version"] == 2
     event = json.loads((root / "events.jsonl").read_text(encoding="utf-8"))
     assert event["event"] == "asset.created"
 

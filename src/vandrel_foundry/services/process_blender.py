@@ -150,6 +150,8 @@ def process_with_blender(
     manifest.approval.approved = False
     manifest.approval.approved_at = None
     manifest.approval.approved_artifact_hashes = {}
+    manifest.approval.custody_assertion_sha256 = None
+    manifest.approval.custody_source_inputs = []
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(

@@ -7,7 +7,7 @@ import pytest
 from typer.testing import CliRunner
 
 import vandrel_foundry.services.publish_release as publication
-from tests.conftest import write_config
+from tests.conftest import bind_documented_test_custody, write_config
 from vandrel_foundry.cli import app
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
@@ -78,6 +78,7 @@ def _approved_asset(config, lanes, prompt: Path) -> None:
     )
     manifest.validation.result = "passed"
     manifest.validation.checks = [{"name": "godot_sandbox_import", "passed": True}]
+    bind_documented_test_custody(manifest, root)
     manifest.approval.approved = True
     manifest.approval.approved_at = utc_now()
     manifest.approval.reviewer = "Test Reviewer"
@@ -148,6 +149,7 @@ def _approved_humanoid(config, prompt: Path, compatibility: dict | None) -> None
     )
     manifest.validation.result = "passed"
     manifest.validation.checks = [{"name": "godot_sandbox_import", "passed": True}]
+    bind_documented_test_custody(manifest, root)
     if compatibility is not None:
         manifest.validation.checks.append(compatibility)
     manifest.approval.approved = True
@@ -215,6 +217,15 @@ def test_publish_creates_immutable_release_catalog_and_manifest_record(
         (result.destination / "asset-release.json").read_bytes()
     )
     assert descriptor["asset_id"] == "stone_knife_001"
+    assert descriptor["schema_version"] == 2
+    assert descriptor["custody"]["assessment_status"] == "evaluated"
+    custody_evidence = descriptor["custody"]["source_contributions"][0][
+        "license_evidence"
+    ][0]
+    assert custody_evidence["original_evidence_path"] == "licenses/fixture.txt"
+    assert (result.destination / custody_evidence["release_path"]).read_bytes() == (
+        b"license fixture"
+    )
     manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
     assert manifest.release.released
     assert manifest.release.release_revision == 1

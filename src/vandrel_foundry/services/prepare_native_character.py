@@ -523,6 +523,8 @@ def prepare_provider_native_character(
     manifest.approval.approved = False
     manifest.approval.approved_at = None
     manifest.approval.approved_artifact_hashes = {}
+    manifest.approval.custody_assertion_sha256 = None
+    manifest.approval.custody_source_inputs = []
     manifest.workflow.state = (
         WorkflowState.REVIEW if manifest.validation.result == "passed" else WorkflowState.BLOCKED
     )

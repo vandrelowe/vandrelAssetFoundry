@@ -35,10 +35,19 @@ class ApprovalView(FitnessModel):
     bound_hashes: dict[str, str]
 
 
+class CustodyView(FitnessModel):
+    assessment_status: Literal["absent", "historical_unassessed", "evaluated"]
+    display_status: str
+    effective_rights_status: Literal["documented", "missing", "disputed"] | None
+    freshness_status: Literal["exact", "stale", "unassessed"]
+    blockers: list[str]
+
+
 class LibraryRevisionView(FitnessModel):
     revision: int
     descriptor_sha256: str
     integrity_status: Literal["passing", "failed", "unknown"]
+    custody_assessment: Literal["historical_v1_unassessed", "evaluated_v2", "unknown"]
 
 
 class LibraryView(FitnessModel):
@@ -85,6 +94,7 @@ class ReleaseFitnessView(FitnessModel):
     technical_validation_result: str
     technical_checks: list[TechnicalCheckView]
     approval: ApprovalView
+    custody: CustodyView
     library: LibraryView
     vandrel_consumer: ConsumerView
     release_eligibility: EligibilityView

@@ -147,12 +147,62 @@ def _audit_release(
         LibraryAuditCheck(
             f"{subject}:identity",
             isinstance(descriptor, dict)
-            and descriptor.get("schema_version") == 1
+            and descriptor.get("schema_version") in {1, 2}
             and descriptor.get("asset_id") == asset_id
             and descriptor.get("release_revision") == revision,
             "descriptor identity matches catalog",
         ),
     ]
+    if isinstance(descriptor, dict) and descriptor.get("schema_version") == 2:
+        custody = descriptor.get("custody")
+        files = descriptor.get("files")
+        custody_files = {
+            (
+                item.get("path"),
+                item.get("sha256"),
+                item.get("size_bytes"),
+            )
+            for item in (files if isinstance(files, list) else [])
+            if isinstance(item, dict)
+            and item.get("role") == "custody_license_evidence"
+        }
+        evidence = (
+            [
+                item
+                for contribution in custody.get("source_contributions", [])
+                if isinstance(contribution, dict)
+                for item in contribution.get("license_evidence", [])
+                if isinstance(item, dict)
+            ]
+            if isinstance(custody, dict)
+            else []
+        )
+        custody_ok = (
+            isinstance(custody, dict)
+            and custody.get("assessment_status") == "evaluated"
+            and custody.get("effective_rights_status") == "documented"
+            and isinstance(custody.get("semantic_assertion_sha256"), str)
+            and len(custody["semantic_assertion_sha256"]) == 64
+            and isinstance(custody.get("source_contributions"), list)
+            and bool(custody["source_contributions"])
+            and bool(evidence)
+            and all(
+                (
+                    item.get("release_path"),
+                    item.get("sha256"),
+                    item.get("size_bytes"),
+                )
+                in custody_files
+                for item in evidence
+            )
+        )
+        checks.append(
+            LibraryAuditCheck(
+                f"{subject}:custody",
+                custody_ok,
+                "v2 descriptor has evaluated documented custody",
+            )
+        )
     if not isinstance(descriptor, dict) or not isinstance(descriptor.get("files"), list):
         checks.append(LibraryAuditCheck(f"{subject}:files", False, "descriptor files malformed"))
         return checks

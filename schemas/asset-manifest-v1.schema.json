@@ -28,6 +28,26 @@
           "title": "Approved Artifact Hashes",
           "type": "object"
         },
+        "custody_assertion_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Custody Assertion Sha256"
+        },
+        "custody_source_inputs": {
+          "items": {
+            "$ref": "#/$defs/CustodySourceInput"
+          },
+          "title": "Custody Source Inputs",
+          "type": "array"
+        },
         "reviewer": {
           "anyOf": [
             {
@@ -163,6 +183,275 @@
         "updated_at"
       ],
       "title": "AssetIdentity",
+      "type": "object"
+    },
+    "CustodyAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "vandrel_foundry_candidate_custody/1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "assessment_status": {
+          "enum": [
+            "absent",
+            "historical_unassessed",
+            "evaluated"
+          ],
+          "title": "Assessment Status",
+          "type": "string"
+        },
+        "source_contributions": {
+          "items": {
+            "$ref": "#/$defs/CustodySourceContribution"
+          },
+          "title": "Source Contributions",
+          "type": "array"
+        },
+        "policy_schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Schema Version"
+        },
+        "policy_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Sha256"
+        },
+        "register_schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Register Schema Version"
+        },
+        "register_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Register Sha256"
+        },
+        "evaluated_manifest_revision": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evaluated Manifest Revision"
+        },
+        "effective_rights_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "documented",
+                "missing",
+                "disputed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective Rights Status"
+        },
+        "semantic_assertion_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Semantic Assertion Sha256"
+        }
+      },
+      "required": [
+        "schema_version",
+        "assessment_status"
+      ],
+      "title": "CustodyAssertion",
+      "type": "object"
+    },
+    "CustodyLicenseEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "minLength": 1,
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "original_evidence_path": {
+          "description": "Forward-slash workspace-relative path without traversal",
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+          "title": "Original Evidence Path",
+          "type": "string"
+        },
+        "evidence_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Evidence Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "scope_root": {
+          "description": "Forward-slash workspace-relative path without traversal",
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+          "title": "Scope Root",
+          "type": "string"
+        },
+        "rights_semantics": {
+          "const": "documented",
+          "title": "Rights Semantics",
+          "type": "string"
+        },
+        "candidate_evidence_artifact_id": {
+          "minLength": 1,
+          "title": "Candidate Evidence Artifact Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "original_evidence_path",
+        "evidence_sha256",
+        "size_bytes",
+        "scope_root",
+        "rights_semantics",
+        "candidate_evidence_artifact_id"
+      ],
+      "title": "CustodyLicenseEvidence",
+      "type": "object"
+    },
+    "CustodySourceContribution": {
+      "additionalProperties": false,
+      "properties": {
+        "contribution_id": {
+          "minLength": 1,
+          "title": "Contribution Id",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "package_id": {
+          "minLength": 1,
+          "title": "Package Id",
+          "type": "string"
+        },
+        "package_root": {
+          "description": "Forward-slash workspace-relative path without traversal",
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+          "title": "Package Root",
+          "type": "string"
+        },
+        "source_inputs": {
+          "items": {
+            "$ref": "#/$defs/CustodySourceInput"
+          },
+          "title": "Source Inputs",
+          "type": "array"
+        },
+        "rights_status": {
+          "enum": [
+            "documented",
+            "missing",
+            "disputed"
+          ],
+          "title": "Rights Status",
+          "type": "string"
+        },
+        "license_evidence": {
+          "items": {
+            "$ref": "#/$defs/CustodyLicenseEvidence"
+          },
+          "title": "License Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "contribution_id",
+        "source_id",
+        "package_id",
+        "package_root",
+        "rights_status"
+      ],
+      "title": "CustodySourceContribution",
+      "type": "object"
+    },
+    "CustodySourceInput": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "role": {
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "role",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "CustodySourceInput",
       "type": "object"
     },
     "Generation": {
@@ -564,8 +853,11 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": 1,
-      "default": 1,
+      "default": 2,
+      "enum": [
+        1,
+        2
+      ],
       "title": "Schema Version",
       "type": "integer"
     },
@@ -604,6 +896,17 @@
     },
     "validation": {
       "$ref": "#/$defs/Validation"
+    },
+    "custody": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CustodyAssertion"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "approval": {
       "$ref": "#/$defs/Approval"

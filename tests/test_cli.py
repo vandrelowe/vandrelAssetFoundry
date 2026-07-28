@@ -54,7 +54,7 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     assert listing.exit_code == 0 and "stone_knife_001" in listing.output
     assert "Release" in listing.output
     shown = invoke(["show", "stone_knife_001"], cli_config)
-    assert shown.exit_code == 0 and '"schema_version": 1' in shown.output
+    assert shown.exit_code == 0 and '"schema_version": 2' in shown.output
     status = invoke(["status", "stone_knife_001"], cli_config)
     assert status.exit_code == 0 and "submit" in status.output
     assert "not published" in status.output

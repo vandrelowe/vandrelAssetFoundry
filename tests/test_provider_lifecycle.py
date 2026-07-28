@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.conftest import bind_documented_test_custody
 from vandrel_foundry.domain.errors import DownloadError
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
@@ -374,6 +375,13 @@ def test_select_and_passthrough_processing_creates_distinct_verified_artifact(
     assert validated.validation.result == "passed"
     assert any(item.role == "godot_validation_report" for item in validated.artifacts)
 
+    bind_documented_test_custody(validated, asset_root)
+    validated.revision += 1
+    ManifestRepository(config.foundry.workspace_root).save(
+        validated,
+        "fixture.custody",
+        expected_revision=validated.revision - 1,
+    )
     approved = approve_asset(
         config,
         "stone_knife_001",
@@ -394,6 +402,7 @@ def test_select_and_passthrough_processing_creates_distinct_verified_artifact(
     assert [item["role"] for item in release_plan.descriptor["files"]] == [
         "model",
         "godot_wrapper_scene",
+        "custody_license_evidence",
     ]
 
 

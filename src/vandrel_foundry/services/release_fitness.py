@@ -3,6 +3,10 @@ import json
 from typing import Any
 
 from vandrel_foundry.config import FoundryConfig
+from vandrel_foundry.domain.custody_assertion import (
+    custody_display_status,
+    custody_freshness,
+)
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest
@@ -11,6 +15,7 @@ from vandrel_foundry.domain.release_fitness import (
     ArtifactIdentity,
     ConsumerResultView,
     ConsumerView,
+    CustodyView,
     EligibilityView,
     IntegrityView,
     LibraryRevisionView,
@@ -56,6 +61,7 @@ def inspect_release_fitness(
         if not str(check.get("name", "")).startswith("vandrel_consumer_")
     ]
     approval = _approval_view(manifest)
+    custody = _custody_view(manifest)
     library = _library_view(config, manifest)
     consumer = _consumer_view(config, manifest, processed)
     blockers: list[str] = []
@@ -79,6 +85,7 @@ def inspect_release_fitness(
         technical_validation_result=manifest.validation.result,
         technical_checks=technical,
         approval=approval,
+        custody=custody,
         library=library,
         vandrel_consumer=consumer,
         release_eligibility=EligibilityView(
@@ -177,6 +184,35 @@ def _approval_view(manifest: AssetManifest) -> ApprovalView:
     )
 
 
+def _custody_view(manifest: AssetManifest) -> CustodyView:
+    fresh, blockers = custody_freshness(manifest)
+    assertion = manifest.custody
+    assessment = (
+        "historical_unassessed"
+        if manifest.schema_version == 1
+        else assertion.assessment_status
+        if assertion is not None
+        else "absent"
+    )
+    return CustodyView(
+        assessment_status=assessment,
+        display_status=custody_display_status(manifest),
+        effective_rights_status=(
+            assertion.effective_rights_status
+            if assertion is not None and assertion.assessment_status == "evaluated"
+            else None
+        ),
+        freshness_status=(
+            "exact"
+            if fresh
+            else "unassessed"
+            if assessment in {"absent", "historical_unassessed"}
+            else "stale"
+        ),
+        blockers=blockers,
+    )
+
+
 def _library_view(config: FoundryConfig, manifest: AssetManifest) -> LibraryView:
     catalog_path = config.foundry.asset_library_root / "catalog.json"
     try:
@@ -224,6 +260,7 @@ def _library_view(config: FoundryConfig, manifest: AssetManifest) -> LibraryView
                 revision=revision,
                 descriptor_sha256=str(entry.get("descriptor_sha256", "")),
                 integrity_status=integrity,
+                custody_assessment=_release_custody_assessment(config, entry),
             )
         )
     latest_number = asset_entry.get("latest_revision")
@@ -247,6 +284,25 @@ def _library_view(config: FoundryConfig, manifest: AssetManifest) -> LibraryView
         matches_current_approved_set=matches,
         historical_releases=releases,
     )
+
+
+def _release_custody_assessment(
+    config: FoundryConfig,
+    catalog_entry: dict[str, Any],
+) -> str:
+    relative = catalog_entry.get("path")
+    if not isinstance(relative, str):
+        return "unknown"
+    try:
+        path = contained_path(config.foundry.asset_library_root, relative)
+        descriptor = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return "unknown"
+    if descriptor.get("schema_version") == 1:
+        return "historical_v1_unassessed"
+    if descriptor.get("schema_version") == 2 and isinstance(descriptor.get("custody"), dict):
+        return "evaluated_v2"
+    return "unknown"
 
 
 def _latest_matches_approval(

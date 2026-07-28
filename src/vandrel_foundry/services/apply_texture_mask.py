@@ -261,6 +261,8 @@ def apply_texture_mask(
     manifest.approval.approved = False
     manifest.approval.approved_at = None
     manifest.approval.approved_artifact_hashes = {}
+    manifest.approval.custody_assertion_sha256 = None
+    manifest.approval.custody_source_inputs = []
     manifest.approval.reviewer = None
     manifest.approval.notes = ""
     manifest.revision += 1

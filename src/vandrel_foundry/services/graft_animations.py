@@ -197,6 +197,8 @@ def graft_animations(
     manifest.approval.approved = False
     manifest.approval.approved_at = None
     manifest.approval.approved_artifact_hashes = {}
+    manifest.approval.custody_assertion_sha256 = None
+    manifest.approval.custody_source_inputs = []
     manifest.quality.observed["animation_count"] = facts.output_animation_count
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
