@@ -4,9 +4,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.ids import validate_asset_id
+from vandrel_foundry.domain.release_descriptor import (
+    format_release_revision,
+    validate_release_descriptor,
+)
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 
@@ -88,7 +94,13 @@ def _audit_asset(
     releases = entry["releases"]
     revisions = [item.get("revision") for item in releases if isinstance(item, dict)]
     checks: list[LibraryAuditCheck] = []
-    valid_revisions = [value for value in revisions if isinstance(value, int) and value > 0]
+    valid_revisions = [
+        value
+        for value in revisions
+        if isinstance(value, int)
+        and not isinstance(value, bool)
+        and 1 <= value <= 999
+    ]
     expected_latest = max(valid_revisions, default=None)
     checks.append(
         LibraryAuditCheck(
@@ -102,7 +114,7 @@ def _audit_asset(
             LibraryAuditCheck(
                 f"{asset_id}:revisions",
                 False,
-                "release revisions must be unique positive integers",
+                "release revisions must be unique integers in the range 1..999",
             )
         )
     for release in releases:
@@ -119,8 +131,12 @@ def _audit_release(
     cataloged_directories: set[Path],
 ) -> list[LibraryAuditCheck]:
     revision = entry["revision"]
-    subject = f"{asset_id}:r{revision:03d}"
-    expected_path = f"assets/{asset_id}/r{revision:03d}/asset-release.json"
+    try:
+        formatted_revision = format_release_revision(revision)
+    except FoundryError as exc:
+        return [LibraryAuditCheck(f"{asset_id}:revision", False, str(exc))]
+    subject = f"{asset_id}:{formatted_revision}"
+    expected_path = f"assets/{asset_id}/{formatted_revision}/asset-release.json"
     if entry.get("path") != expected_path:
         return [LibraryAuditCheck(subject, False, "catalog descriptor path is not canonical")]
     try:
@@ -134,6 +150,13 @@ def _audit_release(
     except (OSError, json.JSONDecodeError) as exc:
         return [LibraryAuditCheck(subject, False, f"descriptor unavailable: {exc}")]
     descriptor_hash_matches = _sha256(descriptor_bytes) == entry.get("descriptor_sha256")
+    try:
+        validate_release_descriptor(descriptor)
+        descriptor_schema_valid = True
+        descriptor_schema_detail = "descriptor matches its versioned executable schema"
+    except ValidationError as exc:
+        descriptor_schema_valid = False
+        descriptor_schema_detail = f"descriptor schema invalid: {exc}"
     checks = [
         LibraryAuditCheck(
             f"{subject}:descriptor_hash",
@@ -143,6 +166,11 @@ def _audit_release(
                 if descriptor_hash_matches
                 else "descriptor hash differs from catalog"
             ),
+        ),
+        LibraryAuditCheck(
+            f"{subject}:schema",
+            descriptor_schema_valid,
+            descriptor_schema_detail,
         ),
         LibraryAuditCheck(
             f"{subject}:identity",
@@ -233,8 +261,23 @@ def _orphan_checks(root: Path, cataloged: set[Path]) -> list[LibraryAuditCheck]:
     if not assets_root.is_dir():
         return []
     checks: list[LibraryAuditCheck] = []
-    for path in sorted(assets_root.glob("*/r[0-9][0-9][0-9]")):
-        if path.is_dir() and path.resolve() not in cataloged:
+    for path in sorted(assets_root.glob("*/r*")):
+        if not path.is_dir():
+            continue
+        if not (
+            len(path.name) == 4
+            and path.name.startswith("r")
+            and path.name[1:].isdigit()
+            and 1 <= int(path.name[1:]) <= 999
+        ):
+            checks.append(
+                LibraryAuditCheck(
+                    path.relative_to(root).as_posix(),
+                    False,
+                    "release directory must use canonical r001..r999 layout",
+                )
+            )
+        elif path.resolve() not in cataloged:
             checks.append(
                 LibraryAuditCheck(
                     path.relative_to(root).as_posix(),

@@ -4,12 +4,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.custody import PortableCustodyPath
 from vandrel_foundry.domain.custody_assertion import approval_custody_freshness
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest
+from vandrel_foundry.domain.release_descriptor import (
+    ReleaseDescriptorV2,
+    format_release_revision,
+)
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import contained_path
@@ -31,6 +37,25 @@ OPTIONAL_RELEASE_ROLES = {
 HUMANOID_LANE = "humanoid"
 HUMANOID_COMPATIBILITY_CHECK = "humanoid_retarget_compatibility"
 UNSAFE_RELEASE_COMPONENT = re.compile(r"[^a-zA-Z0-9._-]+")
+PORTABLE_TECHNICAL_FIELDS = {
+    "triangle_count",
+    "mesh_count",
+    "primitive_count",
+    "material_count",
+    "texture_count",
+    "image_count",
+    "skin_count",
+    "joint_count",
+    "animation_count",
+    "visible_mesh_count",
+    "visible_skinned_mesh_count",
+    "visible_unskinned_mesh_count",
+    "visible_skinned_triangle_count",
+    "inspected_processed_artifact_id",
+    "inspected_processed_sha256",
+    "animation_source",
+    "recommended_fbx_embedded_texture_handling",
+}
 
 
 @dataclass(frozen=True)
@@ -38,6 +63,9 @@ class ReleasePlan:
     release_revision: int
     destination: Path
     descriptor: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        format_release_revision(self.release_revision)
 
 
 def plan_release(
@@ -56,11 +84,14 @@ def plan_release(
     lane = lanes.lanes.get(manifest.asset.lane)
     if lane is None or not lane.release_enabled:
         raise FoundryError(f"Release is disabled for lane: {manifest.asset.lane}")
-    humanoid_compatibility = _humanoid_release_evidence(manifest)
     library_asset_root = config.foundry.asset_library_root / "assets" / asset_id
     revision = _next_revision(library_asset_root)
     asset_root = config.foundry.workspace_root / "assets" / asset_id
     files: list[dict[str, Any]] = []
+    humanoid_compatibility, humanoid_report = _humanoid_release_evidence(
+        manifest,
+        asset_root,
+    )
     model = _approved_artifact(manifest, asset_root, "processed_model")
     files.append(
         {
@@ -129,10 +160,39 @@ def plan_release(
                     "source_artifact_id": artifact.artifact_id,
                 }
             )
+    if humanoid_report is not None:
+        release_path = (
+            "evidence/humanoid/"
+            f"{humanoid_report.artifact_id}-{humanoid_report.sha256[:12]}.json"
+        )
+        files.append(
+            {
+                "role": "humanoid_compatibility_report",
+                "path": release_path,
+                "sha256": humanoid_report.sha256,
+                "size_bytes": humanoid_report.size_bytes,
+                "source_artifact_id": humanoid_report.artifact_id,
+            }
+        )
+        assert humanoid_compatibility is not None
+        humanoid_compatibility["report"] = {
+            "release_path": release_path,
+            "sha256": humanoid_report.sha256,
+            "size_bytes": humanoid_report.size_bytes,
+            "source_artifact_id": humanoid_report.artifact_id,
+        }
     godot_checks = [
         check for check in manifest.validation.checks if check.get("name") == "godot_sandbox_import"
     ]
-    descriptor = {
+    if (
+        manifest.custody.schema_version != "vandrel_foundry_candidate_custody/1.1"
+        or manifest.custody.register_root_fingerprints is None
+        or manifest.custody.evidence_fingerprint_sha256 is None
+    ):
+        raise FoundryError(
+            "Release descriptor v2 requires custody assertion 1.1 with freshness bindings."
+        )
+    descriptor_value = {
         "schema_version": 2,
         "asset_id": asset_id,
         "release_revision": revision,
@@ -144,7 +204,11 @@ def plan_release(
             "wrapper_template": lane.wrapper_template,
         },
         "technical": {
-            **manifest.quality.observed,
+            **{
+                key: value
+                for key, value in manifest.quality.observed.items()
+                if key in PORTABLE_TECHNICAL_FIELDS
+            },
             "collision_recommendation": lane.collision_policy,
         },
         "custody": {
@@ -159,14 +223,18 @@ def plan_release(
             "register": {
                 "schema_version": manifest.custody.register_schema_version,
                 "sha256": manifest.custody.register_sha256,
+                "root_fingerprints": manifest.custody.register_root_fingerprints,
             },
+            "evidence_fingerprint_sha256": (
+                manifest.custody.evidence_fingerprint_sha256
+            ),
             "evaluated_manifest_revision": manifest.custody.evaluated_manifest_revision,
             "source_contributions": [
                 {
                     "contribution_id": contribution.contribution_id,
                     "source_id": contribution.source_id,
                     "package_id": contribution.package_id,
-                    "package_root": _custody_path_string(contribution.package_root),
+                    "package_root": _portable_custody_path(contribution.package_root),
                     "rights_status": contribution.rights_status,
                     "source_inputs": [
                         item.model_dump(mode="json") for item in contribution.source_inputs
@@ -174,13 +242,13 @@ def plan_release(
                     "license_evidence": [
                         {
                             "binding_id": evidence.binding_id,
-                            "original_evidence_path": _custody_path_string(
+                            "original_evidence_path": _portable_custody_path(
                                 evidence.original_evidence_path
                             ),
                             "release_path": evidence_release_paths[evidence.binding_id],
                             "sha256": evidence.evidence_sha256,
                             "size_bytes": evidence.size_bytes,
-                            "scope_root": _custody_path_string(evidence.scope_root),
+                            "scope_root": _portable_custody_path(evidence.scope_root),
                             "rights_semantics": evidence.rights_semantics,
                         }
                         for evidence in contribution.license_evidence
@@ -202,16 +270,27 @@ def plan_release(
             ),
         },
     }
+    try:
+        descriptor = ReleaseDescriptorV2.model_validate(descriptor_value).model_dump(
+            mode="json",
+            exclude_none=True,
+            by_alias=True,
+        )
+    except ValidationError as exc:
+        raise FoundryError(f"Release descriptor v2 is invalid: {exc}") from exc
     return ReleasePlan(
         release_revision=revision,
-        destination=library_asset_root / f"r{revision:03d}",
+        destination=library_asset_root / format_release_revision(revision),
         descriptor=descriptor,
     )
 
 
-def _humanoid_release_evidence(manifest: AssetManifest) -> dict[str, Any] | None:
+def _humanoid_release_evidence(
+    manifest: AssetManifest,
+    asset_root: Path,
+) -> tuple[dict[str, Any] | None, Artifact | None]:
     if manifest.asset.lane != HUMANOID_LANE:
-        return None
+        return None, None
     native_checks = [
         check
         for check in manifest.validation.checks
@@ -237,13 +316,14 @@ def _humanoid_release_evidence(manifest: AssetManifest) -> dict[str, Any] | None
             raise FoundryError(
                 "Humanoid release requires passing hash-bound provider-native playback evidence."
             )
+        report_artifact = _packaged_humanoid_report(manifest, asset_root, check.get("report"))
         return {
+            "evidence_route": "provider_native_same_task",
             "candidate_only": True,
             "vandrel_runtime_accepted": False,
             "provider_native_same_task": True,
             "shared_animation_pool_compatible": False,
-            "report": check.get("report"),
-        }
+        }, report_artifact
     checks = [
         check
         for check in manifest.validation.checks
@@ -260,16 +340,17 @@ def _humanoid_release_evidence(manifest: AssetManifest) -> dict[str, Any] | None
     mapping_profile = check.get("mapping_profile")
     if not isinstance(report, str) or not report or not isinstance(mapping_profile, str):
         raise FoundryError("Humanoid release compatibility evidence is incomplete.")
+    report_artifact = _packaged_humanoid_report(manifest, asset_root, report)
     return {
+        "evidence_route": "retarget_mapping",
         "candidate_only": True,
         "vandrel_runtime_accepted": False,
         "mapping_profile": mapping_profile,
-        "report": report,
         "animation_donor_asset_id": check.get("animation_donor_asset_id"),
         "direct_skeleton_match": bool(check.get("direct_skeleton_match")),
         "direct_rest_transform_match": bool(check.get("direct_rest_transform_match")),
         "humanoid_retarget_candidate": True,
-    }
+    }, report_artifact
 
 
 def _next_revision(root: Path) -> int:
@@ -285,7 +366,9 @@ def _next_revision(root: Path) -> int:
             suffix = entry.name[1:]
             if suffix.isdigit():
                 revisions.append(int(suffix))
-    return max(revisions, default=0) + 1
+    revision = max(revisions, default=0) + 1
+    format_release_revision(revision)
+    return revision
 
 
 def _verify_artifact(asset_root: Path, artifact: Artifact) -> None:
@@ -321,7 +404,33 @@ def _approved_artifact(
     return artifact
 
 
-def _custody_path_string(value: object) -> str:
-    if isinstance(value, PortableCustodyPath):
-        return value.path
-    return str(value)
+def _portable_custody_path(value: object) -> dict[str, str]:
+    if not isinstance(value, PortableCustodyPath):
+        raise FoundryError("Release descriptor v2 requires qualified custody paths.")
+    return value.model_dump(mode="json")
+
+
+def _packaged_humanoid_report(
+    manifest: AssetManifest,
+    asset_root: Path,
+    report_path: object,
+) -> Artifact:
+    if not isinstance(report_path, str) or not report_path:
+        raise FoundryError("Humanoid release compatibility report path is unavailable.")
+    candidates = [
+        artifact
+        for artifact in manifest.artifacts
+        if str(artifact.path) == report_path
+        and artifact.role
+        in {
+            "humanoid_retarget_compatibility_report",
+            "provider_native_character_report",
+        }
+    ]
+    if not candidates:
+        raise FoundryError(
+            "Humanoid release compatibility report must be a manifest-owned artifact."
+        )
+    artifact = candidates[-1]
+    _verify_artifact(asset_root, artifact)
+    return artifact

@@ -158,13 +158,26 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
         "animations/walk.res",
         "animations/run.res",
         "custody/evidence/fixture-license-ac8d7c599b43.txt",
+        (
+            "evidence/humanoid/"
+            "provider_native_character_report_001-945310194f56.json"
+        ),
     ]
     assert release.descriptor["humanoid_compatibility"] == {
+        "evidence_route": "provider_native_same_task",
         "candidate_only": True,
         "vandrel_runtime_accepted": False,
         "provider_native_same_task": True,
         "shared_animation_pool_compatible": False,
-        "report": str(result.report.path),
+        "report": {
+            "release_path": (
+                "evidence/humanoid/"
+                "provider_native_character_report_001-945310194f56.json"
+            ),
+            "sha256": result.report.sha256,
+            "size_bytes": result.report.size_bytes,
+            "source_artifact_id": result.report.artifact_id,
+        },
     }
 
 

@@ -4,7 +4,11 @@ from pathlib import Path
 import pytest
 
 from vandrel_foundry.config import FoundryConfig
-from vandrel_foundry.domain.custody_assertion import semantic_assertion_sha256
+from vandrel_foundry.domain.custody import PortableCustodyPath
+from vandrel_foundry.domain.custody_assertion import (
+    evidence_freshness_sha256,
+    semantic_assertion_sha256,
+)
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import (
     Artifact,
@@ -162,30 +166,53 @@ def bind_documented_test_custody(manifest, asset_root: Path) -> None:
         contribution_id="fixture-contribution",
         source_id="fixture-provider",
         package_id="fixture-package",
-        package_root="fixture-package",
+        package_root=PortableCustodyPath(
+            logical_root="outside_assets",
+            path="fixture-package",
+        ),
         source_inputs=source_inputs,
         rights_status="documented",
         license_evidence=[
             CustodyLicenseEvidence(
                 binding_id="fixture-license",
-                original_evidence_path="licenses/fixture.txt",
+                original_evidence_path=PortableCustodyPath(
+                    logical_root="outside_assets",
+                    path="licenses/fixture.txt",
+                ),
                 evidence_sha256=evidence_sha,
                 size_bytes=len(evidence),
-                scope_root="fixture-package",
+                scope_root=PortableCustodyPath(
+                    logical_root="outside_assets",
+                    path="fixture-package",
+                ),
                 rights_semantics="documented",
                 candidate_evidence_artifact_id="custody-evidence-001",
             )
         ],
     )
     semantic_sha = semantic_assertion_sha256([contribution])
+    root_fingerprints = {
+        "outside_assets": "3" * 64,
+        "foundry_workspace": "4" * 64,
+        "asset_library": "5" * 64,
+    }
+    evidence_fingerprint = evidence_freshness_sha256(
+        policy_schema_version="test-policy/1",
+        policy_sha256="1" * 64,
+        register_schema_version="vandrel_foundry_custody_register/1.1",
+        register_sha256="2" * 64,
+        root_fingerprints=root_fingerprints,
+    )
     manifest.custody = CustodyAssertion(
-        schema_version="vandrel_foundry_candidate_custody/1.0",
+        schema_version="vandrel_foundry_candidate_custody/1.1",
         assessment_status="evaluated",
         source_contributions=[contribution],
         policy_schema_version="test-policy/1",
         policy_sha256="1" * 64,
-        register_schema_version="test-register/1",
+        register_schema_version="vandrel_foundry_custody_register/1.1",
         register_sha256="2" * 64,
+        register_root_fingerprints=root_fingerprints,
+        evidence_fingerprint_sha256=evidence_fingerprint,
         evaluated_manifest_revision=manifest.revision,
         effective_rights_status="documented",
         semantic_assertion_sha256=semantic_sha,

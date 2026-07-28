@@ -1,0 +1,95 @@
+{
+  "schema_version": 2,
+  "asset_id": "planned_asset_001",
+  "release_revision": 1,
+  "display_name": "Planned Asset",
+  "lane": "static_prop",
+  "files": [
+    {
+      "role": "model",
+      "path": "model.glb",
+      "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "size_bytes": 12,
+      "source_artifact_id": "processed-model-001"
+    },
+    {
+      "role": "custody_license_evidence",
+      "path": "custody/evidence/license.txt",
+      "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "size_bytes": 8,
+      "source_artifact_id": "custody-evidence-001"
+    }
+  ],
+  "godot": {
+    "import_validated": true,
+    "wrapper_template": "static_prop"
+  },
+  "technical": {
+    "triangle_count": 12,
+    "mesh_count": 1,
+    "collision_recommendation": "manual"
+  },
+  "custody": {
+    "schema_version": "vandrel_foundry_candidate_custody/1.1",
+    "assessment_status": "evaluated",
+    "effective_rights_status": "documented",
+    "semantic_assertion_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "policy": {
+      "schema_version": "test-policy/1",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "register": {
+      "schema_version": "vandrel_foundry_custody_register/1.1",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "root_fingerprints": {
+        "outside_assets": "3333333333333333333333333333333333333333333333333333333333333333",
+        "foundry_workspace": "4444444444444444444444444444444444444444444444444444444444444444",
+        "asset_library": "5555555555555555555555555555555555555555555555555555555555555555"
+      }
+    },
+    "evidence_fingerprint_sha256": "a7af2a090d4f0bd2b9d186f79163fa722c244eac785cb6d138036918c12763e6",
+    "evaluated_manifest_revision": 4,
+    "source_contributions": [
+      {
+        "contribution_id": "contribution-001",
+        "source_id": "provider",
+        "package_id": "package-001",
+        "package_root": {
+          "logical_root": "outside_assets",
+          "path": "Provider/Package"
+        },
+        "rights_status": "documented",
+        "source_inputs": [
+          {
+            "artifact_id": "source-model-001",
+            "role": "provider_source_model",
+            "sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+            "size_bytes": 10
+          }
+        ],
+        "license_evidence": [
+          {
+            "binding_id": "license-001",
+            "original_evidence_path": {
+              "logical_root": "outside_assets",
+              "path": "Provider/Package/LICENSE.txt"
+            },
+            "release_path": "custody/evidence/license.txt",
+            "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+            "size_bytes": 8,
+            "scope_root": {
+              "logical_root": "outside_assets",
+              "path": "Provider/Package"
+            },
+            "rights_semantics": "documented"
+          }
+        ]
+      }
+    ]
+  },
+  "provenance": {
+    "foundry_manifest_revision": 4,
+    "approval_reviewer": "Fixture Reviewer",
+    "approved_at": "2026-07-28T20:00:00Z"
+  }
+}

@@ -2,9 +2,16 @@
 
 import re
 from pathlib import PurePosixPath
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    WithJsonSchema,
+    field_validator,
+    model_validator,
+)
 
 
 class CustodyModel(BaseModel):
@@ -12,11 +19,26 @@ class CustodyModel(BaseModel):
 
 
 LogicalRoot = Literal["outside_assets", "foundry_workspace", "asset_library"]
+PortablePathValue = Annotated[
+    str,
+    Field(min_length=1),
+    WithJsonSchema(
+        {
+            "type": "string",
+            "minLength": 1,
+            "pattern": (
+                r"^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\.\.?(?:/|$))"
+                r"(?!.*\\)(?!.*//)[^/]+(?:/[^/]+)*$"
+            ),
+        }
+    ),
+]
+Sha256 = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
 
 
 class PortableCustodyPath(CustodyModel):
     logical_root: LogicalRoot
-    path: str = Field(min_length=1)
+    path: PortablePathValue
 
     @field_validator("path")
     @classmethod
@@ -213,7 +235,10 @@ class CustodyRegister(CustodyModel):
     ]
     scan_algorithm_version: Literal["vandrel_foundry_custody_scan/1.0"]
     roots: tuple[Literal["outside_assets"], Literal["foundry_workspace"]]
-    root_fingerprints: dict[LogicalRoot, str] | None = None
+    root_fingerprints: Annotated[
+        dict[LogicalRoot, Sha256],
+        Field(min_length=3, max_length=3),
+    ] | None = None
     policy: RegisterPolicyBinding
     outside_files: list[OutsideFileRecord]
     packages: list[PackageRecord]

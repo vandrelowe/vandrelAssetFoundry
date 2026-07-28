@@ -266,8 +266,11 @@
           "anyOf": [
             {
               "additionalProperties": {
+                "pattern": "^[a-f0-9]{64}$",
                 "type": "string"
               },
+              "maxProperties": 3,
+              "minProperties": 3,
               "propertyNames": {
                 "enum": [
                   "outside_assets",
@@ -593,6 +596,7 @@
         },
         "path": {
           "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\)(?!.*//)[^/]+(?:/[^/]+)*$",
           "title": "Path",
           "type": "string"
         }

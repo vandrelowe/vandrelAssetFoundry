@@ -10,7 +10,8 @@
   triangle-budget, material, skeleton, and Godot sandbox-import checks.
 - Any approved artifact change invalidates approval.
 - Release is dry-run by default.
-- Release revisions are immutable and monotonically numbered.
+- Release revisions are immutable, monotonically numbered, and limited to the
+  canonical `r001` through `r999` layout.
 - Publication never overwrites an existing release revision.
 - A newly processed and explicitly re-approved candidate may publish the next
   immutable revision after an earlier release.
@@ -51,19 +52,34 @@ destination becomes visible.
 `release` performs a read-only plan. It verifies the approved artifact files
 against their recorded hashes and sizes, checks that the lane permits release,
 selects the next unused `rNNN` directory, and prints schema-versioned
-`asset-release.json` content. The plan contains:
+`asset-release.json` content. Historical descriptor v1 remains byte-preserving
+and parse-compatible. Planned descriptor v2 is a strict Foundry executable
+projection and remains unratified pending separate Asset Library contract
+authority. The plan contains:
 
 - stable asset identity, lane, display name, and proposed revision;
 - portable release paths, roles, hashes, sizes, and source artifact IDs;
 - Godot import-validation result and declared wrapper-template intent;
-- observed technical facts and collision recommendation;
+- an explicit closed set of portable technical facts and collision
+  recommendation; arbitrary manifest observations, provider URLs, operational
+  report paths, and unknown fields are not projected;
+- evaluated custody assertion 1.1 with logical-root-qualified package,
+  evidence, and scope paths, the exact three register root fingerprints, and
+  the evidence-freshness fingerprint;
 - for humanoids, either mapping/donor compatibility facts or provider-native
   same-task playback facts, plus explicit candidate-only/runtime-unaccepted
-  markers;
+  markers and a packaged report entry bound by release path, source artifact
+  ID, SHA-256, and size;
 - Foundry manifest revision and approval provenance.
 
 The plan does not create a directory, mutate the manifest or catalog, run Git,
 or claim a Vandrel runtime destination.
+
+The checked Foundry files
+`schemas/release-descriptor-v1.compat.schema.json` and
+`schemas/release-descriptor-v2.planned.schema.json` mirror the executable
+models and compatibility fixtures. They are implementation guardrails, not
+Asset Library ratification or a transfer of schema ownership.
 
 The `humanoid` lane may publish only with the `humanoid_candidate` wrapper
 intent and one ratified evidence route. The mapping route requires passing
@@ -73,6 +89,11 @@ Meshy rigging task and pass bounded Godot playback. Its descriptor states
 `shared_animation_pool_compatible: false` and
 `vandrel_runtime_accepted: false`. Neither route may claim consumer-side
 runtime acceptance.
+
+A Workspace-relative humanoid report string is never a portable release
+reference. Planning verifies the manifest-owned report bytes and includes the
+report in `files`; the descriptor references only that packaged, hash-bound
+entry.
 
 ## Publication transaction
 

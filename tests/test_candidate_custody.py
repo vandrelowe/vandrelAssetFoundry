@@ -134,6 +134,37 @@ def test_stale_evidence_fingerprint_is_an_explicit_custody_blocker(
     assert "custody_evidence_fingerprint_stale" in blockers
 
 
+def test_legacy_assertion_is_readable_but_cannot_authorize(
+    config,
+    lanes,
+    prompt,
+    tmp_path,
+) -> None:
+    outside, policy, register, package_id, _ = _candidate(config, lanes, prompt, tmp_path)
+    manifest = bind_candidate_custody(
+        config,
+        "custody_asset_001",
+        outside,
+        register,
+        policy,
+        [package_id],
+    )
+    assert manifest.custody is not None
+    manifest.custody.schema_version = "vandrel_foundry_candidate_custody/1.0"
+    manifest.custody.register_root_fingerprints = None
+    manifest.custody.evidence_fingerprint_sha256 = None
+    for contribution in manifest.custody.source_contributions:
+        contribution.package_root = contribution.package_root.path
+        for evidence in contribution.license_evidence:
+            evidence.original_evidence_path = evidence.original_evidence_path.path
+            evidence.scope_root = evidence.scope_root.path
+
+    fresh, blockers = custody_freshness(manifest)
+
+    assert not fresh
+    assert "custody_assertion_legacy_stale" in blockers
+
+
 @pytest.mark.parametrize("rights", ["missing", "disputed"])
 def test_ineligible_rights_evaluate_but_approval_fails_closed(
     config, lanes, prompt, tmp_path, rights

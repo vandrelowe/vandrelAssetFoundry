@@ -58,7 +58,7 @@ def test_audit_library_verifies_catalog_descriptor_and_files(config) -> None:
     result = audit_library(config)
 
     assert result.passed
-    assert len(result.checks) == 5
+    assert len(result.checks) == 6
 
 
 def test_audit_library_detects_changed_release_file(config) -> None:
@@ -85,3 +85,22 @@ def test_audit_library_detects_orphaned_release(config) -> None:
 def test_audit_library_rejects_missing_catalog(config) -> None:
     with pytest.raises(FoundryError, match="does not exist"):
         audit_library(config)
+
+
+def test_audit_library_rejects_r1000_layout(config) -> None:
+    _write_library(config.foundry.asset_library_root)
+    (
+        config.foundry.asset_library_root
+        / "assets"
+        / "stone_knife_001"
+        / "r1000"
+    ).mkdir()
+
+    result = audit_library(config)
+
+    assert not result.passed
+    assert any(
+        check.subject.endswith("r1000")
+        and "r001..r999" in check.detail
+        for check in result.checks
+    )

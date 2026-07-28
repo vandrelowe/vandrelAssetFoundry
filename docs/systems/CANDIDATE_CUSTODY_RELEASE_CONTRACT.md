@@ -17,8 +17,10 @@ planning. Foundry does not retrofit historical releases.
 
 Candidate custody assertion 1.1 is current for new evaluations. Assertion 1.0
 remains readable so existing candidates are not migrated merely by loading
-them. Register 1.0 is different: it is historical-only and cannot authorize a
-new custody decision.
+them, but it is also historical-only and cannot authorize approval or release.
+Register 1.0 likewise cannot authorize a new custody decision. Both return an
+explicit legacy-stale blocker rather than reusing historical counts or hashes
+as current evidence.
 
 ## Candidate assertion
 
@@ -79,11 +81,10 @@ semantics. Evidence paths are generated from safe components and content hashes.
 Custody is a distinct axis from technical validation, human approval,
 publication state, and Vandrel consumer acceptance. None implies another.
 
-Release descriptor v2 retains its existing string fields for compatibility;
-the planner projects qualified candidate paths to their relative POSIX path
-components. Moving descriptor identity and custody paths to qualified objects
-requires a separately versioned Library contract and is not part of assertion
-1.1.
+Planned release descriptor v2 retains qualified custody paths, all three
+register root fingerprints, and the assertion evidence-freshness fingerprint.
+Its checked Foundry planning schema remains unratified pending the separate
+Library-owned contract decision.
 
 ## Boundaries
 

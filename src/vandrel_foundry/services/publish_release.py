@@ -13,6 +13,7 @@ from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import AssetManifest, utc_now
+from vandrel_foundry.domain.release_descriptor import format_release_revision
 from vandrel_foundry.services.plan_release import ReleasePlan, plan_release
 from vandrel_foundry.services.windows_acl_policy import apply_release_acl
 from vandrel_foundry.storage.atomic import write_json_temp
@@ -222,11 +223,13 @@ def _record_manifest_release(
 
 
 def _release_relative_path(plan: ReleasePlan, child: str) -> str:
-    return f"assets/{plan.descriptor['asset_id']}/r{plan.release_revision:03d}/{child}"
+    revision = format_release_revision(plan.release_revision)
+    return f"assets/{plan.descriptor['asset_id']}/{revision}/{child}"
 
 
 def _allowed_transaction_paths(plan: ReleasePlan) -> set[str]:
-    prefix = f"assets/{plan.descriptor['asset_id']}/r{plan.release_revision:03d}/"
+    revision = format_release_revision(plan.release_revision)
+    prefix = f"assets/{plan.descriptor['asset_id']}/{revision}/"
     return {
         CATALOG_PATH,
         *(prefix + item["path"] for item in plan.descriptor["files"]),

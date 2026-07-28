@@ -111,6 +111,8 @@ def custody_freshness(manifest: AssetManifest) -> tuple[bool, list[str]]:
     if assertion.assessment_status == "historical_unassessed":
         return False, ["custody_historical_unassessed"]
     blockers = []
+    if assertion.schema_version == CUSTODY_SCHEMA:
+        blockers.append("custody_assertion_legacy_stale")
     if assertion.effective_rights_status != "documented":
         blockers.append(f"custody_rights_{assertion.effective_rights_status}")
     semantic = semantic_assertion_sha256(assertion.source_contributions)

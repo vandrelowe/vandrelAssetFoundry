@@ -1,9 +1,9 @@
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from vandrel_foundry.domain.custody import PortableCustodyPath
+from vandrel_foundry.domain.custody import LogicalRoot, PortableCustodyPath, Sha256
 from vandrel_foundry.domain.ids import validate_asset_id
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
@@ -141,8 +141,9 @@ class CustodyAssertion(StrictModel):
     policy_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     register_schema_version: str | None = None
     register_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
-    register_root_fingerprints: dict[
-        Literal["outside_assets", "foundry_workspace", "asset_library"], str
+    register_root_fingerprints: Annotated[
+        dict[LogicalRoot, Sha256],
+        Field(min_length=3, max_length=3),
     ] | None = None
     evidence_fingerprint_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     evaluated_manifest_revision: int | None = Field(default=None, ge=1)

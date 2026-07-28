@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "asset_id": "historical_asset_001",
+  "release_revision": 1,
+  "files": [
+    {
+      "role": "model",
+      "path": "model.glb",
+      "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "size_bytes": 12,
+      "source_artifact_id": "historical-model-001"
+    }
+  ],
+  "technical": {
+    "historical_extension": "preserved"
+  }
+}

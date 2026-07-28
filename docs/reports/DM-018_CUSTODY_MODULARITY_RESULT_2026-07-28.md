@@ -21,10 +21,10 @@ records remain readable.
 - Package IDs still derive from `sha256(source_id + "\n" + package_root)` and
   existing IDs do not change.
 - No folder alias or reorganization mapping was introduced.
-- Release descriptor v2 retains its existing string path fields. The planner
-  performs an explicit compatibility projection from qualified custody paths.
-- Candidate assertion 1.0 remains readable and keeps its legacy freshness
-  behavior; only new evaluations emit 1.1.
+- The follow-up emitter hardening now retains qualified custody paths in
+  planned descriptor v2; see `DM-018_RELEASE_V2_EMITTER_RESULT_2026-07-28.md`.
+- Candidate assertion 1.0 remains readable but is explicitly stale for
+  decisions; only new evaluations emit 1.1.
 - Register 1.0 parsing is deliberately separated from decision acceptance.
 
 ## Security and freshness proof
@@ -52,16 +52,14 @@ The dependency direction remains:
 4. explicit publication.
 
 No inventory or candidate-evaluation module imports publication mechanics, and
-no new code crosses the approval or publication boundary. Release planning
-depends only on the domain portable-path type and projects it through a local
-compatibility helper.
+no new code crosses the approval or publication boundary. The follow-up unit
+centralizes strict planned release validation in the descriptor domain.
 
 The scan service's use of manifest models, repository reads, and the existing
 asset audit is appropriate composition for custody classification but remains
 a relatively broad service dependency. The following pre-existing coupling is
 not solved by this bounded unit:
 
-- release descriptor v2 still represents custody paths as unqualified strings;
 - package identity remains derived from a path string;
 - approval does not independently rescan all three physical roots;
 - authoritative register validation rebuilds the complete inventory;

@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "ReleaseFileV1": {
+      "additionalProperties": true,
+      "properties": {
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "source_artifact_id": {
+          "title": "Source Artifact Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "size_bytes",
+        "source_artifact_id"
+      ],
+      "title": "ReleaseFileV1",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "asset_id": {
+      "pattern": "^[a-z0-9][a-z0-9_]{2,63}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "release_revision": {
+      "maximum": 999,
+      "minimum": 1,
+      "title": "Release Revision",
+      "type": "integer"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/ReleaseFileV1"
+      },
+      "title": "Files",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "asset_id",
+    "release_revision",
+    "files"
+  ],
+  "title": "ReleaseDescriptorV1",
+  "type": "object"
+}

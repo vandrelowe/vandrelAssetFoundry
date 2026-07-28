@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 import vandrel_foundry.services.publish_release as publication
 from tests.conftest import bind_documented_test_custody, write_config
 from vandrel_foundry.cli import app
+from vandrel_foundry.domain.custody import PortableCustodyPath
 from vandrel_foundry.domain.custody_assertion import semantic_assertion_sha256
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
@@ -158,6 +159,21 @@ def _approved_humanoid(config, prompt: Path, compatibility: dict | None) -> None
     manifest.validation.checks = [{"name": "godot_sandbox_import", "passed": True}]
     bind_documented_test_custody(manifest, root)
     if compatibility is not None:
+        report_bytes = b'{"schema_version":1,"passed":true}\n'
+        report_path = root / compatibility["report"]
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_bytes(report_bytes)
+        manifest.artifacts.append(
+            Artifact(
+                artifact_id="humanoid-retarget-report-001",
+                role="humanoid_retarget_compatibility_report",
+                stage="validation",
+                format="json",
+                path=compatibility["report"],
+                sha256=_sha256(report_bytes),
+                size_bytes=len(report_bytes),
+            )
+        )
         manifest.validation.checks.append(compatibility)
     manifest.approval.approved = True
     manifest.approval.approved_at = utc_now()
@@ -201,6 +217,7 @@ def test_humanoid_release_is_explicitly_candidate_only(config, prompt: Path) -> 
     assert not evidence["vandrel_runtime_accepted"]
     assert evidence["mapping_profile"] == "meshy_humanoid/v1"
     assert not evidence["direct_rest_transform_match"]
+    assert evidence["report"]["release_path"].startswith("evidence/humanoid/")
 
 
 def test_publish_creates_immutable_release_catalog_and_manifest_record(
@@ -235,13 +252,90 @@ def test_publish_creates_immutable_release_catalog_and_manifest_record(
     assert descriptor["schema_version"] == 2
     assert descriptor["custody"]["assessment_status"] == "evaluated"
     custody_evidence = descriptor["custody"]["source_contributions"][0]["license_evidence"][0]
-    assert custody_evidence["original_evidence_path"] == "licenses/fixture.txt"
+    assert custody_evidence["original_evidence_path"] == {
+        "logical_root": "outside_assets",
+        "path": "licenses/fixture.txt",
+    }
     assert (result.destination / custody_evidence["release_path"]).read_bytes() == (
         b"license fixture"
     )
     manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
     assert manifest.release.released
     assert manifest.release.release_revision == 1
+
+
+def test_v2_plan_projects_only_closed_technical_and_qualified_custody(
+    config,
+    lanes,
+    prompt: Path,
+) -> None:
+    _approved_asset(config, lanes, prompt)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("stone_knife_001")
+    manifest.quality.observed.update(
+        {
+            "triangle_count": 12,
+            "mesh_count": 1,
+            "workspace_report": "C:/private/report.json",
+            "provider_url": "https://provider.invalid/task?token=secret",
+        }
+    )
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+
+    descriptor = plan_release(config, lanes, "stone_knife_001").descriptor
+
+    assert descriptor["technical"] == {
+        "triangle_count": 12,
+        "mesh_count": 1,
+        "collision_recommendation": "manual",
+    }
+    custody = descriptor["custody"]
+    assert set(custody["register"]["root_fingerprints"]) == {
+        "outside_assets",
+        "foundry_workspace",
+        "asset_library",
+    }
+    assert len(custody["evidence_fingerprint_sha256"]) == 64
+    contribution = custody["source_contributions"][0]
+    assert contribution["package_root"]["logical_root"] == "outside_assets"
+    assert (
+        contribution["license_evidence"][0]["original_evidence_path"]["logical_root"]
+        == "outside_assets"
+    )
+
+
+def test_v2_plan_rejects_legacy_unqualified_custody(config, lanes, prompt: Path) -> None:
+    _approved_asset(config, lanes, prompt)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("stone_knife_001")
+    assert manifest.custody is not None
+    manifest.custody.schema_version = "vandrel_foundry_candidate_custody/1.0"
+    manifest.custody.register_root_fingerprints = None
+    manifest.custody.evidence_fingerprint_sha256 = None
+    for contribution in manifest.custody.source_contributions:
+        contribution.package_root = contribution.package_root.path
+        for evidence in contribution.license_evidence:
+            evidence.original_evidence_path = evidence.original_evidence_path.path
+            evidence.scope_root = evidence.scope_root.path
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+
+    with pytest.raises(FoundryError, match="custody_assertion_legacy_stale"):
+        plan_release(config, lanes, "stone_knife_001")
+
+
+def test_release_plan_stops_after_r999(config, lanes, prompt: Path) -> None:
+    _approved_asset(config, lanes, prompt)
+    (
+        config.foundry.asset_library_root
+        / "assets"
+        / "stone_knife_001"
+        / "r999"
+    ).mkdir(parents=True)
+
+    with pytest.raises(FoundryError, match="range 1..999"):
+        plan_release(config, lanes, "stone_knife_001")
 
 
 def test_publish_allows_new_approved_candidate_after_prior_release(
@@ -464,16 +558,25 @@ def test_compound_exact_source_union_emits_multiple_evidence_files(
         contribution_id="fixture-contribution-002",
         source_id="fixture-provider-002",
         package_id="fixture-package-002",
-        package_root="fixture-package-002",
+        package_root=PortableCustodyPath(
+            logical_root="outside_assets",
+            path="fixture-package-002",
+        ),
         source_inputs=[second_input],
         rights_status="documented",
         license_evidence=[
             CustodyLicenseEvidence(
                 binding_id="fixture-license-002",
-                original_evidence_path="licenses/fixture-002.txt",
+                original_evidence_path=PortableCustodyPath(
+                    logical_root="outside_assets",
+                    path="licenses/fixture-002.txt",
+                ),
                 evidence_sha256=evidence_artifact.sha256,
                 size_bytes=evidence_artifact.size_bytes,
-                scope_root="fixture-package-002",
+                scope_root=PortableCustodyPath(
+                    logical_root="outside_assets",
+                    path="fixture-package-002",
+                ),
                 rights_semantics="documented",
                 candidate_evidence_artifact_id=evidence_artifact.artifact_id,
             )

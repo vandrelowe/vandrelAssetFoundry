@@ -1,6 +1,7 @@
 import hashlib
 import importlib
 import json
+import re
 import struct
 from pathlib import Path
 from types import SimpleNamespace
@@ -71,7 +72,30 @@ def test_tracked_torch_resume_ledger_is_redacted_and_schema_valid() -> None:
     assert ledger.failed_candidates == 0
     assert len(ledger.records) == 9
     assert sum(record.result == "skipped" for record in ledger.records) == 8
-    assert "C:\\" not in content.decode("utf-8")
+    strings: list[str] = []
+
+    def collect(value):
+        if isinstance(value, str):
+            strings.append(value)
+        elif isinstance(value, list):
+            for item in value:
+                collect(item)
+        elif isinstance(value, dict):
+            for item in value.values():
+                collect(item)
+
+    collect(json.loads(content))
+    for value in strings:
+        lowered = value.lower()
+        assert not re.search(r"[a-z]:[\\/]", value, re.IGNORECASE)
+        assert not value.startswith(("/", "\\\\", "//"))
+        assert "c:\\dev" not in lowered
+        assert "c:/dev" not in lowered
+        assert "vandrelfoundryworkspace" not in lowered
+        assert "outsideassets" not in lowered
+        assert "http://" not in lowered and "https://" not in lowered
+        assert "provider_task" not in lowered and "meshy" not in lowered
+        assert not re.search(r"\b[^@\s]+@[^@\s]+\.[^@\s]+\b", value)
 
 
 def test_batch_continues_after_unsafe_candidate_with_accurate_deltas(

@@ -92,10 +92,19 @@ from revision 8 to 9, and reproduced the independently predicted semantic
 assertion exactly:
 `2563b86f262d0ec65439b938b9fdc053182ed747e2bb25cffed33f39f0f862e5`.
 
-Current release fitness reports integrity passing, custody
-`evaluated_documented` and exact/fresh, no custody blockers, human approval
-absent, Library release absent, Vandrel evidence absent, and release
-eligibility false because approval is required.
+Current release fitness reports integrity passing and legacy assertion-exact
+custody within the stored candidate snapshot. The candidate's assertion is
+schema 1.0, so it does **not** establish assertion-1.1 root freshness and cannot
+authorize approval or release under the hardened decision edge. Human approval,
+Library release, and Vandrel evidence remain absent; release eligibility is
+false.
+
+For assertion 1.1, a matching stored evidence-freshness fingerprint proves only
+that the stored policy, register, and root-fingerprint fields are internally
+consistent. Live-root freshness additionally requires current register
+revalidation against all three authoritative roots. The live preflight and
+register validation above are separate operational evidence and are not
+silently promoted into the legacy candidate assertion.
 
 ## Workflow gap closed
 

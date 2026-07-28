@@ -1,0 +1,832 @@
+{
+  "$defs": {
+    "NativeHumanoidCompatibilityV2": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_route": {
+          "const": "provider_native_same_task",
+          "title": "Evidence Route",
+          "type": "string"
+        },
+        "candidate_only": {
+          "const": true,
+          "title": "Candidate Only",
+          "type": "boolean"
+        },
+        "vandrel_runtime_accepted": {
+          "const": false,
+          "title": "Vandrel Runtime Accepted",
+          "type": "boolean"
+        },
+        "provider_native_same_task": {
+          "const": true,
+          "title": "Provider Native Same Task",
+          "type": "boolean"
+        },
+        "shared_animation_pool_compatible": {
+          "const": false,
+          "title": "Shared Animation Pool Compatible",
+          "type": "boolean"
+        },
+        "report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        }
+      },
+      "required": [
+        "evidence_route",
+        "candidate_only",
+        "vandrel_runtime_accepted",
+        "provider_native_same_task",
+        "shared_animation_pool_compatible",
+        "report"
+      ],
+      "title": "NativeHumanoidCompatibilityV2",
+      "type": "object"
+    },
+    "PackagedHumanoidReportV2": {
+      "additionalProperties": false,
+      "properties": {
+        "release_path": {
+          "title": "Release Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "source_artifact_id": {
+          "minLength": 1,
+          "title": "Source Artifact Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "release_path",
+        "sha256",
+        "size_bytes",
+        "source_artifact_id"
+      ],
+      "title": "PackagedHumanoidReportV2",
+      "type": "object"
+    },
+    "PortableCustodyPath": {
+      "additionalProperties": false,
+      "properties": {
+        "logical_root": {
+          "enum": [
+            "outside_assets",
+            "foundry_workspace",
+            "asset_library"
+          ],
+          "title": "Logical Root",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\)(?!.*//)[^/]+(?:/[^/]+)*$",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "logical_root",
+        "path"
+      ],
+      "title": "PortableCustodyPath",
+      "type": "object"
+    },
+    "ReleaseCustodyContributionV2": {
+      "additionalProperties": false,
+      "properties": {
+        "contribution_id": {
+          "minLength": 1,
+          "title": "Contribution Id",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "package_id": {
+          "minLength": 1,
+          "title": "Package Id",
+          "type": "string"
+        },
+        "package_root": {
+          "$ref": "#/$defs/PortableCustodyPath"
+        },
+        "rights_status": {
+          "const": "documented",
+          "title": "Rights Status",
+          "type": "string"
+        },
+        "source_inputs": {
+          "items": {
+            "$ref": "#/$defs/ReleaseCustodySourceInputV2"
+          },
+          "minItems": 1,
+          "title": "Source Inputs",
+          "type": "array"
+        },
+        "license_evidence": {
+          "items": {
+            "$ref": "#/$defs/ReleaseCustodyEvidenceV2"
+          },
+          "minItems": 1,
+          "title": "License Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "contribution_id",
+        "source_id",
+        "package_id",
+        "package_root",
+        "rights_status",
+        "source_inputs",
+        "license_evidence"
+      ],
+      "title": "ReleaseCustodyContributionV2",
+      "type": "object"
+    },
+    "ReleaseCustodyEvidenceV2": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "minLength": 1,
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "original_evidence_path": {
+          "$ref": "#/$defs/PortableCustodyPath"
+        },
+        "release_path": {
+          "title": "Release Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "scope_root": {
+          "$ref": "#/$defs/PortableCustodyPath"
+        },
+        "rights_semantics": {
+          "const": "documented",
+          "title": "Rights Semantics",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "original_evidence_path",
+        "release_path",
+        "sha256",
+        "size_bytes",
+        "scope_root",
+        "rights_semantics"
+      ],
+      "title": "ReleaseCustodyEvidenceV2",
+      "type": "object"
+    },
+    "ReleaseCustodyPolicyV2": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "minLength": 1,
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "sha256"
+      ],
+      "title": "ReleaseCustodyPolicyV2",
+      "type": "object"
+    },
+    "ReleaseCustodyRegisterV2": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "vandrel_foundry_custody_register/1.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "root_fingerprints": {
+          "additionalProperties": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxProperties": 3,
+          "minProperties": 3,
+          "propertyNames": {
+            "enum": [
+              "outside_assets",
+              "foundry_workspace",
+              "asset_library"
+            ]
+          },
+          "title": "Root Fingerprints",
+          "type": "object"
+        }
+      },
+      "required": [
+        "schema_version",
+        "sha256",
+        "root_fingerprints"
+      ],
+      "title": "ReleaseCustodyRegisterV2",
+      "type": "object"
+    },
+    "ReleaseCustodySourceInputV2": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "role": {
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "role",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "ReleaseCustodySourceInputV2",
+      "type": "object"
+    },
+    "ReleaseCustodyV2": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "vandrel_foundry_candidate_custody/1.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "assessment_status": {
+          "const": "evaluated",
+          "title": "Assessment Status",
+          "type": "string"
+        },
+        "effective_rights_status": {
+          "const": "documented",
+          "title": "Effective Rights Status",
+          "type": "string"
+        },
+        "semantic_assertion_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Semantic Assertion Sha256",
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/ReleaseCustodyPolicyV2"
+        },
+        "register": {
+          "$ref": "#/$defs/ReleaseCustodyRegisterV2"
+        },
+        "evidence_fingerprint_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Evidence Fingerprint Sha256",
+          "type": "string"
+        },
+        "evaluated_manifest_revision": {
+          "minimum": 1,
+          "title": "Evaluated Manifest Revision",
+          "type": "integer"
+        },
+        "source_contributions": {
+          "items": {
+            "$ref": "#/$defs/ReleaseCustodyContributionV2"
+          },
+          "minItems": 1,
+          "title": "Source Contributions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "assessment_status",
+        "effective_rights_status",
+        "semantic_assertion_sha256",
+        "policy",
+        "register",
+        "evidence_fingerprint_sha256",
+        "evaluated_manifest_revision",
+        "source_contributions"
+      ],
+      "title": "ReleaseCustodyV2",
+      "type": "object"
+    },
+    "ReleaseFileV2": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "model",
+            "godot_wrapper_scene",
+            "godot_animation_loader_script",
+            "animation_walk",
+            "animation_run",
+            "custody_license_evidence",
+            "humanoid_compatibility_report"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "source_artifact_id": {
+          "minLength": 1,
+          "title": "Source Artifact Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "size_bytes",
+        "source_artifact_id"
+      ],
+      "title": "ReleaseFileV2",
+      "type": "object"
+    },
+    "ReleaseGodotV2": {
+      "additionalProperties": false,
+      "properties": {
+        "import_validated": {
+          "title": "Import Validated",
+          "type": "boolean"
+        },
+        "wrapper_template": {
+          "minLength": 1,
+          "title": "Wrapper Template",
+          "type": "string"
+        }
+      },
+      "required": [
+        "import_validated",
+        "wrapper_template"
+      ],
+      "title": "ReleaseGodotV2",
+      "type": "object"
+    },
+    "ReleaseProvenanceV2": {
+      "additionalProperties": false,
+      "properties": {
+        "foundry_manifest_revision": {
+          "minimum": 1,
+          "title": "Foundry Manifest Revision",
+          "type": "integer"
+        },
+        "approval_reviewer": {
+          "minLength": 1,
+          "title": "Approval Reviewer",
+          "type": "string"
+        },
+        "approved_at": {
+          "format": "date-time",
+          "title": "Approved At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "foundry_manifest_revision",
+        "approval_reviewer",
+        "approved_at"
+      ],
+      "title": "ReleaseProvenanceV2",
+      "type": "object"
+    },
+    "ReleaseTechnicalV2": {
+      "additionalProperties": false,
+      "properties": {
+        "triangle_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Triangle Count"
+        },
+        "mesh_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mesh Count"
+        },
+        "primitive_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primitive Count"
+        },
+        "material_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material Count"
+        },
+        "texture_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Count"
+        },
+        "image_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Count"
+        },
+        "skin_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skin Count"
+        },
+        "joint_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Joint Count"
+        },
+        "animation_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Animation Count"
+        },
+        "visible_mesh_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Visible Mesh Count"
+        },
+        "visible_skinned_mesh_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Visible Skinned Mesh Count"
+        },
+        "visible_unskinned_mesh_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Visible Unskinned Mesh Count"
+        },
+        "visible_skinned_triangle_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Visible Skinned Triangle Count"
+        },
+        "inspected_processed_artifact_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inspected Processed Artifact Id"
+        },
+        "inspected_processed_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inspected Processed Sha256"
+        },
+        "animation_source": {
+          "anyOf": [
+            {
+              "const": "meshy_same_rigging_task",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Animation Source"
+        },
+        "recommended_fbx_embedded_texture_handling": {
+          "anyOf": [
+            {
+              "const": "embed_basis_universal",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recommended Fbx Embedded Texture Handling"
+        },
+        "collision_recommendation": {
+          "enum": [
+            "manual",
+            "manual_review",
+            "manual_simple_convex",
+            "none"
+          ],
+          "title": "Collision Recommendation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "collision_recommendation"
+      ],
+      "title": "ReleaseTechnicalV2",
+      "type": "object"
+    },
+    "RetargetHumanoidCompatibilityV2": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_route": {
+          "const": "retarget_mapping",
+          "title": "Evidence Route",
+          "type": "string"
+        },
+        "candidate_only": {
+          "const": true,
+          "title": "Candidate Only",
+          "type": "boolean"
+        },
+        "vandrel_runtime_accepted": {
+          "const": false,
+          "title": "Vandrel Runtime Accepted",
+          "type": "boolean"
+        },
+        "mapping_profile": {
+          "minLength": 1,
+          "title": "Mapping Profile",
+          "type": "string"
+        },
+        "report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        },
+        "animation_donor_asset_id": {
+          "pattern": "^[a-z0-9][a-z0-9_]{2,63}$",
+          "title": "Animation Donor Asset Id",
+          "type": "string"
+        },
+        "direct_skeleton_match": {
+          "title": "Direct Skeleton Match",
+          "type": "boolean"
+        },
+        "direct_rest_transform_match": {
+          "title": "Direct Rest Transform Match",
+          "type": "boolean"
+        },
+        "humanoid_retarget_candidate": {
+          "const": true,
+          "title": "Humanoid Retarget Candidate",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "evidence_route",
+        "candidate_only",
+        "vandrel_runtime_accepted",
+        "mapping_profile",
+        "report",
+        "animation_donor_asset_id",
+        "direct_skeleton_match",
+        "direct_rest_transform_match",
+        "humanoid_retarget_candidate"
+      ],
+      "title": "RetargetHumanoidCompatibilityV2",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 2,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "asset_id": {
+      "pattern": "^[a-z0-9][a-z0-9_]{2,63}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "release_revision": {
+      "maximum": 999,
+      "minimum": 1,
+      "title": "Release Revision",
+      "type": "integer"
+    },
+    "display_name": {
+      "minLength": 1,
+      "title": "Display Name",
+      "type": "string"
+    },
+    "lane": {
+      "minLength": 1,
+      "title": "Lane",
+      "type": "string"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/ReleaseFileV2"
+      },
+      "minItems": 1,
+      "title": "Files",
+      "type": "array"
+    },
+    "godot": {
+      "$ref": "#/$defs/ReleaseGodotV2"
+    },
+    "technical": {
+      "$ref": "#/$defs/ReleaseTechnicalV2"
+    },
+    "custody": {
+      "$ref": "#/$defs/ReleaseCustodyV2"
+    },
+    "humanoid_compatibility": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RetargetHumanoidCompatibilityV2"
+        },
+        {
+          "$ref": "#/$defs/NativeHumanoidCompatibilityV2"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Humanoid Compatibility"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ReleaseProvenanceV2"
+    }
+  },
+  "required": [
+    "schema_version",
+    "asset_id",
+    "release_revision",
+    "display_name",
+    "lane",
+    "files",
+    "godot",
+    "technical",
+    "custody",
+    "provenance"
+  ],
+  "title": "ReleaseDescriptorV2",
+  "type": "object"
+}

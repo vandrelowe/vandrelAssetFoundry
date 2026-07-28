@@ -26,6 +26,7 @@
 | Manifest shape and validation | `src/vandrel_foundry/domain/manifest.py` |
 | Logical custody roots, portable custody paths, register and storage-class vocabulary | `src/vandrel_foundry/domain/custody.py` |
 | Custody assertion hashing and freshness semantics | `src/vandrel_foundry/domain/custody_assertion.py` |
+| Historical v1 and strict planned-v2 release descriptor validation/layout | `src/vandrel_foundry/domain/release_descriptor.py` |
 | Workflow state and next actions | `src/vandrel_foundry/domain/states.py` |
 | Versioned static batch plan and ledger shapes | `src/vandrel_foundry/domain/batch.py` |
 | Portable path validation and containment | `src/vandrel_foundry/storage/paths.py` |
