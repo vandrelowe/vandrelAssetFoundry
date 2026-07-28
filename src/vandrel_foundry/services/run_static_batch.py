@@ -184,7 +184,7 @@ def _execute_stage(
         return []
     elif stage == "validate-godot":
         result = validate_godot_sandbox(config, candidate.asset_id)
-        if not result.passed:
+        if result.return_code != 0 or result.timed_out or result.output_limited:
             raise FoundryError("Godot sandbox validation failed; inspect its report.")
         return []
     elif stage == "render-preview":

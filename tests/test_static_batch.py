@@ -5,7 +5,8 @@ from pathlib import Path
 from PIL import Image
 
 from vandrel_foundry.domain.batch import BatchPlan
-from vandrel_foundry.services.run_static_batch import run_static_batch
+from vandrel_foundry.services.run_static_batch import _execute_stage, run_static_batch
+from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.manifests import ManifestRepository
 
 
@@ -22,6 +23,27 @@ def _write_glb(path: Path) -> None:
         + struct.pack("<II", len(payload), 0x4E4F534A)
         + payload
     )
+
+
+def test_validate_godot_stage_uses_process_result_contract(monkeypatch) -> None:
+    candidate = BatchPlan.model_validate(
+        {
+            "schema_version": 1,
+            "candidates": [
+                {
+                    "asset_id": "batch_validation_contract",
+                    "lane": "static_prop",
+                    "stages": ["validate-godot"],
+                }
+            ],
+        }
+    ).candidates[0]
+    monkeypatch.setattr(
+        "vandrel_foundry.services.run_static_batch.validate_godot_sandbox",
+        lambda *_: ProcessResult(0, "", "", False, False, 0.1),
+    )
+
+    assert _execute_stage(None, None, candidate, "validate-godot") == []
 
 
 def test_batch_continues_after_unsafe_candidate_with_accurate_deltas(

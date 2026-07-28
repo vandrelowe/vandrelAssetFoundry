@@ -1,0 +1,13 @@
+Asset: quaternius_axe_bronze_001
+Manifest: revision 9
+Workflow: review
+Integrity: passing; 24 artifact checks
+Technical validation: passed
+Human approval: unapproved; binding=unbound
+Custody: evaluated_documented; freshness=exact; blockers=['none']
+Publication: absent
+Vandrel consumer evidence: absent
+Release eligible: false
+Sole blocker: Release planning requires approved state: quaternius_axe_bronze_001
+
+The non-apply `foundry release` command stopped on the same approval blocker.

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "failure_policy": "stop",
+  "rerun_policy": "resume",
+  "candidates": [
+    {
+      "asset_id": "quaternius_axe_bronze_001",
+      "lane": "static_prop",
+      "display_name": "Quaternius Axe Bronze",
+      "prompt_file": "prompts/quaternius_axe_bronze.txt",
+      "source": "C:/Dev/outsideassets/Quaternius/Fantasy Props MegaKit[Standard]/Exports/glTF/Axe_Bronze.gltf",
+      "stages": [
+        "create",
+        "add-source",
+        "process",
+        "inspect",
+        "prepare-godot",
+        "validate-godot",
+        "render-preview",
+        "render-multi-angle-preview",
+        "audit"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "plan_schema_version": 1,
+  "started_at": "2026-07-28T17:07:54.670304Z",
+  "ended_at": "2026-07-28T17:08:09.045446Z",
+  "failure_policy": "stop",
+  "rerun_policy": "resume",
+  "records": [
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "create",
+      "started_at": "2026-07-28T17:07:54.671305Z",
+      "ended_at": "2026-07-28T17:07:54.671305Z",
+      "duration_seconds": 4.4000043999403715e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 6,
+      "manifest_revision_after": 6,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "add-source",
+      "started_at": "2026-07-28T17:07:54.671305Z",
+      "ended_at": "2026-07-28T17:07:54.672304Z",
+      "duration_seconds": 0.0005053000058978796,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 6,
+      "manifest_revision_after": 6,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "process",
+      "started_at": "2026-07-28T17:07:54.672304Z",
+      "ended_at": "2026-07-28T17:07:54.672304Z",
+      "duration_seconds": 3.9000005926936865e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 6,
+      "manifest_revision_after": 6,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "inspect",
+      "started_at": "2026-07-28T17:07:54.673304Z",
+      "ended_at": "2026-07-28T17:07:54.673304Z",
+      "duration_seconds": 4.5000051613897085e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 6,
+      "manifest_revision_after": 6,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "prepare-godot",
+      "started_at": "2026-07-28T17:07:54.673304Z",
+      "ended_at": "2026-07-28T17:07:54.673304Z",
+      "duration_seconds": 6.599992047995329e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 6,
+      "manifest_revision_after": 6,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "validate-godot",
+      "started_at": "2026-07-28T17:07:54.673304Z",
+      "ended_at": "2026-07-28T17:07:54.673304Z",
+      "duration_seconds": 7.499998901039362e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 6,
+      "manifest_revision_after": 6,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "render-preview",
+      "started_at": "2026-07-28T17:07:54.674305Z",
+      "ended_at": "2026-07-28T17:07:59.982848Z",
+      "duration_seconds": 5.308742200024426,
+      "result": "completed",
+      "error_category": null,
+      "detail": null,
+      "manifest_revision_before": 6,
+      "manifest_revision_after": 7,
+      "artifact_count_delta": 3,
+      "artifact_bytes_delta": 80791,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "render-multi-angle-preview",
+      "started_at": "2026-07-28T17:07:59.990367Z",
+      "ended_at": "2026-07-28T17:08:08.997995Z",
+      "duration_seconds": 9.007388800004264,
+      "result": "completed",
+      "error_category": null,
+      "detail": null,
+      "manifest_revision_before": 7,
+      "manifest_revision_after": 8,
+      "artifact_count_delta": 6,
+      "artifact_bytes_delta": 6485081,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": [
+        {
+          "artifact_id": "multi_angle_preview_001_front",
+          "path": "preview/multi-angle-001/front.png",
+          "width": 2048,
+          "height": 2048,
+          "bounding_box_fraction": 0.28604936599731445,
+          "nonzero_alpha_pixel_fraction": 0.07674717903137207,
+          "excessive_empty_canvas": false
+        },
+        {
+          "artifact_id": "multi_angle_preview_001_right",
+          "path": "preview/multi-angle-001/right.png",
+          "width": 2048,
+          "height": 2048,
+          "bounding_box_fraction": 0.044780731201171875,
+          "nonzero_alpha_pixel_fraction": 0.035343170166015625,
+          "excessive_empty_canvas": true
+        },
+        {
+          "artifact_id": "multi_angle_preview_001_back",
+          "path": "preview/multi-angle-001/back.png",
+          "width": 2048,
+          "height": 2048,
+          "bounding_box_fraction": 0.28604936599731445,
+          "nonzero_alpha_pixel_fraction": 0.07674431800842285,
+          "excessive_empty_canvas": false
+        },
+        {
+          "artifact_id": "multi_angle_preview_001_left",
+          "path": "preview/multi-angle-001/left.png",
+          "width": 2048,
+          "height": 2048,
+          "bounding_box_fraction": 0.04689836502075195,
+          "nonzero_alpha_pixel_fraction": 0.038471221923828125,
+          "excessive_empty_canvas": true
+        }
+      ]
+    },
+    {
+      "candidate": "quaternius_axe_bronze_001",
+      "stage": "audit",
+      "started_at": "2026-07-28T17:08:08.998995Z",
+      "ended_at": "2026-07-28T17:08:09.044943Z",
+      "duration_seconds": 0.045970400009537116,
+      "result": "completed",
+      "error_category": null,
+      "detail": null,
+      "manifest_revision_before": 8,
+      "manifest_revision_after": 8,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    }
+  ],
+  "planned_candidates": 1,
+  "completed_candidates": 1,
+  "failed_candidates": 0,
+  "not_run_candidates": []
+}
