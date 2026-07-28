@@ -207,12 +207,20 @@ def test_publish_creates_immutable_release_catalog_and_manifest_record(
     config,
     lanes,
     prompt: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _approved_asset(config, lanes, prompt)
     root = _library(config)
+    acl_destinations: list[Path] = []
+    monkeypatch.setattr(
+        publication,
+        "apply_release_acl",
+        lambda _config, destination: acl_destinations.append(destination),
+    )
 
     result = publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
 
+    assert acl_destinations == [result.destination]
     assert result.release_revision == 1
     assert not result.recovered
     descriptor = json.loads((result.destination / "asset-release.json").read_text())

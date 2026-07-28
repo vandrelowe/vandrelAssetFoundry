@@ -8,6 +8,7 @@ from vandrel_foundry.domain.errors import AssetExistsError, FoundryError, Unknow
 from vandrel_foundry.domain.ids import validate_asset_id
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import AssetManifest
+from vandrel_foundry.services.windows_acl_policy import apply_candidate_acl
 from vandrel_foundry.storage.manifests import ManifestRepository
 
 ASSET_DIRECTORIES = (
@@ -53,6 +54,7 @@ def create_asset(
             os.rename(temporary, destination)
         except FileExistsError as exc:
             raise AssetExistsError(f"Asset already exists: {asset_id}") from exc
+        apply_candidate_acl(config, destination)
         manifest = AssetManifest.initial(
             asset_id,
             display_name.strip(),

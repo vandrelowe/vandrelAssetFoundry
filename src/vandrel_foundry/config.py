@@ -1,4 +1,5 @@
 import os
+import re
 import tomllib
 from pathlib import Path
 from typing import Literal
@@ -52,6 +53,27 @@ class ToolSettings(ConfigModel):
     maximum_output_bytes: int = Field(default=1_000_000, gt=0, le=50_000_000)
 
 
+class WindowsAclSettings(ConfigModel):
+    enabled: bool = False
+    owner_sid: str | None = None
+    offline_sandbox_sid: str | None = None
+
+    @model_validator(mode="after")
+    def require_exact_sids_when_enabled(self) -> "WindowsAclSettings":
+        if not self.enabled:
+            return self
+        sid_pattern = re.compile(r"^S-1-\d+(?:-\d+)+$")
+        for name, value in (
+            ("owner_sid", self.owner_sid),
+            ("offline_sandbox_sid", self.offline_sandbox_sid),
+        ):
+            if value is None or sid_pattern.fullmatch(value) is None:
+                raise ValueError(f"windows_acl.{name} must be an exact Windows SID")
+        if self.owner_sid == self.offline_sandbox_sid:
+            raise ValueError("windows_acl principals must be distinct")
+        return self
+
+
 class FoundryConfig(ConfigModel):
     schema_version: Literal[1]
     foundry: FoundrySettings
@@ -59,6 +81,7 @@ class FoundryConfig(ConfigModel):
     providers: Providers
     release: ReleaseSettings
     tools: ToolSettings = Field(default_factory=ToolSettings)
+    windows_acl: WindowsAclSettings = Field(default_factory=WindowsAclSettings)
 
     @model_validator(mode="after")
     def phase_one_safety(self) -> "FoundryConfig":

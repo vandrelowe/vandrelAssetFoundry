@@ -86,6 +86,12 @@ evidence when an ACL or other readability boundary would block the longer
 inventory. `custody-inventory` runs the same guard automatically before
 hashing.
 
+On Windows, the optional `[windows_acl]` policy applies exact identity-specific
+ACLs whenever a candidate is created or a release is promoted. The configured
+owner receives Full Control, the offline sandbox receives Modify on active
+Foundry candidates and Read and Execute on immutable Library releases, and ACL
+failure stops the transaction before catalog or manifest publication.
+
 Phase 2 adds guarded Meshy commands:
 
 ```powershell

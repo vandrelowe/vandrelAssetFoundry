@@ -14,6 +14,7 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import AssetManifest, utc_now
 from vandrel_foundry.services.plan_release import ReleasePlan, plan_release
+from vandrel_foundry.services.windows_acl_policy import apply_release_acl
 from vandrel_foundry.storage.atomic import write_json_temp
 from vandrel_foundry.storage.git_worktree import (
     GitRunner,
@@ -64,6 +65,7 @@ def publish_release(
         recovered = recovery is not None
         if not recovered:
             _stage_and_promote(config, asset_id, effective)
+        apply_release_acl(config, effective.destination)
         descriptor_hash = _sha256_file(effective.destination / "asset-release.json")
         _update_catalog(root, effective, descriptor_hash)
         _record_manifest_release(repository, manifest, effective.release_revision)
