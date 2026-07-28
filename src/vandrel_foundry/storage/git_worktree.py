@@ -11,8 +11,9 @@ class GitRunner(Protocol):
 
 def run_git(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     try:
+        safe_directory = cwd.resolve(strict=True).as_posix()
         return subprocess.run(
-            ["git", *command],
+            ["git", "-c", f"safe.directory={safe_directory}", *command],
             cwd=cwd,
             check=False,
             capture_output=True,
