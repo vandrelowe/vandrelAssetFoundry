@@ -42,7 +42,11 @@ def test_candidate_acl_uses_exact_modify_principal(config: FoundryConfig) -> Non
             "/grant:r",
             "*S-1-5-21-1-2-3-1003:(OI)(CI)(F)",
             "*S-1-5-21-1-2-3-1005:(OI)(CI)(M)",
-        ]
+            "*S-1-5-18:(OI)(CI)(F)",
+            "*S-1-5-32-544:(OI)(CI)(F)",
+        ],
+        ["icacls.exe", str(candidate.resolve()), "/inheritance:r"],
+        ["icacls.exe", str(candidate.resolve()), "/remove:g", "*S-1-3-4"],
     ]
 
 
@@ -57,7 +61,9 @@ def test_release_acl_is_read_only_for_sandbox(config: FoundryConfig) -> None:
 
     apply_release_acl(_enabled(config), release, runner=runner, platform_name="nt")
 
-    assert commands[0][-1] == "*S-1-5-21-1-2-3-1005:(OI)(CI)(RX)"
+    assert "*S-1-5-21-1-2-3-1005:(OI)(CI)(RX)" in commands[0]
+    assert commands[1][-1] == "/inheritance:r"
+    assert commands[2][-1] == "*S-1-3-4"
 
 
 def test_disabled_policy_does_not_invoke_icacls(config: FoundryConfig, tmp_path: Path) -> None:
@@ -90,6 +96,24 @@ def test_acl_failure_is_fail_closed(config: FoundryConfig) -> None:
 
     with pytest.raises(FoundryError, match="Access is denied"):
         apply_candidate_acl(_enabled(config), candidate, runner=runner, platform_name="nt")
+
+
+def test_acl_cleanup_failure_is_fail_closed(config: FoundryConfig) -> None:
+    candidate = config.foundry.workspace_root / "assets" / "fixture_001"
+    candidate.mkdir(parents=True)
+    calls = 0
+
+    def runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            return subprocess.CompletedProcess(command, 5, "", "Inheritance cleanup failed")
+        return subprocess.CompletedProcess(command, 0, "ok", "")
+
+    with pytest.raises(FoundryError, match="Inheritance cleanup failed"):
+        apply_candidate_acl(_enabled(config), candidate, runner=runner, platform_name="nt")
+
+    assert calls == 2
 
 
 def test_create_asset_applies_candidate_policy(

@@ -67,17 +67,34 @@ def _apply_acl(
         ) from exc
     assert policy.owner_sid is not None
     assert policy.offline_sandbox_sid is not None
-    command = [
-        "icacls.exe",
-        str(resolved_destination),
-        "/grant:r",
-        f"*{policy.owner_sid}:(OI)(CI)(F)",
-        f"*{policy.offline_sandbox_sid}:(OI)(CI)({sandbox_rights})",
+    commands = [
+        [
+            "icacls.exe",
+            str(resolved_destination),
+            "/grant:r",
+            f"*{policy.owner_sid}:(OI)(CI)(F)",
+            f"*{policy.offline_sandbox_sid}:(OI)(CI)({sandbox_rights})",
+            "*S-1-5-18:(OI)(CI)(F)",
+            "*S-1-5-32-544:(OI)(CI)(F)",
+        ],
+        [
+            "icacls.exe",
+            str(resolved_destination),
+            "/inheritance:r",
+        ],
+        [
+            "icacls.exe",
+            str(resolved_destination),
+            "/remove:g",
+            "*S-1-3-4",
+        ],
     ]
-    result = (runner or _run_acl_command)(command)
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout or "unknown icacls failure").strip()
-        raise FoundryError(f"Could not apply Windows ACL policy: {detail}")
+    run = runner or _run_acl_command
+    for command in commands:
+        result = run(command)
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "unknown icacls failure").strip()
+            raise FoundryError(f"Could not apply Windows ACL policy: {detail}")
 
 
 def _run_acl_command(command: list[str]) -> subprocess.CompletedProcess[str]:
