@@ -41,6 +41,7 @@ from vandrel_foundry.services.quantize_semantic_mask import quantize_semantic_ma
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
 from vandrel_foundry.services.render_animation_samples import render_animation_samples
 from vandrel_foundry.services.render_missing_previews import render_missing_previews
+from vandrel_foundry.services.render_multi_angle_preview import render_multi_angle_preview
 from vandrel_foundry.services.render_preview import render_local_preview
 from vandrel_foundry.services.retarget_animations import retarget_animations
 from vandrel_foundry.services.review_animation_samples import accept_animation_samples
@@ -832,6 +833,20 @@ def render_preview(
         settings = load_config(config)
         artifact = render_local_preview(settings, asset_id)
         console.print(f"[green]Rendered preview[/green] {artifact.path}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("render-multi-angle-preview")
+def render_multi_angle(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Render immutable 2048px front, right, back, and left inspection views."""
+    try:
+        settings = load_config(config)
+        artifacts = render_multi_angle_preview(settings, asset_id)
+        console.print(f"[green]Rendered multi-angle preview[/green] {len(artifacts) - 2} views")
     except FoundryError as exc:
         fail(exc)
 

@@ -1,0 +1,1 @@
+Synthetic malformed glTF traversal fixture for the DM-006 fail-closed trial.
