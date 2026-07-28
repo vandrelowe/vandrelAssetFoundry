@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "plan_schema_version": 1,
+  "started_at": "2026-07-28T21:18:20.840351Z",
+  "ended_at": "2026-07-28T21:18:20.881592Z",
+  "failure_policy": "stop",
+  "rerun_policy": "resume",
+  "records": [
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "create",
+      "started_at": "2026-07-28T21:18:20.840351Z",
+      "ended_at": "2026-07-28T21:18:20.840351Z",
+      "duration_seconds": 2.500019036233425e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "add-source",
+      "started_at": "2026-07-28T21:18:20.841353Z",
+      "ended_at": "2026-07-28T21:18:20.842353Z",
+      "duration_seconds": 0.0005991999933030456,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "process",
+      "started_at": "2026-07-28T21:18:20.842353Z",
+      "ended_at": "2026-07-28T21:18:20.842353Z",
+      "duration_seconds": 4.6000059228390455e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "inspect",
+      "started_at": "2026-07-28T21:18:20.843345Z",
+      "ended_at": "2026-07-28T21:18:20.843345Z",
+      "duration_seconds": 5.1000097300857306e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "prepare-godot",
+      "started_at": "2026-07-28T21:18:20.844345Z",
+      "ended_at": "2026-07-28T21:18:20.844345Z",
+      "duration_seconds": 1.4299992471933365e-05,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "validate-godot",
+      "started_at": "2026-07-28T21:18:20.844345Z",
+      "ended_at": "2026-07-28T21:18:20.844345Z",
+      "duration_seconds": 8.400005754083395e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "render-preview",
+      "started_at": "2026-07-28T21:18:20.845344Z",
+      "ended_at": "2026-07-28T21:18:20.845344Z",
+      "duration_seconds": 6.100017344579101e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "render-multi-angle-preview",
+      "started_at": "2026-07-28T21:18:20.845344Z",
+      "ended_at": "2026-07-28T21:18:20.845344Z",
+      "duration_seconds": 4.5000051613897085e-06,
+      "result": "skipped",
+      "error_category": null,
+      "detail": "already complete; existing immutable evidence retained",
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    },
+    {
+      "candidate": "quaternius_torch_metal_001",
+      "stage": "audit",
+      "started_at": "2026-07-28T21:18:20.846847Z",
+      "ended_at": "2026-07-28T21:18:20.880600Z",
+      "duration_seconds": 0.034148900012951344,
+      "result": "completed",
+      "error_category": null,
+      "detail": null,
+      "manifest_revision_before": 9,
+      "manifest_revision_after": 9,
+      "artifact_count_delta": 0,
+      "artifact_bytes_delta": 0,
+      "operator_required_next_action": [
+        "approve",
+        "reject"
+      ],
+      "foreground_coverage": []
+    }
+  ],
+  "planned_candidates": 1,
+  "completed_candidates": 1,
+  "failed_candidates": 0,
+  "not_run_candidates": []
+}

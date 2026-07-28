@@ -1,12 +1,16 @@
+import hashlib
+import importlib
 import json
 import struct
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image
 
-from vandrel_foundry.domain.batch import BatchPlan
+from vandrel_foundry.domain.batch import BatchLedger, BatchPlan
 from vandrel_foundry.domain.errors import FoundryError
+from vandrel_foundry.services.audit_asset import audit_asset
 from vandrel_foundry.services.run_static_batch import _execute_stage, run_static_batch
 from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.manifests import ManifestRepository
@@ -46,6 +50,28 @@ def test_validate_godot_stage_uses_process_result_contract(monkeypatch) -> None:
     )
 
     assert _execute_stage(None, None, candidate, "validate-godot") == []
+
+
+def test_tracked_torch_resume_ledger_is_redacted_and_schema_valid() -> None:
+    ledger_path = (
+        Path(__file__).parents[1]
+        / "docs"
+        / "reports"
+        / "evidence"
+        / "torch-metal"
+        / "native-resume-ledger.json"
+    )
+    content = ledger_path.read_bytes()
+    ledger = BatchLedger.model_validate_json(content)
+
+    assert hashlib.sha256(content).hexdigest() == (
+        "f40b5fa40611a4049f7e2f924c944a09ef569805945d221d33b7faa6bb7ac3bc"
+    )
+    assert ledger.completed_candidates == 1
+    assert ledger.failed_candidates == 0
+    assert len(ledger.records) == 9
+    assert sum(record.result == "skipped" for record in ledger.records) == 8
+    assert "C:\\" not in content.decode("utf-8")
 
 
 def test_batch_continues_after_unsafe_candidate_with_accurate_deltas(
@@ -175,6 +201,80 @@ def test_existing_ledger_is_preserved_before_candidate_mutation(
 
     assert ledger_path.read_text(encoding="utf-8") == "user evidence"
     assert not (config.foundry.workspace_root / "assets" / "batch_existing_ledger").exists()
+
+
+@pytest.mark.parametrize("failure_point", ["late_write", "fsync"])
+def test_late_ledger_failure_removes_reservation_and_preserves_honest_candidate(
+    failure_point: str, tmp_path: Path, config, lanes, monkeypatch
+) -> None:
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("late ledger failure", encoding="utf-8")
+    ledger_path = tmp_path / f"{failure_point}.json"
+    plan = BatchPlan.model_validate(
+        {
+            "schema_version": 1,
+            "candidates": [
+                {
+                    "asset_id": f"batch_{failure_point}_failure",
+                    "lane": "static_prop",
+                    "display_name": "Late Ledger Failure",
+                    "prompt_file": prompt,
+                    "stages": ["create"],
+                }
+            ],
+        }
+    )
+    original_open = Path.open
+
+    class FailingLedgerStream:
+        def __init__(self, wrapped):
+            self.wrapped = wrapped
+
+        def write(self, value):
+            result = self.wrapped.write(value)
+            if failure_point == "late_write" and value == "\n":
+                raise OSError("injected late ledger write failure")
+            return result
+
+        def flush(self):
+            return self.wrapped.flush()
+
+        def fileno(self):
+            return self.wrapped.fileno()
+
+        def close(self):
+            return self.wrapped.close()
+
+    def wrap_ledger_open(path: Path, *args, **kwargs):
+        stream = original_open(path, *args, **kwargs)
+        return FailingLedgerStream(stream) if path == ledger_path else stream
+
+    monkeypatch.setattr(Path, "open", wrap_ledger_open)
+    if failure_point == "fsync":
+        batch_module = importlib.import_module(
+            "vandrel_foundry.services.run_static_batch"
+        )
+        monkeypatch.setattr(
+            batch_module,
+            "os",
+            SimpleNamespace(
+                fsync=lambda _descriptor: (_ for _ in ()).throw(
+                    OSError("injected fsync failure")
+                )
+            ),
+        )
+
+    with pytest.raises(FoundryError, match="Could not write batch ledger"):
+        run_static_batch(config, lanes, plan, ledger_path)
+
+    asset_id = f"batch_{failure_point}_failure"
+    manifest = ManifestRepository(config.foundry.workspace_root).load(asset_id)
+    assert not ledger_path.exists()
+    assert manifest.revision == 1
+    assert manifest.workflow.state.value == "draft"
+    assert not manifest.approval.approved
+    assert manifest.release.release_revision is None
+    assert audit_asset(config, asset_id).passed
 
 
 @pytest.mark.parametrize("forbidden_stage", ["bind-custody", "approve", "release"])

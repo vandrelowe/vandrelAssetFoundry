@@ -38,7 +38,8 @@ because that process could not create its repository destination. The retained
 execution transcript honestly reconstructs the immutable event timestamps. A
 later native resume run through the repaired orchestrator skipped all eight
 complete immutable stages, repeated the read-only audit, changed no candidate
-state, and wrote a valid ledger with SHA-256
+state, and wrote a schema-valid, path-redacted ledger preserved at
+`docs/reports/evidence/torch-metal/native-resume-ledger.json` with SHA-256
 `f40b5fa40611a4049f7e2f924c944a09ef569805945d221d33b7faa6bb7ac3bc`.
 
 ## Visual proof
@@ -102,7 +103,10 @@ The first run proved that `run-static-batch` checked ledger writability only
 after mutating a candidate. The orchestrator now reserves the exclusive ledger
 destination before its first stage and removes only its empty reservation on a
 controlled failure. A negative test injects a denied ledger open and proves no
-candidate directory is created. Existing destinations remain fail-closed.
+candidate directory is created. Production-path tests also inject failure after
+ledger serialization and during `fsync`; both prove the incomplete reservation
+is removed while the completed candidate mutation remains explicit, auditable,
+unapproved, and unpublished. Existing destinations remain fail-closed.
 
 The static-batch schema also has an explicit negative test rejecting
 `bind-custody`, `approve`, and `release` stages. Batch intake therefore cannot
@@ -110,7 +114,7 @@ grow into a governance or publication shortcut.
 
 ## Adversarial modularity review
 
-The production dependency direction remains one-way:
+For the Torch intake path exercised here, the observed dependency flow was:
 
 1. Provider or external intake records immutable source artifacts in the
    candidate manifest. Torch uses the external-package adapter and creates no
@@ -127,11 +131,17 @@ The production dependency direction remains one-way:
    Publication alone owns the explicit Asset Library write. No earlier layer
    imports or invokes publication.
 
-No Torch or Quaternius identifier appears in production source or production
-tests. Torch-specific paths, the five-file glTF closure, CC0 binding, absence of
-flame/emission, and static-prop intent live only in the plan, prompt, evidence,
-and candidate data. The general batch and custody services operate on typed
-plans, artifact roles, hashes, sizes, and package IDs.
+No Torch-specific identifier or behavior appears in production source.
+Quaternius does appear in the existing generic source-family classifier and its
+tests, and the tracked Torch evidence now has a schema/hash contract test.
+Torch-specific paths, the five-file glTF closure, CC0 binding, absence of
+flame/emission, and static-prop intent otherwise remain in the plan, prompt,
+evidence, and candidate data. The general batch and custody services operate
+on typed plans, artifact roles, hashes, sizes, and package IDs.
+
+This review does not claim that every dependency in the repository is one-way.
+It characterizes only the executed intake/custody/review/release boundary; the
+known reverse service dependency in `audit_asset.py` remains listed below.
 
 The sprint-created change adds no cross-layer dependency: it changes only
 batch-ledger reservation and its processing contract/tests. The new boundary
