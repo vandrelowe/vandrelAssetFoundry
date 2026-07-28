@@ -64,6 +64,19 @@ fraction and foreground bounding-box fraction. A bounding-box fraction below
 0.25 is flagged as excessive empty canvas for review; this observation neither
 auto-crops nor replaces immutable evidence.
 
+Multi-angle framing is owned by the existing preview renderer. It derives an
+initial perspective-safe camera distance from evaluated world-space mesh
+vertices, records the geometry bounds and projected margins, and may make at
+most two bounded camera corrections from the current render's nonzero-alpha
+bounding box. Corrections recenter and resize the camera only; they do not edit
+meshes, materials, or saved source artifacts. Before registration, Foundry
+independently measures every final PNG and rejects empty alpha or any
+foreground bounding box that touches a frame edge. The immutable report records
+initial geometry-fit facts, final camera parameters, alpha occupancy, pixel
+margins, correction count, and explicit per-view/all-view no-crop assertions.
+Useful occupancy remains a conservative flag; actual no-crop is a hard
+registration condition.
+
 Local shader experiments are derived review evidence, not material edits.
 They render a hash-verified processed GLB through bounded Blender into new
 baseline, tint, matte, and polished previews plus a contact sheet and measured

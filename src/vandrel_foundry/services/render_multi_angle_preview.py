@@ -3,6 +3,8 @@ import json
 import os
 from pathlib import Path
 
+from PIL import Image
+
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
@@ -101,6 +103,23 @@ def render_multi_angle_preview(
             path.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n" for path in image_paths
         ):
             raise FoundryError("Multi-angle output set is incomplete or invalid.")
+        rendered_views = [_rendered_occupancy(path) for path in image_paths]
+        camera_views = report.get("camera_views")
+        if not isinstance(camera_views, list) or len(camera_views) != 4:
+            raise FoundryError("Multi-angle framing report is incomplete.")
+        for camera_view, rendered in zip(camera_views, rendered_views, strict=True):
+            if not camera_view.get("initial_geometry_bounds_contained") or not rendered["no_crop"]:
+                raise FoundryError("Multi-angle framing could not prove complete geometry.")
+        report["rendered_views"] = rendered_views
+        report["all_views_no_crop"] = True
+        report["all_views_useful_occupancy"] = all(
+            item["useful_occupancy"] for item in rendered_views
+        )
+        report_path.write_text(
+            json.dumps(report, indent=2) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
         log_path.write_text(
             f"--- stdout ---\n{result.stdout}\n--- stderr ---\n{result.stderr}\n",
             encoding="utf-8",
@@ -168,3 +187,34 @@ def render_multi_angle_preview(
         manifest, "preview.multi_angle_rendered", expected_revision=manifest.revision - 1
     )
     return artifacts
+
+
+def _rendered_occupancy(path: Path) -> dict[str, object]:
+    with Image.open(path) as opened:
+        alpha = opened.convert("RGBA").getchannel("A")
+        width, height = alpha.size
+        bounds = alpha.getbbox()
+        foreground_pixels = sum(alpha.histogram()[1:])
+    if bounds is None or foreground_pixels == 0:
+        raise FoundryError(f"Preview has no rendered foreground: {path.name}")
+    left, top, right, bottom = bounds
+    margins = {
+        "left": left,
+        "right": width - right,
+        "top": top,
+        "bottom": height - bottom,
+    }
+    bbox_width = right - left
+    bbox_height = bottom - top
+    no_crop = all(value > 0 for value in margins.values())
+    return {
+        "output": path.name,
+        "alpha_bounding_box_pixels": [left, top, right, bottom],
+        "alpha_bounding_box_fraction": (bbox_width * bbox_height) / (width * height),
+        "width_occupancy_fraction": bbox_width / width,
+        "height_occupancy_fraction": bbox_height / height,
+        "nonzero_alpha_pixel_fraction": foreground_pixels / (width * height),
+        "crop_margin_pixels": margins,
+        "no_crop": no_crop,
+        "useful_occupancy": max(bbox_width / width, bbox_height / height) >= 0.70,
+    }
