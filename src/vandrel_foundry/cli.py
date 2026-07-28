@@ -39,6 +39,7 @@ from vandrel_foundry.services.process_blender import process_with_blender
 from vandrel_foundry.services.publish_release import publish_release
 from vandrel_foundry.services.quantize_semantic_mask import quantize_semantic_mask
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
+from vandrel_foundry.services.release_fitness import inspect_release_fitness
 from vandrel_foundry.services.render_animation_samples import render_animation_samples
 from vandrel_foundry.services.render_missing_previews import render_missing_previews
 from vandrel_foundry.services.render_multi_angle_preview import render_multi_angle_preview
@@ -349,6 +350,100 @@ def status(
     table.add_row("Revision", str(manifest.revision))
     table.add_row("Next actions", ", ".join(actions) if actions else "none")
     console.print(table)
+
+
+@app.command("release-fitness")
+def release_fitness(
+    asset_id: str,
+    json_output: Annotated[
+        bool, typer.Option("--json", help="Emit the complete machine-readable view.")
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Inspect one candidate's distinct release and consumer authority layers."""
+    try:
+        settings, lane_config = configured(config)
+        view = inspect_release_fitness(settings, lane_config, asset_id)
+        if json_output:
+            console.print_json(view.model_dump_json(indent=2))
+            return
+        identity = Table(show_header=False)
+        identity.add_column("Field")
+        identity.add_column("Value")
+        for label, value in (
+            ("Asset", view.asset_id),
+            ("Lane", view.lane),
+            ("Manifest", f"revision {view.manifest_revision}"),
+            ("Current workflow", view.workflow_state),
+            (
+                "Selected source",
+                (
+                    f"{view.selected_source.artifact_id} {view.selected_source.sha256}"
+                    if view.selected_source
+                    else "absent"
+                ),
+            ),
+            (
+                "Current processed",
+                (
+                    f"{view.current_processed.artifact_id} {view.current_processed.sha256}"
+                    if view.current_processed
+                    else "absent"
+                ),
+            ),
+        ):
+            identity.add_row(label, value)
+        console.print(identity)
+        console.print(
+            f"Integrity: {view.integrity.status}; "
+            f"technical result: {view.technical_validation_result}"
+        )
+        checks = Table("Technical check", "Result", "Binding", "Bound hashes")
+        for check in view.technical_checks:
+            checks.add_row(
+                check.name,
+                check.status,
+                check.binding_status,
+                json.dumps(check.bound_hashes, sort_keys=True),
+            )
+        console.print(checks)
+        console.print(
+            f"Human approval: {view.approval.status}; "
+            f"binding={view.approval.binding_status}; "
+            f"bound hashes: {json.dumps(view.approval.bound_hashes, sort_keys=True)}"
+        )
+        latest = view.library.latest_revision
+        console.print(
+            f"Publication: {view.library.status}; latest: "
+            f"{f'r{latest.revision:03d} {latest.descriptor_sha256}' if latest else 'absent'}; "
+            f"matches current approved set: {view.library.matches_current_approved_set}"
+        )
+        history = ", ".join(
+            f"r{item.revision:03d}:{item.integrity_status}"
+            for item in view.library.historical_releases
+        )
+        console.print(f"Historical releases (not current acceptance): {history or 'none'}")
+        console.print(
+            f"Vandrel consumer: evidence={view.vandrel_consumer.evidence_status}; "
+            f"status={view.vandrel_consumer.consumer_status or 'absent'}; "
+            f"acceptance={view.vandrel_consumer.acceptance_status}"
+        )
+        exact_consumer = view.vandrel_consumer.latest_exact_current_result
+        console.print(
+            "Latest exact-current Vandrel result: "
+            + (
+                f"{exact_consumer.consumer_status}/{exact_consumer.acceptance_status} "
+                f"{exact_consumer.report_artifact_id}"
+                if exact_consumer
+                else "absent"
+            )
+        )
+        console.print(
+            f"Release eligible: {view.release_eligibility.eligible}; "
+            f"blockers: {view.release_eligibility.blockers or ['none']}"
+        )
+    except FoundryError as exc:
+        fail(exc)
 
 
 @app.command()

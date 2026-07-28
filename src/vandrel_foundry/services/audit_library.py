@@ -46,6 +46,24 @@ def audit_library(config: FoundryConfig) -> LibraryAuditResult:
     return LibraryAuditResult(tuple(checks))
 
 
+def audit_library_asset(config: FoundryConfig, asset_id: str) -> LibraryAuditResult | None:
+    """Audit one cataloged asset without inspecting unrelated library entries."""
+    root = config.foundry.asset_library_root
+    catalog_path = root / "catalog.json"
+    try:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    except (OSError, json.JSONDecodeError) as exc:
+        raise FoundryError(f"Could not read asset-library catalog: {exc}") from exc
+    assets = _catalog_assets(catalog)
+    entry = assets.get(asset_id)
+    if entry is None:
+        return None
+    checks = _audit_asset(root, asset_id, entry, set())
+    return LibraryAuditResult(tuple(checks))
+
+
 def _catalog_assets(catalog: Any) -> dict[str, Any]:
     if not isinstance(catalog, dict) or catalog.get("schema_version") != 1:
         raise FoundryError("Asset-library catalog has an unsupported schema.")

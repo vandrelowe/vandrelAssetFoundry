@@ -140,3 +140,36 @@ post-rename interruption therefore appears as an orphan until `release
 
 The audit does not require a clean Git tree, mutate the Foundry workspace,
 repair catalog data, delete staging evidence, commit, push, or inspect Vandrel.
+
+## Read-only release-fitness view
+
+`release-fitness ASSET_ID` composes existing manifest, candidate-audit,
+release-planning, library-audit, and imported consumer-evidence authorities for
+one candidate. It has human and JSON presentations of the same versioned
+result. It does not create a second workflow or release-eligibility authority:
+eligibility is the outcome of the existing dry-run release planner plus the
+candidate integrity audit.
+
+The view keeps these dimensions separate:
+
+- current candidate identity, selected source, processed artifact, revision,
+  and workflow state;
+- candidate artifact/event integrity;
+- each named technical check, its result, any exact hashes it records, and
+  whether its processed-model binding is exact, stale, or absent;
+- explicit human approval and approval-bound hashes;
+- immutable library history and whether the latest descriptor file set equals
+  the current approved set;
+- imported Vandrel consumer evidence, which affects the displayed consumer
+  result only when it is explicitly hash-bound to the current processed model.
+
+Approval is shown with a separate exact/stale/unbound comparison against the
+current artifact set. The newest valid consumer report is shown even when
+stale or unbound; an older report that is still exact for the current complete
+consumer input set is surfaced separately and never replaces the latest
+evidence label.
+
+Historical library revisions never imply current approval or consumer
+acceptance. Missing, unbound, stale, rejected, blocked, passing, and unknown
+consumer states remain distinct. The command is read-only, single-candidate,
+offline, and does not inspect Vandrel directly.

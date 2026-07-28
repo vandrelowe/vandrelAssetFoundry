@@ -71,6 +71,7 @@
 | Explicit immutable library publication | `src/vandrel_foundry/services/publish_release.py` |
 | Asset-library Git policy checks | `src/vandrel_foundry/storage/git_worktree.py` |
 | Read-only asset-library integrity audit | `src/vandrel_foundry/services/audit_library.py` |
+| Read-only single-candidate release-fitness composition | `src/vandrel_foundry/services/release_fitness.py` |
 | Explicit one-time asset-library bootstrap | `src/vandrel_foundry/services/init_library.py` |
 
 The Pydantic model is the source for

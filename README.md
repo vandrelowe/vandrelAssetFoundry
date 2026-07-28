@@ -51,6 +51,8 @@ foundry audit stone_knife_001
 foundry audit-all
 foundry audit-library
 foundry review-gallery
+foundry release-fitness stone_knife_001
+foundry release-fitness stone_knife_001 --json
 
 # Run an explicit versioned, sequential local-only static batch plan.
 foundry run-static-batch .\batch-plan.json --ledger .\batch-ledger.json
