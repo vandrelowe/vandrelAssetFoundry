@@ -1,4 +1,4 @@
-# DM-015 Candidate Custody Binding Result
+# DM-016 Candidate Custody Binding Result
 
 status: implemented and locally verified
 date: 2026-07-28
