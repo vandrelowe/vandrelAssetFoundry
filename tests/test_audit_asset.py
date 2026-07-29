@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from vandrel_foundry.domain.manifest import Artifact
+from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.services.audit_asset import audit_asset
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.inspect_assets import initialize_workspace
@@ -110,3 +111,62 @@ def test_asset_audit_detects_unresolved_derivation(config, lanes, prompt: Path) 
     )
     assert not event_check["passed"]
     assert event_check["expected_revisions"] == [1, 2]
+
+
+def test_asset_audit_rejects_artifact_hash_change_that_retains_approval(
+    config,
+    lanes,
+    prompt: Path,
+) -> None:
+    initialize_workspace(config.foundry.workspace_root)
+    manifest = create_asset(
+        config,
+        lanes,
+        "audit_stale_approval_001",
+        "static_prop",
+        "Audit Stale Approval",
+        prompt,
+    )
+    asset_root = config.foundry.workspace_root / "assets/audit_stale_approval_001"
+    artifacts = []
+    for artifact_id, role, relative, content in (
+        ("processed_glb_001", "processed_model", "processed/model-old.glb", b"old model"),
+        ("processed_glb_002", "processed_model", "processed/model.glb", b"new model"),
+        ("godot_wrapper_001", "godot_wrapper_scene", "godot/wrapper.tscn", b"[gd_scene]\n"),
+    ):
+        path = asset_root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        artifacts.append(
+            Artifact(
+                artifact_id=artifact_id,
+                role=role,
+                stage="processed",
+                format=path.suffix.lstrip("."),
+                path=relative,
+                sha256=hashlib.sha256(content).hexdigest(),
+                size_bytes=len(content),
+            )
+        )
+    manifest.artifacts.extend(artifacts)
+    manifest.approval.approved = True
+    manifest.approval.approved_artifact_hashes = {
+        "processed_model": artifacts[0].sha256,
+        "godot_wrapper_scene": artifacts[2].sha256,
+    }
+    manifest.workflow.state = WorkflowState.APPROVED
+    manifest.revision += 1
+    ManifestRepository(config.foundry.workspace_root).save(
+        manifest,
+        "test.stale_approval_retained",
+        expected_revision=1,
+    )
+
+    result = audit_asset(config, "audit_stale_approval_001")
+
+    assert not result.passed
+    check = next(
+        item for item in result.manifest_checks if item["name"] == "approval_bindings_resolve"
+    )
+    assert not check["passed"]
+    assert all(item.passed for item in result.artifact_checks)

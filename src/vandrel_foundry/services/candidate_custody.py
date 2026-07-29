@@ -27,6 +27,7 @@ from vandrel_foundry.domain.manifest import (
     utc_now,
 )
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import invalidate_approval, transition_workflow
 from vandrel_foundry.services.build_custody_inventory import (
     load_custody_policy,
     validate_custody_register,
@@ -183,8 +184,8 @@ def bind_candidate_custody(
             else None
         )
         if manifest.approval.approved and previous_sha != semantic_sha:
-            _clear_approval(manifest)
-            manifest.workflow.state = WorkflowState.REVIEW
+            invalidate_approval(manifest)
+            transition_workflow(manifest, WorkflowState.REVIEW)
         manifest.schema_version = 2
         manifest.custody = assertion
         manifest.revision += 1
@@ -299,12 +300,3 @@ def _next_evidence_artifact_id(manifest: AssetManifest) -> str:
     while f"custody_license_evidence_{index:03d}" in existing:
         index += 1
     return f"custody_license_evidence_{index:03d}"
-
-
-def _clear_approval(manifest: AssetManifest) -> None:
-    manifest.approval.approved = False
-    manifest.approval.approved_at = None
-    manifest.approval.approved_artifact_hashes = {}
-    manifest.approval.custody_assertion_sha256 = None
-    manifest.approval.custody_source_inputs = []
-    manifest.approval.reviewer = None

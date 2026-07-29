@@ -11,6 +11,7 @@ from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 from vandrel_foundry.storage.provider_evidence import write_new_json_evidence
@@ -172,11 +173,11 @@ def validate_godot_sandbox(
     ] + [check]
     manifest.validation.result = "passed" if passed else "failed"
     if passed:
-        manifest.workflow.state = WorkflowState.REVIEW
+        transition_workflow(manifest, WorkflowState.REVIEW)
         manifest.workflow.blocked_reason = None
         manifest.workflow.last_error = None
     else:
-        manifest.workflow.state = WorkflowState.BLOCKED
+        transition_workflow(manifest, WorkflowState.BLOCKED)
         manifest.workflow.blocked_reason = "Godot sandbox import validation failed."
         manifest.workflow.last_error = (
             "Godot validation timed out or exceeded output limits."

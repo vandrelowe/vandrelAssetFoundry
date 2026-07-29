@@ -10,6 +10,7 @@ from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.services.inspect_glb import inspect_glb
 from vandrel_foundry.services.validate_godot import ProcessRunner, run_bounded_process
 from vandrel_foundry.storage.manifests import ManifestRepository
@@ -88,7 +89,7 @@ def add_external_glb(
     )
     manifest.artifacts.append(artifact)
     manifest.input.kind = "external"
-    manifest.workflow.state = WorkflowState.DOWNLOADED
+    transition_workflow(manifest, WorkflowState.DOWNLOADED)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(
@@ -274,7 +275,7 @@ def add_external_package(
     manifest.artifacts.extend([*raw_artifacts, source_artifact, *evidence_artifacts])
     manifest.input.kind = "external"
     manifest.quality.observed["source_conversion_warnings"] = warnings
-    manifest.workflow.state = WorkflowState.DOWNLOADED
+    transition_workflow(manifest, WorkflowState.DOWNLOADED)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(

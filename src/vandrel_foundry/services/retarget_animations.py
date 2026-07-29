@@ -8,6 +8,7 @@ from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import invalidate_approval, transition_workflow
 from vandrel_foundry.services.inspect_glb import inspect_glb
 from vandrel_foundry.services.validate_godot import ProcessRunner, run_bounded_process
 from vandrel_foundry.services.validate_humanoid_retarget import (
@@ -234,16 +235,10 @@ def retarget_animations(
         processor=processor,
     )
     manifest.artifacts.extend([model, report, log])
-    manifest.workflow.state = WorkflowState.PROCESSED
+    transition_workflow(manifest, WorkflowState.PROCESSED)
     manifest.validation.result = "not_run"
     manifest.validation.checks = []
-    manifest.approval.approved = False
-    manifest.approval.approved_at = None
-    manifest.approval.approved_artifact_hashes = {}
-    manifest.approval.custody_assertion_sha256 = None
-    manifest.approval.custody_source_inputs = []
-    manifest.approval.reviewer = None
-    manifest.approval.notes = ""
+    invalidate_approval(manifest)
     manifest.quality.observed["animation_count"] = len(animation_names)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()

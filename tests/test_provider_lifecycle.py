@@ -389,12 +389,17 @@ def test_select_and_passthrough_processing_creates_distinct_verified_artifact(
         notes="Fixture approval.",
     )
     assert approved.workflow.state is WorkflowState.APPROVED
+    assert approved.revision == validated.revision + 1
     assert approved.approval.approved
     assert approved.approval.reviewer == "Test Reviewer"
     assert set(approved.approval.approved_artifact_hashes) == {
         "processed_model",
         "godot_wrapper_scene",
     }
+    approval_event = json.loads((asset_root / "events.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+    assert approval_event["event"] == "asset.approved"
+    assert approval_event["revision"] == approved.revision
+    assert approval_event["asset_id"] == approved.asset.asset_id
     release_plan = plan_release(config, lanes, "stone_knife_001")
     assert release_plan.release_revision == 1
     assert not release_plan.destination.exists()

@@ -9,63 +9,14 @@ from vandrel_foundry.domain.custody_assertion import (
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest, utc_now
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import (
+    approval_artifact_roles,
+    approval_checks_pass,
+    invalidate_approval,
+    transition_workflow,
+)
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import contained_path
-
-APPROVAL_ROLES = ("processed_model", "godot_wrapper_scene")
-PROVIDER_NATIVE_APPROVAL_ROLES = (
-    "processed_animation_walk",
-    "processed_animation_run",
-    "godot_animation_loader_script",
-)
-REQUIRED_CHECKS = {
-    "glb_structure",
-    "geometry_present",
-    "triangle_budget",
-    "materials_required",
-    "skeleton_required",
-    "godot_sandbox_import",
-}
-SUSPENDED_APPROVAL_PROCESSORS = {
-    "blender_rest_pose_retarget",
-}
-
-
-def approval_checks_pass(manifest: AssetManifest) -> bool:
-    checks_by_name = {
-        str(check.get("name")): bool(check.get("passed")) for check in manifest.validation.checks
-    }
-    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
-    processor_name = (
-        processed[-1].processor.name if processed and processed[-1].processor is not None else None
-    )
-    if processor_name in SUSPENDED_APPROVAL_PROCESSORS:
-        return False
-    required_checks = (
-        REQUIRED_CHECKS - {"glb_structure"} | {"provider_native_character_playback"}
-        if processor_name == "godot_provider_native_character"
-        else REQUIRED_CHECKS
-    )
-    standard_checks_pass = (
-        manifest.validation.result == "passed"
-        and required_checks.issubset(checks_by_name)
-        and all(checks_by_name[name] for name in required_checks)
-    )
-    requires_animation_review = bool(
-        processed
-        and processed[-1].processor
-        and processed[-1].processor.name == "blender_rest_pose_retarget"
-    )
-    animation_review_passes = bool(
-        processed
-        and any(
-            check.get("name") == "animation_visual_review"
-            and check.get("passed")
-            and check.get("processed_model_sha256") == processed[-1].sha256
-            for check in manifest.validation.checks
-        )
-    )
-    return standard_checks_pass and (not requires_animation_review or animation_review_passes)
 
 
 def approve_asset(
@@ -90,16 +41,7 @@ def approve_asset(
         raise FoundryError("Approval requires a reviewer name.")
     bindings: dict[str, str] = {}
     asset_root = config.foundry.workspace_root / "assets" / asset_id
-    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
-    processor_name = (
-        processed[-1].processor.name if processed and processed[-1].processor is not None else None
-    )
-    approval_roles = APPROVAL_ROLES + (
-        PROVIDER_NATIVE_APPROVAL_ROLES
-        if processor_name == "godot_provider_native_character"
-        else ()
-    )
-    for role in approval_roles:
+    for role in approval_artifact_roles(manifest):
         candidates = [item for item in manifest.artifacts if item.role == role]
         if not candidates:
             raise FoundryError(f"Approval artifact role is missing: {role}")
@@ -127,7 +69,7 @@ def approve_asset(
     manifest.approval.custody_source_inputs = current_source_inputs(manifest)
     manifest.approval.reviewer = reviewer
     manifest.approval.notes = notes.strip()
-    manifest.workflow.state = WorkflowState.APPROVED
+    transition_workflow(manifest, WorkflowState.APPROVED)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(
@@ -150,16 +92,9 @@ def reject_asset(
     reason = reason.strip()
     if not reason:
         raise FoundryError("Rejection requires a reason.")
-    manifest.approval.approved = False
-    manifest.approval.approved_at = None
-    manifest.approval.approved_artifact_hashes = {}
-    manifest.approval.custody_assertion_sha256 = None
-    manifest.approval.custody_source_inputs = []
-    manifest.approval.custody_assertion_sha256 = None
-    manifest.approval.custody_source_inputs = []
-    manifest.approval.reviewer = None
+    invalidate_approval(manifest)
     manifest.approval.notes = reason
-    manifest.workflow.state = WorkflowState.REJECTED
+    transition_workflow(manifest, WorkflowState.REJECTED)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(

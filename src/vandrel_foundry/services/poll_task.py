@@ -6,6 +6,7 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import AssetManifest, ProviderTask, utc_now
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.providers.base import TextPreviewTransport
 from vandrel_foundry.providers.meshy.models import TaskError
 from vandrel_foundry.providers.redaction import redact_provider_evidence
@@ -122,15 +123,15 @@ select_text_task = select_generation_task
 
 def _apply_workflow_state(manifest: AssetManifest, task: ProviderTask) -> None:
     if task.status is ProviderTaskStatus.SUCCEEDED:
-        manifest.workflow.state = WorkflowState.SOURCE_READY
+        transition_workflow(manifest, WorkflowState.SOURCE_READY)
         manifest.workflow.blocked_reason = None
         manifest.workflow.last_error = None
     elif task.status in {ProviderTaskStatus.PENDING, ProviderTaskStatus.IN_PROGRESS}:
-        manifest.workflow.state = WorkflowState.GENERATING
+        transition_workflow(manifest, WorkflowState.GENERATING)
         manifest.workflow.blocked_reason = None
         manifest.workflow.last_error = None
     elif task.status in {ProviderTaskStatus.FAILED, ProviderTaskStatus.CANCELED}:
-        manifest.workflow.state = WorkflowState.BLOCKED
+        transition_workflow(manifest, WorkflowState.BLOCKED)
         manifest.workflow.blocked_reason = f"Provider task {task.status.value.lower()}."
         manifest.workflow.last_error = task.error
 

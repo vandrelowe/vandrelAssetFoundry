@@ -11,6 +11,7 @@ from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import invalidate_approval, transition_workflow
 from vandrel_foundry.services.validate_godot import (
     SAFE_ENVIRONMENT_KEYS,
     ProcessResult,
@@ -520,14 +521,11 @@ def prepare_provider_native_character(
             "recommended_fbx_embedded_texture_handling": "embed_basis_universal",
         }
     )
-    manifest.approval.approved = False
-    manifest.approval.approved_at = None
-    manifest.approval.approved_artifact_hashes = {}
-    manifest.approval.custody_assertion_sha256 = None
-    manifest.approval.custody_source_inputs = []
-    manifest.workflow.state = (
+    invalidate_approval(manifest)
+    target_state = (
         WorkflowState.REVIEW if manifest.validation.result == "passed" else WorkflowState.BLOCKED
     )
+    transition_workflow(manifest, target_state)
     manifest.workflow.blocked_reason = (
         None
         if manifest.validation.result == "passed"

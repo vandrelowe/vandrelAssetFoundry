@@ -12,6 +12,7 @@ from vandrel_foundry.domain.errors import (
 from vandrel_foundry.domain.manifest import AssetManifest, ProviderTask, utc_now
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.providers.base import TextPreviewTransport
 from vandrel_foundry.providers.meshy.models import (
     CreateTaskResponse,
@@ -292,7 +293,7 @@ def _submit_prepared(
 
     task.provider_task_id = response.result
     task.status = ProviderTaskStatus.PENDING
-    manifest.workflow.state = WorkflowState.SUBMITTED
+    transition_workflow(manifest, WorkflowState.SUBMITTED)
     try:
         write_new_json_evidence(
             contained_path(asset_root, response_relative),

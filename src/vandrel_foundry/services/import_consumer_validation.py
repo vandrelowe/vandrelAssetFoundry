@@ -15,6 +15,7 @@ from vandrel_foundry.domain.consumer_validation import (
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import invalidate_approval, transition_workflow
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
@@ -167,15 +168,11 @@ def import_vandrel_character_validation(
     manifest.validation.checks.append(check)
     if hash_bound and not generic_gate_passed:
         manifest.validation.result = "failed"
-        manifest.workflow.state = WorkflowState.BLOCKED
+        transition_workflow(manifest, WorkflowState.BLOCKED)
         manifest.workflow.blocked_reason = (
             "Vandrel consumer evidence reported exact-hash generic asset defects."
         )
-        manifest.approval.approved = False
-        manifest.approval.approved_at = None
-        manifest.approval.approved_artifact_hashes = {}
-        manifest.approval.custody_assertion_sha256 = None
-        manifest.approval.custody_source_inputs = []
+        invalidate_approval(manifest)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(

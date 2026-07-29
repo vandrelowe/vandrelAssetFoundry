@@ -9,11 +9,14 @@ from tests.test_humanoid_retarget import (
 )
 from vandrel_foundry.domain.manifest import Processor
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import (
+    REQUIRED_APPROVAL_CHECKS,
+    approval_checks_pass,
+)
 from vandrel_foundry.services.inspect_assets import initialize_workspace
 from vandrel_foundry.services.render_animation_samples import render_animation_samples
 from vandrel_foundry.services.retarget_animations import retarget_animations
 from vandrel_foundry.services.review_animation_samples import accept_animation_samples
-from vandrel_foundry.services.review_asset import REQUIRED_CHECKS, approval_checks_pass
 from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.manifests import ManifestRepository
 
@@ -145,7 +148,9 @@ def test_animation_samples_record_images_contact_sheet_and_evidence(
         version="fixture",
     )
     saved.validation.result = "passed"
-    saved.validation.checks = [{"name": name, "passed": True} for name in sorted(REQUIRED_CHECKS)]
+    saved.validation.checks = [
+        {"name": name, "passed": True} for name in sorted(REQUIRED_APPROVAL_CHECKS)
+    ]
     saved.revision += 1
     ManifestRepository(config.foundry.workspace_root).save(
         saved,

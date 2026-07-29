@@ -9,6 +9,7 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
@@ -125,7 +126,7 @@ def prepare_godot_sandbox(
     )
     manifest.artifacts.extend([model_artifact, wrapper_artifact, project_artifact])
     manifest.quality.targets["collision_recommendation"] = lane.collision_policy
-    manifest.workflow.state = WorkflowState.STAGED
+    transition_workflow(manifest, WorkflowState.STAGED)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(

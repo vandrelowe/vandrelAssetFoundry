@@ -6,6 +6,7 @@ from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
@@ -76,7 +77,7 @@ def process_passthrough(config: FoundryConfig, asset_id: str) -> Artifact:
         processor=Processor(name="passthrough", version=PASSTHROUGH_VERSION),
     )
     manifest.artifacts.append(artifact)
-    manifest.workflow.state = WorkflowState.PROCESSED
+    transition_workflow(manifest, WorkflowState.PROCESSED)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     # Keep the immutable output if persistence reports an error because the

@@ -219,9 +219,16 @@ def test_hash_bound_blocked_candidate_can_be_explicitly_rejected(
         ledger,
         "consumer_character",
     )
+    before = ManifestRepository(config.foundry.workspace_root).load("consumer_test")
 
     rejected = reject_asset(config, "consumer_test", "Cross-render gate requires redesign.")
 
     assert rejected.workflow.state is WorkflowState.REJECTED
+    assert rejected.revision == before.revision + 1
     assert rejected.approval.approved is False
     assert rejected.approval.notes == "Cross-render gate requires redesign."
+    event_path = config.foundry.workspace_root / "assets/consumer_test/events.jsonl"
+    rejection_event = json.loads(event_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert rejection_event["event"] == "asset.rejected"
+    assert rejection_event["revision"] == rejected.revision
+    assert rejection_event["asset_id"] == rejected.asset.asset_id

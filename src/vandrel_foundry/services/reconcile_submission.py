@@ -3,6 +3,7 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import ProviderTask, utc_now
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.storage.manifests import ManifestRepository
 
 
@@ -37,13 +38,13 @@ def reconcile_ambiguous_submission(
         task.provider_task_id = opaque_id
         task.status = ProviderTaskStatus.PENDING
         task.error = None
-        manifest.workflow.state = WorkflowState.SUBMITTED
+        transition_workflow(manifest, WorkflowState.SUBMITTED)
         manifest.workflow.blocked_reason = None
         event_type = "provider.submission_reconciled"
     else:
         task.status = ProviderTaskStatus.SUBMISSION_FAILED
         task.error = "User confirmed that the provider task was not created."
-        manifest.workflow.state = WorkflowState.DRAFT
+        transition_workflow(manifest, WorkflowState.DRAFT)
         manifest.workflow.blocked_reason = None
         event_type = "provider.submission_not_created"
 

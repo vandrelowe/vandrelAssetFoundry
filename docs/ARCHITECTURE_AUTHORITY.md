@@ -27,7 +27,8 @@
 | Logical custody roots, portable custody paths, register and storage-class vocabulary | `src/vandrel_foundry/domain/custody.py` |
 | Custody assertion hashing and freshness semantics | `src/vandrel_foundry/domain/custody_assertion.py` |
 | Historical v1 and strict planned-v2 release descriptor validation/layout | `src/vandrel_foundry/domain/release_descriptor.py` |
-| Workflow state and next actions | `src/vandrel_foundry/domain/states.py` |
+| Workflow state vocabulary and next actions | `src/vandrel_foundry/domain/states.py` |
+| Allowed workflow transitions, approval requirements, and approval invalidation | `src/vandrel_foundry/domain/workflow_policy.py` |
 | Versioned static batch plan and ledger shapes | `src/vandrel_foundry/domain/batch.py` |
 | Portable path validation and containment | `src/vandrel_foundry/storage/paths.py` |
 | Asset-specific locking | `src/vandrel_foundry/storage/locks.py` |
@@ -73,7 +74,7 @@
 | Hash-bound Vandrel consumer-evidence intake | `src/vandrel_foundry/services/import_consumer_validation.py` |
 | Versioned humanoid mapping and retarget compatibility evidence | `src/vandrel_foundry/services/validate_humanoid_retarget.py` plus `src/vandrel_foundry/data/rig_profiles/` |
 | Deterministic exact-skeleton animation grafting | `src/vandrel_foundry/services/graft_animations.py` |
-| Manual approval and rejection | `src/vandrel_foundry/services/review_asset.py` |
+| Manual approval and rejection orchestration | `src/vandrel_foundry/services/review_asset.py` |
 | Read-only release planning | `src/vandrel_foundry/services/plan_release.py` |
 | Explicit immutable library publication | `src/vandrel_foundry/services/publish_release.py` |
 | Asset-library Git policy checks | `src/vandrel_foundry/storage/git_worktree.py` |

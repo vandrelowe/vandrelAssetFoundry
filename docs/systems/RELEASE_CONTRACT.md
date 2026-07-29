@@ -6,9 +6,16 @@
 
 - Approval is explicit and manual.
 - Approval binds exact artifact roles to SHA-256 hashes.
+- The neutral workflow policy owns allowed candidate-state transitions,
+  approval artifact/check requirements, exact approval-binding reconciliation,
+  and the single complete approval-invalidation operation. Services orchestrate
+  persistence and event recording but do not redefine those rules.
 - Approval requires passing GLB structure, nonempty geometry, lane
   triangle-budget, material, skeleton, and Godot sandbox-import checks.
 - Any approved artifact change invalidates approval.
+- Approval invalidation clears the approval flag, timestamp, artifact hashes,
+  custody assertion and source bindings, reviewer, and approval notes together.
+  Explicit rejection then records its new rejection reason after invalidation.
 - Release is dry-run by default.
 - Release revisions are immutable, monotonically numbered, and limited to the
   canonical `r001` through `r999` layout.

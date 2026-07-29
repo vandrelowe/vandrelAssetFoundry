@@ -10,6 +10,7 @@ from vandrel_foundry.domain.errors import DownloadError, FoundryError
 from vandrel_foundry.domain.manifest import Artifact, utc_now
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
+from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.providers.base import TextPreviewTransport
 from vandrel_foundry.providers.redaction import redact_provider_evidence
 from vandrel_foundry.services.poll_task import select_generation_task
@@ -155,7 +156,7 @@ def download_text_preview_glb(
         raise
 
     manifest.artifacts.extend(new_artifacts)
-    manifest.workflow.state = WorkflowState.DOWNLOADED
+    transition_workflow(manifest, WorkflowState.DOWNLOADED)
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(

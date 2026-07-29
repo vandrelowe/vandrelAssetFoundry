@@ -5,7 +5,7 @@ from pathlib import Path
 
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.manifest import Artifact
-from vandrel_foundry.services.review_asset import APPROVAL_ROLES
+from vandrel_foundry.domain.workflow_policy import approval_bindings_resolve
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import contained_path
 
@@ -43,16 +43,7 @@ def audit_asset(config: FoundryConfig, asset_id: str) -> AssetAudit:
             if parent not in known_ids
         }
     )
-    approval_bindings_ok = not manifest.approval.approved or (
-        set(APPROVAL_ROLES).issubset(manifest.approval.approved_artifact_hashes)
-        and all(
-            any(
-                artifact.role == role and artifact.sha256 == expected_hash
-                for artifact in manifest.artifacts
-            )
-            for role, expected_hash in manifest.approval.approved_artifact_hashes.items()
-        )
-    )
+    approval_bindings_ok = approval_bindings_resolve(manifest)
     manifest_checks: list[dict[str, object]] = [
         {
             "name": "unique_artifact_ids",
