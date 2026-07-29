@@ -33,6 +33,7 @@
 | Portable path validation and containment | `src/vandrel_foundry/storage/paths.py` |
 | Asset-specific locking | `src/vandrel_foundry/storage/locks.py` |
 | Atomic manifest replacement | `src/vandrel_foundry/storage/manifests.py` |
+| Pending manifest-save recovery journal and exact reconciliation | `src/vandrel_foundry/storage/save_journal.py` |
 | Audit event append | `src/vandrel_foundry/storage/events.py` |
 | Asset creation workflow | `src/vandrel_foundry/services/create_asset.py` |
 | External GLB source intake | `src/vandrel_foundry/services/add_source.py` |

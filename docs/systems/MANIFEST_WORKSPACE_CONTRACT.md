@@ -21,6 +21,10 @@ manifests, event logs, discovery, and local inspection commands.
   replace/event sequence.
 - `manifest.previous.json` is recovery history, not a second authority.
 - `events.jsonl` is an audit trail, not a replay database.
+- Each asset may contain one `manifest.pending-save.json` operational recovery
+  journal. It records only source/target manifest hashes and revisions, the
+  exact pre-event length/hash, and the already-intended canonical event. It is
+  never manifest authority and cannot reconstruct or replace candidate state.
 
 ## Workspace layout
 
@@ -46,4 +50,28 @@ candidate, grants approval, or loads network content.
 ## Failure policy
 
 Corrupt manifests, unknown lanes, missing prompts, unsafe paths, duplicate IDs,
-and unsafe configuration fail explicitly. Automatic repair is out of scope.
+and unsafe configuration fail explicitly.
+
+A manifest save durably creates or replaces its pending-save journal under the
+asset lock before preserving/replacing the manifest or appending the event.
+The canonical event bytes are fixed before that first mutation. Journal writes
+flush the file and make the atomic directory-entry replacement durable using a
+parent-directory sync on POSIX and write-through replacement on Windows. A
+completed save durably marks the same journal complete.
+
+Read-only load, audit, and pending-save diagnosis never mutate recovery state.
+Only an explicit repository reconciliation or the locked preamble of another
+state-changing save may reconcile a pending journal. Reconciliation permits
+exactly these states:
+
+- exact source manifest plus the exact journaled pre-event log marks the
+  uncommitted attempt complete without changing manifest or events;
+- exact target manifest plus the exact pre-event log appends the exact event;
+- exact target manifest plus an exact proper prefix of that event truncates
+  only the proven partial tail, flushes it, then appends the exact event;
+- exact target manifest plus the exact complete event performs only idempotent
+  journal completion.
+
+Every other manifest, event-prefix, tail, identity, revision, type, or hash
+combination fails closed for manual inspection. Reconciliation always uses the
+same asset lock as save; there is no unlocked or load-time repair.
