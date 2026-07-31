@@ -20,6 +20,27 @@
   ],
   "packages": [
     {
+      "package_root": "Meshy/Meshy_Emerald_Fern_003",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_emerald_fern_003_user_declaration"
+      ]
+    },
+    {
+      "package_root": "Meshy/Meshy_Emerald_Fern_002",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_emerald_fern_002_user_declaration"
+      ]
+    },
+    {
+      "package_root": "Meshy/Meshy_Emerald_Crown_Fern_001",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_emerald_crown_fern_001_user_declaration"
+      ]
+    },
+    {
       "package_root": "Meshy/Meshy_Gnarled_Tree_001",
       "rights_status": "documented",
       "license_binding_ids": [
@@ -49,6 +70,27 @@
     }
   ],
   "license_bindings": [
+    {
+      "binding_id": "meshy_emerald_fern_003_user_declaration",
+      "evidence_path": "Meshy/Meshy_Emerald_Fern_003/rights-declaration.txt",
+      "evidence_sha256": "2af0e268495e50a51a5cf82db010b996ddb19900534131576bd4f302a86ad73a",
+      "scope_root": "Meshy/Meshy_Emerald_Fern_003",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "meshy_emerald_fern_002_user_declaration",
+      "evidence_path": "Meshy/Meshy_Emerald_Fern_002/rights-declaration.txt",
+      "evidence_sha256": "f67e5fc3ae107231d7b9bede2f824f90e76013159e1a98fe15abdd836b66f388",
+      "scope_root": "Meshy/Meshy_Emerald_Fern_002",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "meshy_emerald_crown_fern_001_user_declaration",
+      "evidence_path": "Meshy/Meshy_Emerald_Crown_Fern_001/rights-declaration.txt",
+      "evidence_sha256": "86cf08dfcbaa03a0a0501bfa12477262c32ede169cec70677ea9a57c2a75322a",
+      "scope_root": "Meshy/Meshy_Emerald_Crown_Fern_001",
+      "rights_semantics": "documented"
+    },
     {
       "binding_id": "meshy_gnarled_tree_001_user_declaration",
       "evidence_path": "Meshy/Meshy_Gnarled_Tree_001/rights-declaration.txt",
