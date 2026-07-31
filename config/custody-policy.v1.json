@@ -20,6 +20,20 @@
   ],
   "packages": [
     {
+      "package_root": "Meshy/Meshy_Gnarled_Tree_001",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_gnarled_tree_001_user_declaration"
+      ]
+    },
+    {
+      "package_root": "Meshy/Meshy_Tree_Variant_002",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_tree_variant_002_user_declaration"
+      ]
+    },
+    {
       "package_root": "Quaternius/Fantasy Props MegaKit[Standard]",
       "rights_status": "documented",
       "license_binding_ids": [
@@ -35,6 +49,20 @@
     }
   ],
   "license_bindings": [
+    {
+      "binding_id": "meshy_gnarled_tree_001_user_declaration",
+      "evidence_path": "Meshy/Meshy_Gnarled_Tree_001/rights-declaration.txt",
+      "evidence_sha256": "0bb58f4a04fb236aa53dc7188f7b8545399382e75e04df3cfd7837d679fbb1be",
+      "scope_root": "Meshy/Meshy_Gnarled_Tree_001",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "meshy_tree_variant_002_user_declaration",
+      "evidence_path": "Meshy/Meshy_Tree_Variant_002/rights-declaration.txt",
+      "evidence_sha256": "c88353c99cc8deefb9d858c0343bc31c172c18306ff1767ceee71085c8f97d57",
+      "scope_root": "Meshy/Meshy_Tree_Variant_002",
+      "rights_semantics": "documented"
+    },
     {
       "binding_id": "quaternius_fantasy_props_standard",
       "evidence_path": "Quaternius/Fantasy Props MegaKit[Standard]/License_Standard.txt",
