@@ -268,8 +268,7 @@ def test_manifest_save_event_partial_write_failure_retains_exact_invalid_tail(
         repository.save(update, "test.update", expected_revision=2)
 
     assert str(raised.value) == (
-        "Could not save manifest for durability_asset_001: "
-        "seeded event-partial-write failure"
+        "Could not save manifest for durability_asset_001: seeded event-partial-write failure"
     )
     assert isinstance(raised.value.__cause__, OSError)
     assert str(raised.value.__cause__) == "seeded event-partial-write failure"
@@ -332,8 +331,7 @@ def test_manifest_save_event_postwrite_failure_has_complete_event_but_raises(
         repository.save(update, "test.update", expected_revision=2)
 
     assert str(raised.value) == (
-        "Could not save manifest for durability_asset_001: "
-        "seeded event-postwrite-fsync failure"
+        "Could not save manifest for durability_asset_001: seeded event-postwrite-fsync failure"
     )
     assert isinstance(raised.value.__cause__, OSError)
     assert str(raised.value.__cause__) == "seeded event-postwrite-fsync failure"

@@ -668,9 +668,7 @@ def _workspace_entries(
     managed: dict[str, WorkspaceOwnership] = {}
     for asset_id, manifest in manifests.items():
         prefix = f"assets/{asset_id}"
-        managed[f"{prefix}/manifest.json"] = WorkspaceOwnership(
-            asset_id, "candidate_manifest"
-        )
+        managed[f"{prefix}/manifest.json"] = WorkspaceOwnership(asset_id, "candidate_manifest")
         managed[f"{prefix}/manifest.previous.json"] = WorkspaceOwnership(
             asset_id, "manifest_recovery_history"
         )
@@ -887,10 +885,7 @@ def _is_operational_report_path(path: str, manifests: dict[str, Any]) -> bool:
     if parts and parts[0] == "review_reports":
         return True
     return (
-        len(parts) >= 4
-        and parts[0] == "assets"
-        and parts[1] in manifests
-        and parts[2] == "reports"
+        len(parts) >= 4 and parts[0] == "assets" and parts[1] in manifests and parts[2] == "reports"
     )
 
 

@@ -275,16 +275,12 @@ def test_late_ledger_failure_removes_reservation_and_preserves_honest_candidate(
 
     monkeypatch.setattr(Path, "open", wrap_ledger_open)
     if failure_point == "fsync":
-        batch_module = importlib.import_module(
-            "vandrel_foundry.services.run_static_batch"
-        )
+        batch_module = importlib.import_module("vandrel_foundry.services.run_static_batch")
         monkeypatch.setattr(
             batch_module,
             "os",
             SimpleNamespace(
-                fsync=lambda _descriptor: (_ for _ in ()).throw(
-                    OSError("injected fsync failure")
-                )
+                fsync=lambda _descriptor: (_ for _ in ()).throw(OSError("injected fsync failure"))
             ),
         )
 

@@ -235,10 +235,13 @@ class CustodyRegister(CustodyModel):
     ]
     scan_algorithm_version: Literal["vandrel_foundry_custody_scan/1.0"]
     roots: tuple[Literal["outside_assets"], Literal["foundry_workspace"]]
-    root_fingerprints: Annotated[
-        dict[LogicalRoot, Sha256],
-        Field(min_length=3, max_length=3),
-    ] | None = None
+    root_fingerprints: (
+        Annotated[
+            dict[LogicalRoot, Sha256],
+            Field(min_length=3, max_length=3),
+        ]
+        | None
+    ) = None
     policy: RegisterPolicyBinding
     outside_files: list[OutsideFileRecord]
     packages: list[PackageRecord]
@@ -254,7 +257,12 @@ class CustodyRegister(CustodyModel):
         if self.schema_version.endswith("/1.0"):
             if self.root_fingerprints is not None or any(
                 item.logical_root is not None
-                for item in [*self.outside_files, *self.packages, *self.workspace_files, *self.defects]
+                for item in [
+                    *self.outside_files,
+                    *self.packages,
+                    *self.workspace_files,
+                    *self.defects,
+                ]
             ):
                 raise ValueError("Custody register 1.0 cannot carry 1.1 root qualifiers.")
             if any(item.storage_class not in V1_STORAGE_CLASSES for item in self.workspace_files):
@@ -263,7 +271,9 @@ class CustodyRegister(CustodyModel):
         expected_roots = {"outside_assets", "foundry_workspace", "asset_library"}
         if self.root_fingerprints is None or set(self.root_fingerprints) != expected_roots:
             raise ValueError("Custody register 1.1 requires all root fingerprints.")
-        if any(not re.fullmatch(r"[a-f0-9]{64}", value) for value in self.root_fingerprints.values()):
+        if any(
+            not re.fullmatch(r"[a-f0-9]{64}", value) for value in self.root_fingerprints.values()
+        ):
             raise ValueError("Custody register root fingerprints must be SHA-256.")
         if any(item.logical_root != "outside_assets" for item in self.outside_files):
             raise ValueError("Outside records require the outside_assets logical root.")

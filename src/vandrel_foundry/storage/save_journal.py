@@ -102,7 +102,9 @@ def read_journal(path: Path, expected_asset_id: str) -> PendingSave | None:
     except FileNotFoundError:
         return None
     except OSError as exc:
-        raise FoundryError(f"Could not read pending save journal for {expected_asset_id}: {exc}") from exc
+        raise FoundryError(
+            f"Could not read pending save journal for {expected_asset_id}: {exc}"
+        ) from exc
     try:
         record = _JournalRecord.model_validate_json(raw)
         event_bytes = base64.b64decode(record.event_base64, validate=True)

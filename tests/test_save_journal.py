@@ -204,9 +204,7 @@ def test_next_state_changing_save_reconciles_pending_event_under_same_lock(
     assert repository.diagnose_pending_save(ASSET_ID).status == "complete"
 
 
-def test_reconcile_uses_asset_lock_while_diagnosis_does_not(
-    config, lanes, prompt: Path
-) -> None:
+def test_reconcile_uses_asset_lock_while_diagnosis_does_not(config, lanes, prompt: Path) -> None:
     _repository, _update, _root, _before = _prepared_update(config, lanes, prompt)
     observed: list[Path] = []
 

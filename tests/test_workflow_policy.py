@@ -61,9 +61,7 @@ EXPECTED_LEGAL_TRANSITIONS = {
     (WorkflowState.BLOCKED, WorkflowState.REJECTED),
     (WorkflowState.BLOCKED, WorkflowState.BLOCKED),
 }
-ALL_TRANSITIONS = {
-    (source, target) for source in WorkflowState for target in WorkflowState
-}
+ALL_TRANSITIONS = {(source, target) for source in WorkflowState for target in WorkflowState}
 
 
 def test_transition_policy_matches_characterized_graph() -> None:
@@ -122,8 +120,7 @@ def test_every_illegal_workflow_transition_fails_without_mutation(
     assert manifest.model_dump(mode="json") == before
 
 
-def test_invalidate_approval_clears_complete_tuple_without_state_revision_or_event_change(
-) -> None:
+def test_invalidate_approval_clears_complete_tuple_without_state_revision_or_event_change() -> None:
     manifest = _manifest()
     manifest.workflow.state = WorkflowState.APPROVED
     manifest.revision = 17

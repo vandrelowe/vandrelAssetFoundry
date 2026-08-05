@@ -105,12 +105,9 @@ def test_inventory_is_deterministic_and_reconciles_duplicates(config, tmp_path: 
         "foundry_workspace",
         "asset_library",
     }
+    assert all(item["logical_root"] == "outside_assets" for item in first.register["outside_files"])
     assert all(
-        item["logical_root"] == "outside_assets" for item in first.register["outside_files"]
-    )
-    assert all(
-        item["logical_root"] == "foundry_workspace"
-        for item in first.register["workspace_files"]
+        item["logical_root"] == "foundry_workspace" for item in first.register["workspace_files"]
     )
     legacy_digest = hashlib.sha256(b"source\nSource/Pack").hexdigest()[:24]
     assert first.register["packages"][0]["package_id"] == f"pkg:source:{legacy_digest}"
@@ -278,8 +275,7 @@ def test_workspace_storage_classes_cover_recovery_audit_history_cache_and_report
 
     assert classes["assets/storage_classes_001/manifest.json"] == "candidate_manifest"
     assert (
-        classes["assets/storage_classes_001/manifest.previous.json"]
-        == "manifest_recovery_history"
+        classes["assets/storage_classes_001/manifest.previous.json"] == "manifest_recovery_history"
     )
     assert classes["assets/storage_classes_001/events.jsonl"] == "event_audit_log"
     assert classes["assets/storage_classes_001/input/prompt.txt"] == "candidate_input"
@@ -287,10 +283,7 @@ def test_workspace_storage_classes_cover_recovery_audit_history_cache_and_report
         classes["assets/storage_classes_001/reports/historical.json"]
         == "managed_historical_artifact"
     )
-    assert (
-        classes["assets/storage_classes_001/reports/current.json"]
-        == "managed_manifest_artifact"
-    )
+    assert classes["assets/storage_classes_001/reports/current.json"] == "managed_manifest_artifact"
     assert (
         classes["assets/storage_classes_001/godot_staging/fixture/.godot/cache.bin"]
         == "generated_cache_or_temp"

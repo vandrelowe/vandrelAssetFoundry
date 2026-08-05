@@ -91,12 +91,7 @@ def _plan_with_recovery(
     try:
         plan = plan_release(config, lanes, asset_id)
     except FoundryError:
-        final_destination = (
-            library_root
-            / "assets"
-            / asset_id
-            / format_release_revision(999)
-        )
+        final_destination = library_root / "assets" / asset_id / format_release_revision(999)
         if not final_destination.is_dir():
             raise
         final_plan = plan_release(

@@ -53,12 +53,7 @@ def _write_library(root: Path) -> Path:
 
 
 def _write_tampered_v2_library(root: Path, case: str) -> None:
-    fixture = (
-        Path(__file__).parent
-        / "fixtures"
-        / "release_descriptors"
-        / "release-v2.json"
-    )
+    fixture = Path(__file__).parent / "fixtures" / "release_descriptors" / "release-v2.json"
     descriptor = json.loads(fixture.read_text(encoding="utf-8"))
     model = b"model-content"
     license_bytes = b"license-content"
@@ -150,9 +145,7 @@ def _write_tampered_v2_library(root: Path, case: str) -> None:
                 "releases": [
                     {
                         "revision": 1,
-                        "path": (
-                            f"assets/{descriptor['asset_id']}/r001/asset-release.json"
-                        ),
+                        "path": (f"assets/{descriptor['asset_id']}/r001/asset-release.json"),
                         "descriptor_sha256": _sha256(descriptor_bytes),
                     }
                 ],
@@ -199,20 +192,13 @@ def test_audit_library_rejects_missing_catalog(config) -> None:
 
 def test_audit_library_rejects_r1000_layout(config) -> None:
     _write_library(config.foundry.asset_library_root)
-    (
-        config.foundry.asset_library_root
-        / "assets"
-        / "stone_knife_001"
-        / "r1000"
-    ).mkdir()
+    (config.foundry.asset_library_root / "assets" / "stone_knife_001" / "r1000").mkdir()
 
     result = audit_library(config)
 
     assert not result.passed
     assert any(
-        check.subject.endswith("r1000")
-        and "r001..r999" in check.detail
-        for check in result.checks
+        check.subject.endswith("r1000") and "r001..r999" in check.detail for check in result.checks
     )
 
 
@@ -236,6 +222,5 @@ def test_live_audit_rejects_v2_evidence_role_or_source_substitution(
 
     assert not result.passed
     assert any(
-        check.subject.endswith(":evidence_roles") and not check.passed
-        for check in result.checks
+        check.subject.endswith(":evidence_roles") and not check.passed for check in result.checks
     )

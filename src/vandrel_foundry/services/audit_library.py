@@ -97,9 +97,7 @@ def _audit_asset(
     valid_revisions = [
         value
         for value in revisions
-        if isinstance(value, int)
-        and not isinstance(value, bool)
-        and 1 <= value <= 999
+        if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 999
     ]
     expected_latest = max(valid_revisions, default=None)
     checks.append(
@@ -301,13 +299,17 @@ def _v2_evidence_roles_reconcile(descriptor: dict[str, Any]) -> bool:
         if not isinstance(evidence_items, list):
             return False
         for evidence in evidence_items:
-            if not isinstance(evidence, dict) or (
-                "custody_license_evidence",
-                evidence.get("release_path"),
-                evidence.get("sha256"),
-                evidence.get("size_bytes"),
-                evidence.get("source_artifact_id"),
-            ) not in file_bindings:
+            if (
+                not isinstance(evidence, dict)
+                or (
+                    "custody_license_evidence",
+                    evidence.get("release_path"),
+                    evidence.get("sha256"),
+                    evidence.get("size_bytes"),
+                    evidence.get("source_artifact_id"),
+                )
+                not in file_bindings
+            ):
                 return False
     humanoid = descriptor.get("humanoid_compatibility")
     if humanoid is None:
