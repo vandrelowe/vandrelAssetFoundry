@@ -1,0 +1,11 @@
+Create a local derivative of meshy_gnarled_tree_001 while preserving the exact
+approved source. Retain its tall narrow pale trunk, exposed roots, texture,
+and original crown. Expand only the upper canopy above source Y >= 0.58. Select
+faces by sampling every polygon UV corner plus its centroid; require at least
+half of those samples to have green/red > 1.22, green/blue > 1.15, and green >
+70/255, and exclude polygons whose maximum edge exceeds 0.14 source units.
+Place four mildly varied, overlapping crown stamps radially along both
+horizontal axes so the canopy is broad from every direction. The derivative
+remains unapproved and unpublished until visual review proves that it contains
+no copied wood, missing foliage, disconnected fragments, narrow side views,
+or obvious repeated mini-tree attachments.
