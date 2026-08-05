@@ -2,7 +2,10 @@ import json
 import math
 import struct
 from dataclasses import dataclass, field
+from io import BytesIO
 from pathlib import Path
+
+from PIL import Image, ImageDraw
 
 Vec3 = tuple[float, float, float]
 
@@ -48,6 +51,133 @@ def generate_fiddlehead_fern_glb(destination: Path) -> dict[str, int]:
         "fronds": len(specifications),
         "curled_fronds": sum(1 for item in specifications if item[3]),
     }
+
+
+def generate_textured_fiddlehead_fern_glb(destination: Path) -> dict[str, int]:
+    """Write a foliage-card fern with an embedded alpha-cutout frond texture."""
+    if destination.exists():
+        raise FileExistsError(f"Procedural fern output already exists: {destination}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    cards = _Primitive()
+    croziers = _Primitive()
+    soil = _Primitive()
+    card_uvs: list[tuple[float, float]] = []
+    opened = (
+        (-1.30, 0.54, 0.64, 0.105),
+        (-0.88, 0.67, 0.81, 0.115),
+        (-0.42, 0.72, 0.91, 0.120),
+        (0.14, 0.69, 0.86, 0.115),
+        (0.70, 0.63, 0.75, 0.110),
+        (1.22, 0.51, 0.60, 0.100),
+    )
+    for seed, (angle, reach, height, width) in enumerate(opened):
+        _add_card_frond(cards, card_uvs, angle, reach, height, width, seed)
+    _add_crozier(croziers, -0.18, 0.42, 0.62)
+    _add_crozier(croziers, 0.46, 0.36, 0.53)
+    _add_soil_crown(soil)
+    texture = _make_frond_texture()
+    _write_textured_glb(destination, cards, card_uvs, croziers, soil, texture)
+    return {
+        "vertices": len(cards.positions) + len(croziers.positions) + len(soil.positions),
+        "triangles": (len(cards.indices) + len(croziers.indices) + len(soil.indices)) // 3,
+        "opened_fronds": len(opened),
+        "curled_fronds": 2,
+        "texture_bytes": len(texture),
+    }
+
+
+def _add_card_frond(
+    mesh: _Primitive,
+    uvs: list[tuple[float, float]],
+    angle: float,
+    reach: float,
+    height: float,
+    maximum_width: float,
+    seed: int,
+) -> None:
+    radial = (math.cos(angle), math.sin(angle), 0.0)
+    side = (-radial[1], radial[0], 0.0)
+    normal = _normalize(_cross(radial, (0.0, 0.0, 1.0)))
+    rows: list[tuple[int, int]] = []
+    segments = 6
+    for step in range(segments + 1):
+        t = step / segments
+        bow = reach * (0.10 * t + 0.90 * t * t)
+        sway = math.sin((seed + 2) * 1.33) * 0.015 * t * (1.0 - t)
+        center = (
+            radial[0] * bow + side[0] * sway,
+            radial[1] * bow + side[1] * sway,
+            0.028 + height * (t - 0.23 * t * t),
+        )
+        envelope = max(0.02, math.sin(math.pi * t) ** 0.72)
+        half_width = maximum_width * envelope
+        left = mesh.vertex(_add(center, _scale(side, half_width)), normal)
+        uvs.append((0.0, 1.0 - t))
+        right = mesh.vertex(_add(center, _scale(side, -half_width)), normal)
+        uvs.append((1.0, 1.0 - t))
+        rows.append((left, right))
+    for step in range(segments):
+        left_a, right_a = rows[step]
+        left_b, right_b = rows[step + 1]
+        mesh.indices.extend((left_a, right_a, right_b, left_a, right_b, left_b))
+
+
+def _add_crozier(mesh: _Primitive, angle: float, reach: float, height: float) -> None:
+    radial = (math.cos(angle), math.sin(angle), 0.0)
+    points: list[Vec3] = []
+    for step in range(9):
+        t = step / 8
+        bow = reach * (0.08 * t + 0.92 * t * t)
+        points.append((radial[0] * bow, radial[1] * bow, 0.03 + height * (t - 0.20 * t * t)))
+    base = points[-1]
+    for step in range(1, 18):
+        progress = step / 17
+        theta = progress * math.tau * 0.72
+        radius = 0.068 * (1.0 - 0.56 * progress)
+        points.append(
+            (
+                base[0] + radial[0] * radius * math.sin(theta),
+                base[1] + radial[1] * radius * math.sin(theta),
+                base[2] + radius * (math.cos(theta) - 1.0),
+            )
+        )
+    _add_tube(mesh, points, 0.008, 4)
+
+
+def _make_frond_texture() -> bytes:
+    scale = 2
+    width, height = 256 * scale, 512 * scale
+    image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    green = (70, 132, 34, 255)
+    center = width // 2
+    draw.line((center, height - 4, center, 8), fill=green, width=5 * scale)
+    for index in range(18):
+        t = (index + 1) / 20
+        y = round((1.0 - t) * (height - 26 * scale) + 10 * scale)
+        envelope = math.sin(math.pi * t) ** 0.72
+        leaflet_length = (20 + 82 * envelope) * scale
+        leaflet_half_width = (3.0 + 8.0 * envelope) * scale
+        upward = 16 * scale
+        for sign in (-1, 1):
+            tip_x = center + sign * leaflet_length
+            tip_y = y - upward
+            base_x = center + sign * 2 * scale
+            polygon = (
+                (base_x, y + leaflet_half_width),
+                (center + sign * leaflet_length * 0.48, y - leaflet_half_width),
+                (tip_x, tip_y),
+                (center + sign * leaflet_length * 0.40, y + leaflet_half_width),
+            )
+            draw.polygon(polygon, fill=green)
+    draw.polygon(
+        ((center - 3 * scale, 12 * scale), (center, 0), (center + 3 * scale, 12 * scale)),
+        fill=green,
+    )
+    image = image.resize((256, 512), Image.Resampling.LANCZOS)
+    output = BytesIO()
+    image.save(output, format="PNG", optimize=True)
+    return output.getvalue()
 
 
 def _add_frond(
@@ -254,6 +384,113 @@ def _write_glb(destination: Path, plant: _Primitive, soil: _Primitive) -> None:
         stream.write(binary)
 
 
+def _write_textured_glb(
+    destination: Path,
+    cards: _Primitive,
+    card_uvs: list[tuple[float, float]],
+    croziers: _Primitive,
+    soil: _Primitive,
+    texture_png: bytes,
+) -> None:
+    binary = bytearray()
+    buffer_views: list[dict[str, int]] = []
+    accessors: list[dict[str, object]] = []
+    primitives: list[dict[str, object]] = []
+
+    card_positions = _append_vec3(binary, buffer_views, accessors, cards.positions)
+    card_normals = _append_vec3(binary, buffer_views, accessors, cards.normals)
+    card_texcoords = _append_vec2(binary, buffer_views, accessors, card_uvs)
+    card_indices = _append_indices(binary, buffer_views, accessors, cards.indices)
+    primitives.append(
+        {
+            "attributes": {
+                "POSITION": card_positions,
+                "NORMAL": card_normals,
+                "TEXCOORD_0": card_texcoords,
+            },
+            "indices": card_indices,
+            "material": 0,
+            "mode": 4,
+        }
+    )
+    for material, primitive in ((1, croziers), (2, soil)):
+        positions = _append_vec3(binary, buffer_views, accessors, primitive.positions)
+        normals = _append_vec3(binary, buffer_views, accessors, primitive.normals)
+        indices = _append_indices(binary, buffer_views, accessors, primitive.indices)
+        primitives.append(
+            {
+                "attributes": {"POSITION": positions, "NORMAL": normals},
+                "indices": indices,
+                "material": material,
+                "mode": 4,
+            }
+        )
+    binary.extend(b"\x00" * (-len(binary) % 4))
+    texture_offset = len(binary)
+    binary.extend(texture_png)
+    buffer_views.append({"buffer": 0, "byteOffset": texture_offset, "byteLength": len(texture_png)})
+    image_view = len(buffer_views) - 1
+    document = {
+        "asset": {"version": "2.0", "generator": "Vandrel Foundry foliage-card fern v1"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": [{"mesh": 0, "name": "FiddleheadFernCardClump"}],
+        "meshes": [{"name": "FiddleheadFernCardClump", "primitives": primitives}],
+        "materials": [
+            {
+                "name": "FernFrondAlphaCutout",
+                "doubleSided": True,
+                "alphaMode": "MASK",
+                "alphaCutoff": 0.45,
+                "pbrMetallicRoughness": {
+                    "baseColorTexture": {"index": 0},
+                    "metallicFactor": 0.0,
+                    "roughnessFactor": 0.92,
+                },
+            },
+            {
+                "name": "FernCrozierGreen",
+                "pbrMetallicRoughness": {
+                    "baseColorFactor": [0.24, 0.48, 0.09, 1.0],
+                    "metallicFactor": 0.0,
+                    "roughnessFactor": 0.9,
+                },
+            },
+            {
+                "name": "SoilCrown",
+                "pbrMetallicRoughness": {
+                    "baseColorFactor": [0.20, 0.12, 0.055, 1.0],
+                    "metallicFactor": 0.0,
+                    "roughnessFactor": 1.0,
+                },
+            },
+        ],
+        "samplers": [{"magFilter": 9729, "minFilter": 9987, "wrapS": 33071, "wrapT": 33071}],
+        "textures": [{"sampler": 0, "source": 0}],
+        "images": [{"bufferView": image_view, "mimeType": "image/png", "name": "frond_mask"}],
+        "buffers": [{"byteLength": len(binary)}],
+        "bufferViews": buffer_views,
+        "accessors": accessors,
+        "extras": {
+            "provenance": "Locally generated deterministic geometry and RGBA texture; no provider model used.",
+            "units": "meters",
+            "construction": "segmented foliage cards with alpha-mask texture",
+            "opened_frond_count": 6,
+            "curled_frond_count": 2,
+        },
+    }
+    raw_json = json.dumps(document, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    raw_json += b" " * (-len(raw_json) % 4)
+    binary += b"\x00" * (-len(binary) % 4)
+    total = 12 + 8 + len(raw_json) + 8 + len(binary)
+    with destination.open("xb") as stream:
+        stream.write(struct.pack("<4sII", b"glTF", 2, total))
+        stream.write(struct.pack("<II", len(raw_json), 0x4E4F534A))
+        stream.write(raw_json)
+        stream.write(struct.pack("<II", len(binary), 0x004E4942))
+        stream.write(binary)
+
+
 def _append_vec3(
     binary: bytearray,
     views: list[dict[str, int]],
@@ -271,6 +508,30 @@ def _append_vec3(
             "componentType": 5126,
             "count": len(values),
             "type": "VEC3",
+            "min": [min(axis) for axis in flat],
+            "max": [max(axis) for axis in flat],
+        }
+    )
+    return len(accessors) - 1
+
+
+def _append_vec2(
+    binary: bytearray,
+    views: list[dict[str, int]],
+    accessors: list[dict[str, object]],
+    values: list[tuple[float, float]],
+) -> int:
+    offset = len(binary)
+    for value in values:
+        binary.extend(struct.pack("<2f", *value))
+    views.append({"buffer": 0, "byteOffset": offset, "byteLength": len(values) * 8})
+    flat = list(zip(*values, strict=True))
+    accessors.append(
+        {
+            "bufferView": len(views) - 1,
+            "componentType": 5126,
+            "count": len(values),
+            "type": "VEC2",
             "min": [min(axis) for axis in flat],
             "max": [max(axis) for axis in flat],
         }
