@@ -1,0 +1,7 @@
+Create a very-low-poly young fiddlehead fern clump for abundant prehistoric
+forest ground cover. The plant grows from one compact crown and has eight thin,
+radially spreading fronds. Six fronds are partially opened with sparse flat
+paired leaflets; two younger fronds end in compact inward croziers whose
+folded leaflets continue into the curl. Geometry is locally authored and
+deterministic, with no external 3D provider asset. Preserve thin planar
+leaflets, economical geometry, natural varied heights, and meter units.
