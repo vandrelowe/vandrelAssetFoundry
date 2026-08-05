@@ -46,7 +46,7 @@ def test_generate_textured_fern_uses_alpha_cards_and_embedded_texture(
     inspection = inspect_glb(output)
     document = load_glb_document(output)
 
-    assert result["opened_fronds"] == 6
+    assert result["opened_fronds"] == 7
     assert result["curled_fronds"] == 2
     assert result["triangles"] == inspection.triangle_count
     assert inspection.triangle_count < 500
@@ -56,4 +56,6 @@ def test_generate_textured_fern_uses_alpha_cards_and_embedded_texture(
     assert document["materials"][0]["alphaMode"] == "MASK"
     assert document["materials"][0]["doubleSided"] is True
     assert document["images"][0]["mimeType"] == "image/png"
-    assert document["extras"]["construction"] == "segmented foliage cards with alpha-mask texture"
+    assert document["extras"]["construction"] == (
+        "gently curved tapered foliage cards with stylized alpha-mask texture"
+    )

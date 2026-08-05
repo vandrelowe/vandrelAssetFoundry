@@ -63,17 +63,18 @@ def generate_textured_fiddlehead_fern_glb(destination: Path) -> dict[str, int]:
     soil = _Primitive()
     card_uvs: list[tuple[float, float]] = []
     opened = (
-        (-1.30, 0.54, 0.64, 0.105),
-        (-0.88, 0.67, 0.81, 0.115),
-        (-0.42, 0.72, 0.91, 0.120),
-        (0.14, 0.69, 0.86, 0.115),
-        (0.70, 0.63, 0.75, 0.110),
-        (1.22, 0.51, 0.60, 0.100),
+        (-1.38, 0.50, 0.59, 0.090),
+        (-1.01, 0.61, 0.73, 0.100),
+        (-0.62, 0.69, 0.84, 0.108),
+        (-0.20, 0.72, 0.91, 0.112),
+        (0.24, 0.68, 0.83, 0.106),
+        (0.70, 0.60, 0.71, 0.098),
+        (1.18, 0.49, 0.57, 0.088),
     )
     for seed, (angle, reach, height, width) in enumerate(opened):
         _add_card_frond(cards, card_uvs, angle, reach, height, width, seed)
-    _add_crozier(croziers, -0.18, 0.42, 0.62)
-    _add_crozier(croziers, 0.46, 0.36, 0.53)
+    _add_crozier(croziers, -0.05, 0.29, 0.52)
+    _add_crozier(croziers, 0.51, 0.25, 0.44)
     _add_soil_crown(soil)
     texture = _make_frond_texture()
     _write_textured_glb(destination, cards, card_uvs, croziers, soil, texture)
@@ -109,7 +110,7 @@ def _add_card_frond(
             radial[1] * bow + side[1] * sway,
             0.028 + height * (t - 0.23 * t * t),
         )
-        envelope = max(0.02, math.sin(math.pi * t) ** 0.72)
+        envelope = max(0.012, math.sin(math.pi * t) ** 0.84)
         half_width = maximum_width * envelope
         left = mesh.vertex(_add(center, _scale(side, half_width)), normal)
         uvs.append((0.0, 1.0 - t))
@@ -149,30 +150,44 @@ def _make_frond_texture() -> bytes:
     width, height = 256 * scale, 512 * scale
     image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    green = (70, 132, 34, 255)
     center = width // 2
-    draw.line((center, height - 4, center, 8), fill=green, width=5 * scale)
-    for index in range(18):
-        t = (index + 1) / 20
-        y = round((1.0 - t) * (height - 26 * scale) + 10 * scale)
-        envelope = math.sin(math.pi * t) ** 0.72
-        leaflet_length = (20 + 82 * envelope) * scale
-        leaflet_half_width = (3.0 + 8.0 * envelope) * scale
-        upward = 16 * scale
+    stem_dark = (49, 91, 33, 255)
+    stem_light = (84, 126, 52, 255)
+    greens = (
+        (71, 118, 46, 255),
+        (78, 128, 49, 255),
+        (65, 109, 42, 255),
+        (88, 136, 56, 255),
+    )
+    draw.line((center, height - 3, center, 7), fill=stem_dark, width=6 * scale)
+    draw.line((center + scale, height - 4, center + scale, 8), fill=stem_light, width=2 * scale)
+    for index in range(17):
+        t = (index + 1) / 19
+        y = round((1.0 - t) * (height - 28 * scale) + 11 * scale)
+        envelope = math.sin(math.pi * t) ** 0.82
+        irregular = 0.94 + 0.07 * math.sin(index * 2.31)
+        leaflet_length = (13 + 87 * envelope) * irregular * scale
+        leaflet_half_width = (3.2 + 7.5 * envelope) * scale
+        upward = (10 + 14 * t) * scale
         for sign in (-1, 1):
-            tip_x = center + sign * leaflet_length
-            tip_y = y - upward
-            base_x = center + sign * 2 * scale
+            side_variation = 1.0 + sign * 0.035 * math.sin(index * 1.77)
+            tip_x = center + sign * leaflet_length * side_variation
+            tip_y = y - upward * (0.92 + 0.08 * math.cos(index * 1.31 + sign))
+            base_x = center + sign * 2.5 * scale
+            shoulder_x = center + sign * leaflet_length * 0.44
+            color = greens[(index + (1 if sign > 0 else 0)) % len(greens)]
             polygon = (
-                (base_x, y + leaflet_half_width),
-                (center + sign * leaflet_length * 0.48, y - leaflet_half_width),
+                (base_x, y + leaflet_half_width * 0.46),
+                (shoulder_x, y - leaflet_half_width),
                 (tip_x, tip_y),
-                (center + sign * leaflet_length * 0.40, y + leaflet_half_width),
+                (center + sign * leaflet_length * 0.36, y + leaflet_half_width),
+                (base_x, y + leaflet_half_width * 0.25),
             )
-            draw.polygon(polygon, fill=green)
+            draw.polygon(polygon, fill=color)
+            draw.line((base_x, y, tip_x, tip_y), fill=stem_light, width=scale)
     draw.polygon(
         ((center - 3 * scale, 12 * scale), (center, 0), (center + 3 * scale, 12 * scale)),
-        fill=green,
+        fill=greens[1],
     )
     image = image.resize((256, 512), Image.Resampling.LANCZOS)
     output = BytesIO()
@@ -431,7 +446,7 @@ def _write_textured_glb(
     buffer_views.append({"buffer": 0, "byteOffset": texture_offset, "byteLength": len(texture_png)})
     image_view = len(buffer_views) - 1
     document = {
-        "asset": {"version": "2.0", "generator": "Vandrel Foundry foliage-card fern v1"},
+        "asset": {"version": "2.0", "generator": "Vandrel Foundry foliage-card fern v2"},
         "scene": 0,
         "scenes": [{"nodes": [0]}],
         "nodes": [{"mesh": 0, "name": "FiddleheadFernCardClump"}],
@@ -474,8 +489,8 @@ def _write_textured_glb(
         "extras": {
             "provenance": "Locally generated deterministic geometry and RGBA texture; no provider model used.",
             "units": "meters",
-            "construction": "segmented foliage cards with alpha-mask texture",
-            "opened_frond_count": 6,
+            "construction": "gently curved tapered foliage cards with stylized alpha-mask texture",
+            "opened_frond_count": 7,
             "curled_frond_count": 2,
         },
     }
