@@ -1,0 +1,15 @@
+Create a local derivative of the exact approved meshy_inverted_roots_tree_002
+processed model. Preserve its complete underground roots, trunk, original crown,
+and source bytes unchanged. Hand-model a coherent radial upper branch network
+from the existing crown junction, including tapered main limbs and secondary
+twigs, then attach individually varied low-poly leaves directly along those
+twigs. Broaden the crown along both horizontal axes while retaining a tall
+giant-tree silhouette. Use only locally authored source-matched wood and green
+foliage materials; copy no source crown faces. The derivative remains
+unapproved, unreleased, and unpublished pending four-angle visual review.
+
+For the material-unification derivative, preserve candidate 010 geometry and
+transforms exactly. Use the linked base-color atlas, upper-crown containment,
+and yellow-green multi-sample evidence to assign only original foliage faces
+to the same locally authored olive palette as the attached leaves. Preserve all
+source faces below the crown cutoff and every authored branch material as wood.
