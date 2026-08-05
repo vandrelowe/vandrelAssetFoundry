@@ -3,10 +3,10 @@
 
 # Desktop migration recovery closeout
 
-**Date:** 2026-08-02  
+**Date:** 2026-08-02
 **Scope:** Read-only workspace and sibling-repository recovery, plus bounded
-Foundry documentation/schema correction  
-**Network/provider spend:** None  
+Foundry documentation/schema correction
+**Network/provider spend:** None
 **Publication, commit, push, deletion, or Vandrel write:** None
 
 > **Superseded ACL status (2026-08-02):** Later Phase 4B.2 evidence proved the
