@@ -66,7 +66,6 @@ foundry scan-sources C:\Dev\outsideassets --family meshy --lane static_prop
 
 # Safely inspect a ZIP in a standalone, candidate-free Godot sandbox.
 foundry preview-package C:\Users\you\Downloads\bear.zip
-foundry preview-package C:\Users\you\Downloads\bear.zip --launch
 
 # Read-only quadruped evidence; does not launch Godot or create a candidate.
 foundry inspect-creature-package C:\Users\you\Downloads\bear.zip `
@@ -88,8 +87,11 @@ reports the current workflow and valid next actions.
 packages and suggests static-prop or humanoid intake lanes; it does not copy,
 convert, submit, or create asset records.
 `preview-package` safely extracts supported content into a new immutable local
-sandbox with a metre grid, scale references, model switching, and embedded
-animation playback. It creates no candidate and never writes to Vandrel.
+sandbox and performs bounded headless import/readiness validation of the metre
+grid, scale references, model switching, and embedded animation viewer. It
+creates no candidate and never writes to Vandrel. Interactive `--launch` is
+currently disabled by the exclusive Foundry runtime gate and fails before
+sandbox creation or process spawn.
 `inspect-creature-package` produces a typed, read-only comparison of a
 base/final rig and idle, walk, and run GLBs. It distinguishes a coherent
 animation set from direct base-rig transfer compatibility.

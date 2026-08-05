@@ -71,7 +71,7 @@
 | Sequential fail-isolated static batch orchestration and timing ledger | `src/vandrel_foundry/services/run_static_batch.py` |
 | Validation-only offline-vision recovery rehearsal readiness | `src/vandrel_foundry/services/offline_vision_rehearsal.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
-| Candidate-free package preview staging, validation, and explicit launch | `src/vandrel_foundry/services/preview_package.py`; `src/vandrel_foundry/godot/package_preview.gd` owns only sandbox presentation |
+| Candidate-free package preview staging and bounded headless validation | `src/vandrel_foundry/services/preview_package.py`; `src/vandrel_foundry/godot/package_preview.gd` owns only sandbox presentation; interactive launch is unavailable |
 | Offline animated-creature package inspection and typed technical evidence | `src/vandrel_foundry/services/inspect_creature_package.py` orchestrates archive/GLB inspection; `src/vandrel_foundry/domain/creature_animation.py` owns the evidence shape |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |

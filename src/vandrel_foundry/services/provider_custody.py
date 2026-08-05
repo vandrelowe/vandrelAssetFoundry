@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -31,7 +32,7 @@ from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 class ProviderRights(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    rights_status: str
+    rights_status: Literal["documented"]
     evidence_retrieved_at: str
     evidence_urls: list[str] = Field(min_length=1)
     basis: str = Field(min_length=1)
@@ -39,7 +40,7 @@ class ProviderRights(BaseModel):
 
 class ProviderRightsPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    schema_version: str
+    schema_version: Literal["vandrel_foundry_provider_rights_policy/1.0"]
     providers: dict[str, ProviderRights]
 
 

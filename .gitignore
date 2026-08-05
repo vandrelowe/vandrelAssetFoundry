@@ -9,7 +9,7 @@ __pycache__/
 foundry.toml
 build/
 dist/
-output/
+/output/
 *.egg-info/
 
 # Active candidate work and generated assets never belong in this repository.

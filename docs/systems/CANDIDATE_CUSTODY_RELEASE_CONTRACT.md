@@ -59,6 +59,13 @@ date, and the bounded rights basis. It documents provider-plan and provenance
 facts; it does not override provider terms or infer rights to user-supplied
 references.
 
+The accepted policy schema is exactly
+`vandrel_foundry_provider_rights_policy/1.0`. Its closed rights-status
+vocabulary contains only `documented`, because a non-documented provider cannot
+produce an accepted provider custody assertion. Unknown schema versions,
+statuses, and fields fail before candidate manifest, evidence, event, or
+pending-save-journal mutation.
+
 The contribution union must equal the candidate's current root source artifact
 set exactly. Missing, duplicate, or ambiguous package assignments fail.
 Compound assets use multiple `source_contributions`; custody is not collapsed

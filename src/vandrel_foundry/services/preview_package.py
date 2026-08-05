@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import stat
-import subprocess
 import tempfile
 import zipfile
 from dataclasses import dataclass
@@ -52,12 +51,6 @@ class PackagePreviewResult:
     sandbox: Path
     report: Path
     models: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class ValidatedPackagePreview:
-    sandbox: Path
-    process: ProcessResult
 
 
 class PreviewProcessRunner(Protocol):
@@ -139,7 +132,7 @@ def validate_package_preview(
     config: FoundryConfig,
     sandbox: Path,
     runner: PreviewProcessRunner | None = None,
-) -> ValidatedPackagePreview:
+) -> ProcessResult:
     executable = config.tools.godot_executable
     if executable is None:
         raise FoundryError("tools.godot_executable is not configured.")
@@ -169,24 +162,7 @@ def validate_package_preview(
     _require_clean_process(result, "Godot package preview runtime failed.")
     if ready is None:
         raise FoundryError("Godot package preview did not reach verified render readiness.")
-    return ValidatedPackagePreview(sandbox=sandbox, process=result)
-
-
-def launch_package_preview(config: FoundryConfig, preview: ValidatedPackagePreview) -> None:
-    executable = config.tools.godot_executable
-    if executable is None:
-        raise FoundryError("tools.godot_executable is not configured.")
-    executable = executable.resolve(strict=True)
-    sandbox = preview.sandbox.resolve(strict=True)
-    try:
-        subprocess.Popen(
-            [str(executable), "--path", str(sandbox)],
-            cwd=sandbox,
-            env=_safe_environment(),
-            shell=False,
-        )
-    except OSError as exc:
-        raise FoundryError(f"Could not launch package preview: {exc}") from exc
+    return result
 
 
 def _inspect_entries(

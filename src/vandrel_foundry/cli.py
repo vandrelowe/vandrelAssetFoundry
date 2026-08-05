@@ -49,7 +49,6 @@ from vandrel_foundry.services.prepare_native_character import (
     prepare_provider_native_character,
 )
 from vandrel_foundry.services.preview_package import (
-    launch_package_preview,
     prepare_package_preview,
     validate_package_preview,
 )
@@ -325,21 +324,27 @@ def preview_package(
     ] = None,
     launch: Annotated[
         bool,
-        typer.Option("--launch", help="Open the generated sandbox in configured Godot."),
+        typer.Option(
+            "--launch",
+            help="Unavailable while the exclusive Foundry runtime gate is held.",
+        ),
     ] = False,
     config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
 ) -> None:
     """Safely stage a ZIP in a candidate-free standalone Godot viewer."""
     try:
+        if launch:
+            raise FoundryError(
+                "Interactive package preview launch is disabled by the exclusive runtime "
+                "gate; no process was started. Run without --launch for bounded headless "
+                "validation."
+            )
         settings = load_config(config)
         result = prepare_package_preview(settings, archive, output_root)
-        validated = validate_package_preview(settings, result.sandbox)
+        validate_package_preview(settings, result.sandbox)
         console.print(f"[green]Package preview verified[/green] {result.sandbox}")
         console.print(f"Models: {len(result.models)}")
         console.print(f"Report: {result.report}")
-        if launch:
-            launch_package_preview(settings, validated)
-            console.print("[green]Godot preview launched[/green]")
     except (FoundryError, OSError) as exc:
         fail(exc)
 

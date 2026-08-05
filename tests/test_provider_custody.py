@@ -2,7 +2,10 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from vandrel_foundry.domain.custody_assertion import custody_freshness
+from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, ProviderTask
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.services.create_asset import create_asset
@@ -92,3 +95,59 @@ def test_provider_custody_stales_when_selected_task_changes(
 
     assert not fresh
     assert "custody_provider_provenance_stale" in blockers
+
+
+@pytest.mark.parametrize(
+    ("policy_change", "expected_detail"),
+    [
+        ({"schema_version": "vandrel_foundry_provider_rights_policy/2.0"}, "schema_version"),
+        ({"rights_status": "unknown"}, "rights_status"),
+    ],
+)
+def test_provider_policy_unknown_values_fail_before_candidate_mutation(
+    config,
+    lanes,
+    prompt: Path,
+    tmp_path: Path,
+    policy_change: dict[str, str],
+    expected_detail: str,
+) -> None:
+    create_asset(config, lanes, "provider_policy_guard_001", "static_prop", "Guard", prompt)
+    workspace = config.foundry.workspace_root
+    before = {
+        path.relative_to(workspace).as_posix(): path.read_bytes()
+        for path in workspace.rglob("*")
+        if path.is_file()
+    }
+    policy_value = {
+        "schema_version": "vandrel_foundry_provider_rights_policy/1.0",
+        "providers": {
+            "meshy": {
+                "rights_status": "documented",
+                "evidence_retrieved_at": "2026-08-02T00:00:00Z",
+                "evidence_urls": ["https://example.test/terms"],
+                "basis": "Paid API generation rights evidence.",
+            }
+        },
+    }
+    if "schema_version" in policy_change:
+        policy_value["schema_version"] = policy_change["schema_version"]
+    if "rights_status" in policy_change:
+        policy_value["providers"]["meshy"]["rights_status"] = policy_change["rights_status"]
+    policy = tmp_path / f"invalid-{expected_detail}.json"
+    policy.write_text(json.dumps(policy_value), encoding="utf-8")
+
+    with pytest.raises(FoundryError, match=expected_detail):
+        bind_provider_custody(config, "provider_policy_guard_001", policy)
+
+    after = {
+        path.relative_to(workspace).as_posix(): path.read_bytes()
+        for path in workspace.rglob("*")
+        if path.is_file()
+    }
+    assert after == before
+    assert {
+        path: value for path, value in after.items() if path.endswith("manifest.pending-save.json")
+    } == {
+        path: value for path, value in before.items() if path.endswith("manifest.pending-save.json")
+    }

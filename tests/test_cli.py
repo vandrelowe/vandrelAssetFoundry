@@ -1,4 +1,5 @@
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -27,6 +28,27 @@ def invoke(command: list[str], config: Path):
         [*command, "--config", str(config)],
         terminal_width=180,
     )
+
+
+def test_package_preview_launch_is_disabled_before_any_process_or_workspace_write(
+    cli_config: Path, config_data: dict, tmp_path: Path, monkeypatch
+) -> None:
+    def forbidden_popen(*_args, **_kwargs):
+        raise AssertionError("interactive process launch must remain unavailable")
+
+    monkeypatch.setattr(subprocess, "Popen", forbidden_popen)
+    workspace = Path(config_data["foundry"]["workspace_root"])
+    before = sorted(path.relative_to(workspace) for path in workspace.rglob("*"))
+
+    result = invoke(
+        ["preview-package", str(tmp_path / "not-opened.zip"), "--launch"],
+        cli_config,
+    )
+
+    assert result.exit_code != 0
+    assert "Interactive package preview launch is disabled" in result.output
+    assert "no process was started" in result.output
+    assert sorted(path.relative_to(workspace) for path in workspace.rglob("*")) == before
 
 
 def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dict) -> None:

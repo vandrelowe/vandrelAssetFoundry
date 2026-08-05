@@ -8,7 +8,6 @@ import pytest
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.services.preview_package import (
     _safe_zip_path,
-    launch_package_preview,
     prepare_package_preview,
     validate_package_preview,
 )
@@ -139,45 +138,4 @@ def test_validation_accepts_ready_scene_with_meshes(config, tmp_path: Path) -> N
 
     result = validate_package_preview(configured, sandbox, ready_runner)
 
-    assert result.process.return_code == 0
-
-
-def test_launch_reuses_accepted_validation_without_running_godot_twice(
-    config, tmp_path: Path, monkeypatch
-) -> None:
-    executable = tmp_path / "godot.exe"
-    executable.write_bytes(b"fake")
-    configured = config.model_copy(
-        update={"tools": config.tools.model_copy(update={"godot_executable": executable})}
-    )
-    sandbox = tmp_path / "preview"
-    sandbox.mkdir()
-    calls = 0
-
-    def ready_runner(*_args, **_kwargs) -> ProcessResult:
-        nonlocal calls
-        calls += 1
-        return ProcessResult(
-            0,
-            "FOUNDRY_PREVIEW_READY models=1 selected=package/bear.glb meshes=1 animations=0",
-            "",
-            False,
-            False,
-            0.1,
-        )
-
-    validated = validate_package_preview(configured, sandbox, ready_runner)
-    launched: list[tuple[list[str], Path]] = []
-
-    def fake_popen(arguments, *, cwd, env, shell):
-        assert env
-        assert shell is False
-        launched.append((arguments, cwd))
-        return object()
-
-    monkeypatch.setattr("vandrel_foundry.services.preview_package.subprocess.Popen", fake_popen)
-
-    launch_package_preview(configured, validated)
-
-    assert calls == 2
-    assert launched == [([str(executable), "--path", str(sandbox)], sandbox)]
+    assert result.return_code == 0

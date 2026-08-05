@@ -252,8 +252,11 @@ path and enters the same downloaded-state corridor as provider output.
 - The generated standalone Godot project may show models, embedded animations,
   a metre grid, and scale references. Its report is technical inventory and
   visual evidence only; it cannot establish import, rig, scale, or approval facts.
-- Launch is explicit. The corridor makes no provider/network call and writes
-  nothing to candidate workspaces, the Asset Library, or Vandrel.
+- The command performs only bounded headless import/readiness validation.
+  Interactive `--launch` is unavailable while the exclusive Foundry runtime
+  gate is held and fails before sandbox creation or process spawn. The corridor
+  makes no provider/network call and writes nothing to candidate workspaces,
+  the Asset Library, or Vandrel.
 
 ## Offline animated-creature package inspection
 
