@@ -68,6 +68,81 @@ Commands are classified as:
 No background process, startup hook, `doctor`, `list`, `show`, or `status`
 operation may submit or retry provider work.
 
+## Reference-first generation policy
+
+New scene-dressing assets use a reference-first corridor by default. The
+creative design is generated or supplied as a no-provider-cost reference image
+and reviewed by the user before a Foundry candidate may make a paid Meshy
+Image-to-3D submission. The accepted image is copied into the candidate with
+`add-reference`, and the paid request uses `submit-image` with a named mesh
+budget or explicit target so Meshy's native remesh occurs in that generation
+request.
+
+Meshy Text-to-3D is an explicitly authorized exception for a bounded provider
+experiment, not the default concept-development loop. It must not be used to
+iterate on silhouette or art direction when an unapproved reference concept is
+still being explored. A separate standalone remesh is likewise a recovery or
+experiment path when native Image-to-3D remeshing was unavailable or the
+retained result needs an explicitly approved second attempt.
+
+Reference-image approval is creative selection evidence only. It does not
+approve the resulting mesh, authorize publication, or assign Vandrel gameplay
+meaning. Each paid provider operation still requires its own explicit spend
+intent under this contract.
+
+## Asset-class mesh budgets
+
+Broad lanes remain release and runtime-policy boundaries; they are not suitable
+per-asset polygon targets. Checked-in `mesh_budgets` profiles define a target
+and acceptable maximum for common environment-dressing classes. Image-to-3D
+submission must select one named profile or an explicit target and request
+Meshy's native triangle remesh in the generation request. The target is
+submitted to Meshy; the maximum is a review threshold because provider output
+may vary slightly from the requested count. Explicit numeric targets remain
+supported for exceptional assets and must not be combined with a named profile.
+
+Standalone Meshy remesh remains available for an existing provider task, but it
+is a separate paid API operation and retains the explicit spend gate. Foundry
+must preserve the original provider result as provenance and select/download
+the provider-remeshed result for production processing. Local Blender
+decimation is a repair or experiment path, not the default reduction stage for
+Meshy-generated assets.
+
+A candidate in review may return to provider submission for an explicitly
+authorized remesh. The new provider task and request evidence are appended; the
+reviewed artifacts remain immutable historical evidence and do not become the
+source of the provider remesh.
+
+Budgets are starting production heuristics, not visual acceptance. Silhouette,
+deformation, alpha-card layering, intended screen size, reuse density, and
+measured runtime cost may justify a later reviewed revision. Remeshing precedes
+texturing so the textured artifact is bound to the production mesh.
+
+## Excavation-aware prompt guidance
+
+Every generated asset that sits on, emerges from, or intersects terrain must
+declare one prompt-only excavation class before submission:
+
+- `surface_clutter`: a loose surface-only object; no below-ground continuation
+  is required.
+- `embedded`: includes a visible ground-intersection zone and a simple buried
+  continuation below the soil line.
+- `excavation_aware`: designed for diggable terrain, with an above-ground form,
+  visible soil-line transition, and believable below-ground continuation.
+
+Prompts for `embedded` and `excavation_aware` assets must say that the asset
+does not terminate flat at the ground plane and must exclude a paper-thin base,
+floating placement, hollow underside, or an object merely resting on a flat
+plane. Asset-specific wording should describe the buried continuation: roots
+for vegetation, buried stone mass for geology, tunnel geometry for dens, and
+driven or buried lower ends for posts and primitive structures.
+
+This class controls generation language only. It does not assign voxel
+materials, excavation behavior, collision, placement, or gameplay authority;
+those remain Vandrel-owned consumer decisions. Foundry currently has no
+asset-kind registry, so suggested defaults and reusable wording live in
+`prompts/PROMPT_GUIDANCE.md` rather than in the candidate manifest.
+
 ## Durable submission protocol
 
 Immediately before a paid request:

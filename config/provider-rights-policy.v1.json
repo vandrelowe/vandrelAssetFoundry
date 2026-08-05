@@ -1,0 +1,14 @@
+{
+  "schema_version": "vandrel_foundry_provider_rights_policy/1.0",
+  "providers": {
+    "meshy": {
+      "rights_status": "documented",
+      "evidence_retrieved_at": "2026-08-02T00:00:00Z",
+      "evidence_urls": [
+        "https://help.meshy.ai/en/articles/12062933-which-meshy-plan-is-right-for-you",
+        "https://docs.meshy.ai/en/api/authentication"
+      ],
+      "basis": "Meshy API access requires an eligible paid plan; Meshy documents commercial rights for paid individual and team plans. The candidate also retains exact authenticated API task provenance. This record documents provenance and plan-level rights evidence; it does not override provider terms or third-party rights in user-supplied references."
+    }
+  }
+}

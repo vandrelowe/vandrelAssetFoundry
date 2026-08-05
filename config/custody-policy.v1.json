@@ -20,6 +20,48 @@
   ],
   "packages": [
     {
+      "package_root": "Meshy/Meshy_Inverted_Roots_Tree_002",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_inverted_roots_tree_002_user_declaration"
+      ]
+    },
+    {
+      "package_root": "Meshy/Meshy_Inverted_Roots_Tree_001",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_inverted_roots_tree_001_user_declaration"
+      ]
+    },
+    {
+      "package_root": "Meshy/Meshy_Low_Poly_Berry_Tree_001",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_low_poly_berry_tree_001_user_declaration"
+      ]
+    },
+    {
+      "package_root": "Meshy/Meshy_Low_Poly_Berry_Tree_002",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_low_poly_berry_tree_002_user_declaration"
+      ]
+    },
+    {
+      "package_root": "Meshy/Meshy_Mossy_Boulder_Dome_001",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_mossy_boulder_dome_001_user_declaration"
+      ]
+    },
+    {
+      "package_root": "Meshy/Meshy_Circular_Stone_Platform_001",
+      "rights_status": "documented",
+      "license_binding_ids": [
+        "meshy_circular_stone_platform_001_user_declaration"
+      ]
+    },
+    {
       "package_root": "Meshy/Meshy_Emerald_Fern_003",
       "rights_status": "documented",
       "license_binding_ids": [
@@ -70,6 +112,48 @@
     }
   ],
   "license_bindings": [
+    {
+      "binding_id": "meshy_inverted_roots_tree_002_user_declaration",
+      "evidence_path": "Meshy/Meshy_Inverted_Roots_Tree_002/rights-declaration.txt",
+      "evidence_sha256": "d25ee96232a6f906d7d289303986014be7a30294e4841445be2fd306565e1204",
+      "scope_root": "Meshy/Meshy_Inverted_Roots_Tree_002",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "meshy_inverted_roots_tree_001_user_declaration",
+      "evidence_path": "Meshy/Meshy_Inverted_Roots_Tree_001/rights-declaration.txt",
+      "evidence_sha256": "6ebbe3a72239a810d5ba76d9f8f7555128b1bcbab93bd91ec80138a48f95cb6c",
+      "scope_root": "Meshy/Meshy_Inverted_Roots_Tree_001",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "meshy_low_poly_berry_tree_001_user_declaration",
+      "evidence_path": "Meshy/Meshy_Low_Poly_Berry_Tree_001/rights-declaration.txt",
+      "evidence_sha256": "0696c960d876391ee3d8d599b9acb9eb42bf7914e1cd3f71603cbf76678a9265",
+      "scope_root": "Meshy/Meshy_Low_Poly_Berry_Tree_001",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "meshy_low_poly_berry_tree_002_user_declaration",
+      "evidence_path": "Meshy/Meshy_Low_Poly_Berry_Tree_002/rights-declaration.txt",
+      "evidence_sha256": "0debf1fa6ca7247b8d688f906e37a2126d0673f87a32b24262790e29d7a29b84",
+      "scope_root": "Meshy/Meshy_Low_Poly_Berry_Tree_002",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "meshy_mossy_boulder_dome_001_user_declaration",
+      "evidence_path": "Meshy/Meshy_Mossy_Boulder_Dome_001/rights-declaration.txt",
+      "evidence_sha256": "ab8ea696fb36901ab8f89291f659555415f1dc126aa1914854d22dbb7446f091",
+      "scope_root": "Meshy/Meshy_Mossy_Boulder_Dome_001",
+      "rights_semantics": "documented"
+    },
+    {
+      "binding_id": "meshy_circular_stone_platform_001_user_declaration",
+      "evidence_path": "Meshy/Meshy_Circular_Stone_Platform_001/rights-declaration.txt",
+      "evidence_sha256": "e76e6199b752c5d77cfc61d0e5cdaa63e6e7768bbc8e9375a46362950dc73a3f",
+      "scope_root": "Meshy/Meshy_Circular_Stone_Platform_001",
+      "rights_semantics": "documented"
+    },
     {
       "binding_id": "meshy_emerald_fern_003_user_declaration",
       "evidence_path": "Meshy/Meshy_Emerald_Fern_003/rights-declaration.txt",

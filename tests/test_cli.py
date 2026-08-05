@@ -35,6 +35,8 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     assert guarded_library_init.exit_code != 0
     assert "--confirm-init" in guarded_library_init.output
     assert invoke(["lanes"], cli_config).exit_code == 0
+    budgets = invoke(["mesh-budgets"], cli_config)
+    assert budgets.exit_code == 0 and "rock_outcrop" in budgets.output
     create = invoke(
         [
             "create",
@@ -83,6 +85,19 @@ def test_all_cli_commands_smoke(cli_config: Path, prompt: Path, config_data: dic
     guarded_remesh = invoke(["remesh", "stone_knife_001"], cli_config)
     assert guarded_remesh.exit_code != 0
     assert "--confirm-spend" in guarded_remesh.output
+    guarded_scale = invoke(
+        [
+            "calibrate-scale",
+            "stone_knife_001",
+            "--target-height-m",
+            "0.35",
+            "--reviewer",
+            "Reviewer",
+        ],
+        cli_config,
+    )
+    assert guarded_scale.exit_code != 0
+    assert "requires processed or review state" in guarded_scale.output
     guarded_approval = invoke(
         ["approve", "stone_knife_001", "--reviewer", "Reviewer"],
         cli_config,

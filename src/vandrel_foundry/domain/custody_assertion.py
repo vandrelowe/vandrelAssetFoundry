@@ -12,6 +12,7 @@ from vandrel_foundry.domain.manifest import (
 
 CUSTODY_SCHEMA = "vandrel_foundry_candidate_custody/1.0"
 CUSTODY_SCHEMA_V1_1 = "vandrel_foundry_candidate_custody/1.1"
+CUSTODY_SCHEMA_V1_2 = "vandrel_foundry_candidate_custody/1.2"
 EVIDENCE_FRESHNESS_SCHEMA = "vandrel_foundry_custody_evidence_freshness/1.0"
 
 
@@ -34,12 +35,16 @@ def current_source_inputs(manifest: AssetManifest) -> list[CustodySourceInput]:
 def semantic_assertion_sha256(
     contributions: list[CustodySourceContribution],
 ) -> str:
+    portable_roots = {
+        item.package_root.logical_root
+        for item in contributions
+        if isinstance(item.package_root, PortableCustodyPath)
+    }
     schema_version = (
-        CUSTODY_SCHEMA_V1_1
-        if any(
-            isinstance(item.package_root, PortableCustodyPath)
-            for item in contributions
-        )
+        CUSTODY_SCHEMA_V1_2
+        if "foundry_workspace" in portable_roots
+        else CUSTODY_SCHEMA_V1_1
+        if portable_roots
         else CUSTODY_SCHEMA
     )
     semantic = {
@@ -58,9 +63,7 @@ def semantic_assertion_sha256(
                 "license_evidence": [
                     {
                         "binding_id": value.binding_id,
-                        "original_evidence_path": _custody_path_value(
-                            value.original_evidence_path
-                        ),
+                        "original_evidence_path": _custody_path_value(value.original_evidence_path),
                         "evidence_sha256": value.evidence_sha256,
                         "size_bytes": value.size_bytes,
                         "scope_root": _custody_path_value(value.scope_root),
@@ -102,6 +105,31 @@ def evidence_freshness_sha256(
     return hashlib.sha256(canonical).hexdigest()
 
 
+def provider_provenance_sha256(
+    manifest: AssetManifest,
+    policy_sha256: str,
+) -> str:
+    """Hash the exact provider task authority and immutable root source inputs."""
+    selected = manifest.generation.selected_task_key
+    tasks = [item for item in manifest.generation.tasks if item.task_key == selected]
+    if not selected or not tasks:
+        return ""
+    task = tasks[-1]
+    value = {
+        "schema_version": "vandrel_foundry_provider_provenance/1.0",
+        "asset_id": manifest.asset.asset_id,
+        "provider": task.provider,
+        "task_key": task.task_key,
+        "provider_task_id": task.provider_task_id,
+        "operation": task.operation,
+        "request_fingerprint": task.request_fingerprint,
+        "policy_sha256": policy_sha256,
+        "source_inputs": [item.model_dump(mode="json") for item in current_source_inputs(manifest)],
+    }
+    canonical = (json.dumps(value, sort_keys=True, indent=2, ensure_ascii=True) + "\n").encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def custody_freshness(manifest: AssetManifest) -> tuple[bool, list[str]]:
     if manifest.schema_version == 1:
         return False, ["historical_v1_unassessed"]
@@ -132,6 +160,31 @@ def custody_freshness(manifest: AssetManifest) -> tuple[bool, list[str]]:
             or assertion.policy_sha256 is None
             or assertion.register_schema_version is None
             or assertion.register_sha256 is None
+            or assertion.evidence_fingerprint_sha256
+            != evidence_freshness_sha256(
+                assertion.policy_schema_version,
+                assertion.policy_sha256,
+                assertion.register_schema_version,
+                assertion.register_sha256,
+                root_fingerprints,
+            )
+        ):
+            blockers.append("custody_evidence_fingerprint_stale")
+    elif assertion.schema_version.endswith("/1.2"):
+        root_fingerprints = assertion.register_root_fingerprints or {}
+        expected_register = provider_provenance_sha256(
+            manifest,
+            assertion.policy_sha256 or "",
+        )
+        if (
+            assertion.register_schema_version != "vandrel_foundry_provider_provenance/1.0"
+            or assertion.register_sha256 != expected_register
+            or root_fingerprints != {"foundry_workspace": expected_register}
+        ):
+            blockers.append("custody_provider_provenance_stale")
+        elif (
+            assertion.policy_schema_version is None
+            or assertion.policy_sha256 is None
             or assertion.evidence_fingerprint_sha256
             != evidence_freshness_sha256(
                 assertion.policy_schema_version,

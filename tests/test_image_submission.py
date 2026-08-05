@@ -55,6 +55,7 @@ def test_image_is_copied_and_submission_evidence_redacts_data(config, lanes, pro
         config,
         "stone_knife_001",
         transport,
+        2500,
         environment={"MESHY_API_KEY": "secret-key"},
     )
 
@@ -67,7 +68,12 @@ def test_image_is_copied_and_submission_evidence_redacts_data(config, lanes, pro
     assert transport.observed_status is ProviderTaskStatus.SUBMITTING
     assert transport.received is not None
     assert transport.received.image_url.startswith("data:image/png;base64,")
+    assert transport.received.should_remesh is True
+    assert transport.received.topology == "triangle"
+    assert transport.received.target_polycount == 2500
     assert evidence["image_url"] == "[REDACTED_DATA_URI]"
+    assert evidence["should_remesh"] is True
+    assert evidence["target_polycount"] == 2500
     assert "local-image" not in json.dumps(evidence)
     assert task.operation == "image_to_3d"
     assert task.provider_task_id == "image-provider-task"

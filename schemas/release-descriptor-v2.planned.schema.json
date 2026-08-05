@@ -233,7 +233,10 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "vandrel_foundry_custody_register/1.1",
+          "enum": [
+            "vandrel_foundry_custody_register/1.1",
+            "vandrel_foundry_provider_provenance/1.0"
+          ],
           "title": "Schema Version",
           "type": "string"
         },
@@ -243,21 +246,41 @@
           "type": "string"
         },
         "root_fingerprints": {
-          "additionalProperties": {
-            "pattern": "^[a-f0-9]{64}$",
-            "type": "string"
-          },
-          "maxProperties": 3,
-          "minProperties": 3,
-          "propertyNames": {
-            "enum": [
-              "outside_assets",
-              "foundry_workspace",
-              "asset_library"
-            ]
-          },
-          "title": "Root Fingerprints",
-          "type": "object"
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "maxProperties": 3,
+              "minProperties": 3,
+              "propertyNames": {
+                "enum": [
+                  "outside_assets",
+                  "foundry_workspace",
+                  "asset_library"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "additionalProperties": {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "maxProperties": 1,
+              "minProperties": 1,
+              "propertyNames": {
+                "enum": [
+                  "outside_assets",
+                  "foundry_workspace",
+                  "asset_library"
+                ]
+              },
+              "type": "object"
+            }
+          ],
+          "title": "Root Fingerprints"
         }
       },
       "required": [
@@ -305,7 +328,10 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
-          "const": "vandrel_foundry_candidate_custody/1.1",
+          "enum": [
+            "vandrel_foundry_candidate_custody/1.1",
+            "vandrel_foundry_candidate_custody/1.2"
+          ],
           "title": "Schema Version",
           "type": "string"
         },
@@ -454,6 +480,118 @@
         "approved_at"
       ],
       "title": "ReleaseProvenanceV2",
+      "type": "object"
+    },
+    "ReleaseScaleCalibrationV2": {
+      "additionalProperties": false,
+      "properties": {
+        "processed_model_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Processed Model Sha256",
+          "type": "string"
+        },
+        "preview_report_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Preview Report Sha256",
+          "type": "string"
+        },
+        "source_bounds_min": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Bounds Min"
+        },
+        "source_bounds_max": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Bounds Max"
+        },
+        "source_dimensions": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Source Dimensions",
+          "type": "array"
+        },
+        "target_height_meters": {
+          "exclusiveMinimum": 0,
+          "title": "Target Height Meters",
+          "type": "number"
+        },
+        "baseline_uniform_scale": {
+          "exclusiveMinimum": 0,
+          "title": "Baseline Uniform Scale",
+          "type": "number"
+        },
+        "variation_min_multiplier": {
+          "exclusiveMinimum": 0,
+          "title": "Variation Min Multiplier",
+          "type": "number"
+        },
+        "variation_max_multiplier": {
+          "exclusiveMinimum": 0,
+          "title": "Variation Max Multiplier",
+          "type": "number"
+        },
+        "reference_standard": {
+          "const": "meter_grid_and_human_1_8m",
+          "title": "Reference Standard",
+          "type": "string"
+        },
+        "reviewer": {
+          "minLength": 1,
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "approved_at": {
+          "format": "date-time",
+          "title": "Approved At",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processed_model_sha256",
+        "preview_report_sha256",
+        "source_dimensions",
+        "target_height_meters",
+        "baseline_uniform_scale",
+        "variation_min_multiplier",
+        "variation_max_multiplier",
+        "reference_standard",
+        "reviewer",
+        "approved_at"
+      ],
+      "title": "ReleaseScaleCalibrationV2",
       "type": "object"
     },
     "ReleaseTechnicalV2": {
@@ -816,6 +954,17 @@
       ],
       "default": null,
       "title": "Humanoid Compatibility"
+    },
+    "scale_calibration": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReleaseScaleCalibrationV2"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "provenance": {
       "$ref": "#/$defs/ReleaseProvenanceV2"

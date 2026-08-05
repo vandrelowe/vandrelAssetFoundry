@@ -224,7 +224,18 @@ def test_external_glb_enters_downloaded_workflow_without_provider(
         _, output_path, report_path = map(Path, arguments[-3:])
         output_path.write_bytes(b"\x89PNG\r\n\x1a\npreview")
         report_path.write_text(
-            json.dumps({"blender_version": "fixture", "resolution": [512, 512]}),
+            json.dumps(
+                {
+                    "blender_version": "fixture",
+                    "resolution": [512, 512],
+                    "geometry_bounds": {
+                        "minimum": [-1.0, -2.0, 0.0],
+                        "maximum": [1.0, 2.0, 4.0],
+                        "dimensions": [2.0, 4.0, 4.0],
+                        "height_axis": "z",
+                    },
+                }
+            ),
             encoding="utf-8",
         )
         return ProcessResult(0, "", "", False, False, 0.1)

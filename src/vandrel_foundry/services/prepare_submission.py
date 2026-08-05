@@ -103,6 +103,7 @@ def prepare_text_refine_submission(
 def prepare_image_submission(
     workspace_root: Path,
     manifest: AssetManifest,
+    target_polycount: int,
     reference: RelativeManifestPath | None = None,
 ) -> PreparedSubmission:
     if manifest.generation.provider != "meshy":
@@ -128,6 +129,7 @@ def prepare_image_submission(
     encoded = base64.b64encode(content).decode("ascii")
     request = ImageTo3DRequest(
         image_url=f"data:{media_type};base64,{encoded}",
+        target_polycount=target_polycount,
     )
     return _prepare(
         manifest,

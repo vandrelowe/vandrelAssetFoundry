@@ -97,6 +97,7 @@ def submit_image_to_3d(
     config: FoundryConfig,
     asset_id: str,
     transport: TextPreviewTransport,
+    target_polycount: int,
     reference: RelativeManifestPath | None = None,
     environment: Mapping[str, str] | None = None,
 ) -> ProviderTask:
@@ -110,6 +111,7 @@ def submit_image_to_3d(
     prepared = prepare_image_submission(
         config.foundry.workspace_root,
         manifest,
+        target_polycount,
         reference,
     )
     return _submit_prepared(
@@ -135,9 +137,10 @@ def submit_remesh(
         WorkflowState.SOURCE_READY,
         WorkflowState.DOWNLOADED,
         WorkflowState.PROCESSED,
+        WorkflowState.REVIEW,
     }:
         raise FoundryError(
-            f"Remesh requires source_ready, downloaded, or processed state: {asset_id}"
+            f"Remesh requires source_ready, downloaded, processed, or review state: {asset_id}"
         )
     prepared = prepare_remesh_submission(manifest, target_polycount)
     return _submit_prepared(

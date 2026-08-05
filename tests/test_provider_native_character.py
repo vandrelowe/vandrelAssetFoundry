@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import bind_documented_test_custody
+from tests.conftest import bind_approved_test_scale, bind_documented_test_custody
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor
 from vandrel_foundry.domain.states import WorkflowState
@@ -143,6 +143,7 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
 
     approvable = ManifestRepository(config.foundry.workspace_root).load("native_character_001")
     bind_documented_test_custody(approvable, asset_root)
+    bind_approved_test_scale(approvable)
     approvable.revision += 1
     ManifestRepository(config.foundry.workspace_root).save(
         approvable,
@@ -158,10 +159,7 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
         "animations/walk.res",
         "animations/run.res",
         "custody/evidence/fixture-license-ac8d7c599b43.txt",
-        (
-            "evidence/humanoid/"
-            "provider_native_character_report_001-945310194f56.json"
-        ),
+        ("evidence/humanoid/provider_native_character_report_001-945310194f56.json"),
     ]
     assert release.descriptor["humanoid_compatibility"] == {
         "evidence_route": "provider_native_same_task",
@@ -171,8 +169,7 @@ def test_prepares_approvable_same_task_fbx_character_without_blender(
         "shared_animation_pool_compatible": False,
         "report": {
             "release_path": (
-                "evidence/humanoid/"
-                "provider_native_character_report_001-945310194f56.json"
+                "evidence/humanoid/provider_native_character_report_001-945310194f56.json"
             ),
             "sha256": result.report.sha256,
             "size_bytes": result.report.size_bytes,

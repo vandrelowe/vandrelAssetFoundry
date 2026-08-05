@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from vandrel_foundry.config import FoundryConfig, load_lanes
+from vandrel_foundry.domain.lanes import LaneConfiguration
 
 
 def test_vandrel_writes_are_refused(config_data: dict) -> None:
@@ -23,3 +24,19 @@ def test_packaged_and_checkout_lane_defaults_stay_in_sync() -> None:
     assert load_lanes(root / "lanes.toml") == load_lanes(
         root / "src" / "vandrel_foundry" / "data" / "lanes.toml"
     )
+
+
+def test_mesh_budget_target_cannot_exceed_maximum() -> None:
+    with pytest.raises(ValidationError, match="must not exceed"):
+        LaneConfiguration.model_validate(
+            {
+                "lanes": {},
+                "mesh_budgets": {
+                    "invalid": {
+                        "target_triangles": 2000,
+                        "maximum_triangles": 1000,
+                        "description": "invalid fixture",
+                    }
+                },
+            }
+        )

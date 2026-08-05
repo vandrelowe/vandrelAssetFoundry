@@ -50,6 +50,25 @@ def _fixture_with_humanoid_report() -> dict:
     return value
 
 
+def _historical_v2_scale_fixture() -> dict:
+    """Explicit pre-bounds v2 shape retained for immutable-history compatibility."""
+    value = _fixture("release-v2.json")
+    value["scale_calibration"] = {
+        "processed_model_sha256": "b" * 64,
+        "preview_report_sha256": "c" * 64,
+        "source_dimensions": [1.0, 0.5, 2.0],
+        "target_height_meters": 2.0,
+        "baseline_uniform_scale": 1.0,
+        "variation_min_multiplier": 0.9,
+        "variation_max_multiplier": 1.1,
+        "reference_standard": "meter_grid_and_human_1_8m",
+        "reviewer": "Historical reviewer",
+        "approved_at": "2026-07-31T12:00:00Z",
+        "notes": "Historical v2 scale record created before bounds projection.",
+    }
+    return value
+
+
 def test_historical_v1_fixture_is_parseable_and_byte_stable() -> None:
     path = FIXTURES / "release-v1.json"
     before = path.read_bytes()
@@ -68,6 +87,60 @@ def test_planned_v2_fixture_is_strict_and_valid() -> None:
 
     assert isinstance(descriptor, ReleaseDescriptorV2)
     assert descriptor.custody.custody_register.root_fingerprints["outside_assets"] == "3" * 64
+
+
+def test_historical_v2_scale_fixture_without_bounds_is_model_and_schema_compatible() -> None:
+    value = _historical_v2_scale_fixture()
+    before = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    schema = json.loads(
+        (Path(__file__).parents[1] / "schemas/release-descriptor-v2.planned.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    descriptor = ReleaseDescriptorV2.model_validate(value)
+    jsonschema.validate(value, schema)
+
+    assert descriptor.scale_calibration is not None
+    assert descriptor.scale_calibration.source_bounds_min is None
+    assert descriptor.scale_calibration.source_bounds_max is None
+    assert json.dumps(value, sort_keys=True, separators=(",", ":")).encode() == before
+
+
+@pytest.mark.parametrize(
+    "scale_update, message",
+    [
+        ({"target_height_meters": float("nan")}, "greater than 0"),
+        ({"source_dimensions": [1.0, float("inf"), 2.0]}, "finite and positive"),
+        (
+            {"source_bounds_min": [0.0, 0.0, 0.0]},
+            "present or absent together",
+        ),
+        (
+            {
+                "source_bounds_min": [1.0, 0.0, 0.0],
+                "source_bounds_max": [0.0, 0.5, 2.0],
+            },
+            "minimum cannot exceed maximum",
+        ),
+        (
+            {
+                "source_bounds_min": [0.0, 0.0, 0.0],
+                "source_bounds_max": [1.0, 0.5, 2.0],
+                "source_dimensions": [1.1, 0.5, 2.0],
+            },
+            "must equal bounds maximum minus minimum",
+        ),
+    ],
+)
+def test_v2_scale_evidence_rejects_non_finite_or_inconsistent_values(
+    scale_update: dict, message: str
+) -> None:
+    value = _historical_v2_scale_fixture()
+    value["scale_calibration"].update(scale_update)
+
+    with pytest.raises(ValidationError, match=message):
+        ReleaseDescriptorV2.model_validate(value)
 
 
 @pytest.mark.parametrize(
@@ -99,9 +172,7 @@ def test_checked_schemas_match_models_and_accept_compatibility_fixtures(
 def test_checked_v2_schema_rejects_malformed_fingerprints_and_traversal() -> None:
     schema = json.loads(
         (
-            Path(__file__).parents[1]
-            / "schemas"
-            / "release-descriptor-v2.planned.schema.json"
+            Path(__file__).parents[1] / "schemas" / "release-descriptor-v2.planned.schema.json"
         ).read_text()
     )
     malformed = _fixture("release-v2.json")
@@ -239,9 +310,7 @@ def test_v2_rejects_model_substituted_for_humanoid_report() -> None:
 
 def test_v2_rejects_humanoid_report_source_mismatch() -> None:
     value = _fixture_with_humanoid_report()
-    value["humanoid_compatibility"]["report"][
-        "source_artifact_id"
-    ] = "different-humanoid-report"
+    value["humanoid_compatibility"]["report"]["source_artifact_id"] = "different-humanoid-report"
 
     with pytest.raises(ValidationError, match="Humanoid report role and source"):
         ReleaseDescriptorV2.model_validate(value)

@@ -36,5 +36,86 @@ release_enabled = true
 wrapper_template = "creature_candidate"
 collision_policy = "manual_review"
 requires_materials = true
-requires_skeleton = false
+requires_skeleton = true
 release_enabled = false
+
+
+[mesh_budgets.rock_small]
+target_triangles = 400
+maximum_triangles = 750
+description = "Single small rock or simple ground stone; high reuse density."
+
+[mesh_budgets.rock_outcrop]
+target_triangles = 900
+maximum_triangles = 1500
+description = "Low rounded outcrop or medium standalone boulder."
+
+[mesh_budgets.boulder_cluster]
+target_triangles = 1200
+maximum_triangles = 2000
+description = "Small cluster whose combined silhouette needs several rock forms."
+
+[mesh_budgets.talus_pile]
+target_triangles = 1800
+maximum_triangles = 3000
+description = "Mixed angular cliff debris with a more complex combined silhouette."
+
+[mesh_budgets.ground_patch]
+target_triangles = 400
+maximum_triangles = 750
+description = "Mud wallow, tar seep, ash mound, or other shallow ground dressing."
+
+[mesh_budgets.fallen_log_or_stump]
+target_triangles = 1500
+maximum_triangles = 2500
+description = "Fallen log or stump with broken ends, roots, or fungus shelves."
+
+[mesh_budgets.root_tangle]
+target_triangles = 1800
+maximum_triangles = 3000
+description = "Exposed intertwined roots with multiple curved silhouettes."
+
+[mesh_budgets.small_plant]
+target_triangles = 1800
+maximum_triangles = 3000
+description = "Fern or small plant where layered leaves cost more than simple stone."
+
+[mesh_budgets.dense_ground_cover]
+target_triangles = 350
+maximum_triangles = 600
+description = "Mass-scattered grass, low fern, or similar ground cover visible in large counts."
+
+[mesh_budgets.large_bush]
+target_triangles = 3000
+maximum_triangles = 5000
+description = "Dense bush or large foliage cluster with many overlapping leaves."
+
+[mesh_budgets.skeleton_scatter]
+target_triangles = 1200
+maximum_triangles = 2000
+description = "Bone scatter or compact kill-site dressing."
+
+[mesh_budgets.large_skeletal_remains]
+target_triangles = 2500
+maximum_triangles = 4000
+description = "Large skull, half-buried rib cage, or other dominant remains."
+
+[mesh_budgets.den_or_nest]
+target_triangles = 2000
+maximum_triangles = 3500
+description = "Animal den opening or giant nest with roots, branches, or stones."
+
+[mesh_budgets.simple_camp_dressing]
+target_triangles = 1200
+maximum_triangles = 2000
+description = "Fire ring, bedroll, butchering stone, cairn, or spear bundle."
+
+[mesh_budgets.complex_camp_structure]
+target_triangles = 2500
+maximum_triangles = 4000
+description = "Drying rack, trap frame, or other multi-part primitive construction."
+
+[mesh_budgets.warning_totem]
+target_triangles = 2500
+maximum_triangles = 4000
+description = "Bone-and-antler marker with several silhouette-critical parts."

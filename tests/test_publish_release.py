@@ -7,7 +7,11 @@ import pytest
 from typer.testing import CliRunner
 
 import vandrel_foundry.services.publish_release as publication
-from tests.conftest import bind_documented_test_custody, write_config
+from tests.conftest import (
+    bind_approved_test_scale,
+    bind_documented_test_custody,
+    write_config,
+)
 from vandrel_foundry.cli import app
 from vandrel_foundry.domain.custody import PortableCustodyPath
 from vandrel_foundry.domain.custody_assertion import semantic_assertion_sha256
@@ -87,6 +91,7 @@ def _approved_asset(config, lanes, prompt: Path) -> None:
     manifest.validation.result = "passed"
     manifest.validation.checks = [{"name": "godot_sandbox_import", "passed": True}]
     bind_documented_test_custody(manifest, root)
+    bind_approved_test_scale(manifest)
     manifest.approval.approved = True
     manifest.approval.approved_at = utc_now()
     manifest.approval.reviewer = "Test Reviewer"
@@ -329,6 +334,9 @@ def test_v2_plan_projects_only_closed_technical_and_qualified_custody(
         "mesh_count": 1,
         "collision_recommendation": "manual",
     }
+    assert descriptor["scale_calibration"]["source_bounds_min"] == [0.0, 0.0, 0.0]
+    assert descriptor["scale_calibration"]["source_bounds_max"] == [1.0, 1.0, 1.0]
+    assert descriptor["scale_calibration"]["source_dimensions"] == [1.0, 1.0, 1.0]
     custody = descriptor["custody"]
     assert set(custody["register"]["root_fingerprints"]) == {
         "outside_assets",
@@ -366,12 +374,7 @@ def test_v2_plan_rejects_legacy_unqualified_custody(config, lanes, prompt: Path)
 
 def test_release_plan_stops_after_r999(config, lanes, prompt: Path) -> None:
     _approved_asset(config, lanes, prompt)
-    (
-        config.foundry.asset_library_root
-        / "assets"
-        / "stone_knife_001"
-        / "r999"
-    ).mkdir(parents=True)
+    (config.foundry.asset_library_root / "assets" / "stone_knife_001" / "r999").mkdir(parents=True)
 
     with pytest.raises(FoundryError, match="range 1..999"):
         plan_release(config, lanes, "stone_knife_001")
@@ -522,15 +525,8 @@ def test_publish_recovers_after_catalog_before_manifest(
     monkeypatch.setattr(publication, "_record_manifest_release", interrupt)
     with pytest.raises(FoundryError, match="simulated manifest interruption"):
         publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
-    status_paths = [
-        path
-        for path in root.rglob("*")
-        if path.is_file() and ".git" not in path.parts
-    ]
-    status = "".join(
-        f"?? {path.relative_to(root).as_posix()}\n"
-        for path in sorted(status_paths)
-    )
+    status_paths = [path for path in root.rglob("*") if path.is_file() and ".git" not in path.parts]
+    status = "".join(f"?? {path.relative_to(root).as_posix()}\n" for path in sorted(status_paths))
     monkeypatch.setattr(publication, "_record_manifest_release", original)
 
     result = publish_release(
@@ -773,9 +769,7 @@ def test_recovery_rejects_schema_valid_humanoid_block_tamper_without_mutation(
         )
 
     assert not (root / "catalog.json").exists()
-    manifest = ManifestRepository(config.foundry.workspace_root).load(
-        "meshy_shaman_001"
-    )
+    manifest = ManifestRepository(config.foundry.workspace_root).load("meshy_shaman_001")
     assert not manifest.release.released
 
 
@@ -796,9 +790,7 @@ def test_recovery_rejects_tampered_uncataloged_descriptor_without_catalog_mutati
     monkeypatch.setattr(
         publication,
         "_update_catalog",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            FoundryError("simulated interruption")
-        ),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(FoundryError("simulated interruption")),
     )
     with pytest.raises(FoundryError, match="simulated interruption"):
         publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
@@ -859,9 +851,7 @@ def test_recovery_rehashes_files_before_catalog_mutation(
     monkeypatch.setattr(
         publication,
         "_update_catalog",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            FoundryError("simulated interruption")
-        ),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(FoundryError("simulated interruption")),
     )
     with pytest.raises(FoundryError, match="simulated interruption"):
         publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())
@@ -909,9 +899,7 @@ def test_recovery_rejects_incomplete_or_noncanonical_release_journal(
     monkeypatch.setattr(
         publication,
         "_update_catalog",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            FoundryError("simulated interruption")
-        ),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(FoundryError("simulated interruption")),
     )
     with pytest.raises(FoundryError, match="simulated interruption"):
         publish_release(config, lanes, "stone_knife_001", git_runner=FakeGit())

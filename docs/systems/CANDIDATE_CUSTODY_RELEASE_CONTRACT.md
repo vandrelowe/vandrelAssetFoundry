@@ -15,12 +15,13 @@ Manifest and immutable release descriptor v1 remain readable and unchanged.
 They display as `historical_v1_unassessed` and are ineligible for new release
 planning. Foundry does not retrofit historical releases.
 
-Candidate custody assertion 1.1 is current for new evaluations. Assertion 1.0
-remains readable so existing candidates are not migrated merely by loading
-them, but it is also historical-only and cannot authorize approval or release.
-Register 1.0 likewise cannot authorize a new custody decision. Both return an
-explicit legacy-stale blocker rather than reusing historical counts or hashes
-as current evidence.
+Candidate custody assertions 1.1 and 1.2 are current for new evaluations.
+Assertion 1.1 binds imported source files to the canonical custody inventory.
+Assertion 1.2 binds assets created directly through an authenticated provider
+task to Foundry-owned provider provenance and retained provider-rights policy
+evidence. Assertion 1.0 remains readable but is historical-only and cannot
+authorize approval or release. Register 1.0 likewise cannot authorize a new
+inventory custody decision.
 
 ## Candidate assertion
 
@@ -45,6 +46,19 @@ use `{logical_root, path}` objects. The logical-root vocabulary is closed and
 the path component uses the portable path rules in the custody inventory
 contract. Physical machine paths are never candidate authority.
 
+Assertion 1.2 uses `foundry_workspace` qualified paths. Its provider-provenance
+record is a canonical SHA-256 over the asset ID, selected succeeded provider
+task identity, provider task ID, operation, request fingerprint, exact complete
+root source inputs, and retained provider-rights-policy hash. The only root
+fingerprint is that exact `foundry_workspace` provenance hash. Changing any of
+those inputs makes custody stale. Copying an API output into Outside Assets is
+not required and does not convert it into an inventory package.
+
+The checked-in provider-rights policy retains official evidence URLs, retrieval
+date, and the bounded rights basis. It documents provider-plan and provenance
+facts; it does not override provider terms or infer rights to user-supplied
+references.
+
 The contribution union must equal the candidate's current root source artifact
 set exactly. Missing, duplicate, or ambiguous package assignments fail.
 Compound assets use multiple `source_contributions`; custody is not collapsed
@@ -64,6 +78,10 @@ register against the policy and authoritative roots. Approval does not
 silently rescan roots; a later root change requires a rebuilt register and
 explicit custody reevaluation before that new evidence can be relied upon.
 
+For assertion 1.2, a mismatch in provider provenance, its single
+`foundry_workspace` root fingerprint, or its evidence-freshness SHA-256 is an
+explicit blocker. Approval performs no network lookup and spends no credits.
+
 Any processing path that clears technical approval also clears custody approval
 bindings.
 
@@ -81,13 +99,17 @@ semantics. Evidence paths are generated from safe components and content hashes.
 Custody is a distinct axis from technical validation, human approval,
 publication state, and Vandrel consumer acceptance. None implies another.
 
-Planned release descriptor v2 retains qualified custody paths, all three
-register root fingerprints, and the assertion evidence-freshness fingerprint.
+Planned release descriptor v2 retains qualified custody paths and the assertion
+evidence-freshness fingerprint. Inventory assertion 1.1 carries all three root
+fingerprints; provider assertion 1.2 carries its single provider-provenance
+`foundry_workspace` fingerprint.
 Its checked Foundry planning schema remains unratified pending the separate
 Library-owned contract decision.
 
 ## Boundaries
 
 Custody evaluation does not approve, publish, contact providers, mutate
-historical releases, or write to Vandrel. It consumes the Library-owned policy
-and deterministic custody register as read-only authority.
+historical releases, or write to Vandrel. Inventory custody consumes the
+Library-owned policy and deterministic custody register. Provider custody
+consumes the checked-in provider-rights policy and already recorded Foundry
+provider evidence without another provider call.

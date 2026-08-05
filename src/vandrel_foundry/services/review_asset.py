@@ -36,6 +36,14 @@ def approve_asset(
         raise FoundryError(
             "Approval requires evaluated, documented, fresh custody: " + ", ".join(custody_blockers)
         )
+    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
+    calibration = manifest.scale_calibration
+    if (
+        not processed
+        or calibration.status != "approved"
+        or calibration.processed_model_sha256 != processed[-1].sha256
+    ):
+        raise FoundryError("Approval requires scale calibration for the current processed model.")
     reviewer = reviewer.strip()
     if not reviewer:
         raise FoundryError("Approval requires a reviewer name.")

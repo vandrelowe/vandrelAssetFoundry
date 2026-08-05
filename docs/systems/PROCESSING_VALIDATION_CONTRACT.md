@@ -239,6 +239,40 @@ path and enters the same downloaded-state corridor as provider output.
 - Lane collision policy is recorded as a recommendation. Version 1 creates no
   collision or navigation nodes automatically.
 
+## Candidate-free package preview
+
+- `preview-package` is a local visual-inspection corridor for a ZIP before
+  candidate intake. It creates no manifest, workflow event, approval, or release.
+- Each preview is an immutable, hash-named sandbox below
+  `workspace/temp/package_previews/` unless an explicit output root is supplied.
+- ZIP extraction rejects traversal, absolute or ambiguous paths, symbolic links,
+  case collisions, excessive entry counts, excessive sizes, and suspicious
+  compression ratios. Only supported models and their texture/buffer sidecars
+  are extracted.
+- The generated standalone Godot project may show models, embedded animations,
+  a metre grid, and scale references. Its report is technical inventory and
+  visual evidence only; it cannot establish import, rig, scale, or approval facts.
+- Launch is explicit. The corridor makes no provider/network call and writes
+  nothing to candidate workspaces, the Asset Library, or Vandrel.
+
+## Offline animated-creature package inspection
+
+- `inspect-creature-package` reads a ZIP without extracting into a candidate,
+  contacting a provider, or launching Godot. Archive traversal, ambiguous
+  paths, symbolic links, collisions, and excessive expansion fail closed.
+- Version 1 requires exactly one base/final-rig GLB and exactly one GLB for
+  each `idle`, `walk`, and `run` semantic. Each clip must contain one named,
+  positive-duration animation and one nonempty skin with unique joint names.
+- The report separately compares animated joint names, hierarchy, and finite
+  rest transforms; base-rig containment; base shared hierarchy; and base
+  shared rest transforms. A coherent clip set does not imply direct transfer
+  to the base rig or to another creature.
+- Creature-family and rig-family values are Foundry technical suggestions.
+  They do not register a canonical Vandrel gameplay or animation taxonomy.
+- The `creature` lane requires a skeleton but remains release-disabled until
+  its playback, custody, approval, and downstream taxonomy contracts are
+  separately ratified.
+
 ## Bounded subprocess execution
 
 A future Godot or Blender subprocess adapter is permitted only when it:
@@ -278,3 +312,9 @@ new GLB parses, and the versioned report exists.
   directory, or report during retry.
 - A retry receives a new artifact/report identity unless it can prove that an
   existing deterministic output is complete and hash-identical.
+
+## Required scale calibration
+
+Every newly approved candidate requires an explicit real-world scale calibration for the current processed model. The bounded Blender preview records evaluated world-space minimum, maximum, dimensions, and the `z` height axis for the exact processed artifact. `calibrate-scale` binds that immutable preview report and processed-model SHA-256 to a reviewer-declared target height in meters, computes `baseline_uniform_scale = target_height / evaluated_source_height`, and records bounded variation multipliers.
+
+The scale-review preview visibly includes a 1-meter cube and a 1.8-meter human reference; those reference meshes affect camera framing but are excluded from the recorded candidate bounds. Calibration is technical handoff evidence, not gameplay classification. Foundry does not infer whether an asset is a tree, character, rock, construction, collision object, or navigation blocker. A changed processed-model hash makes the calibration stale and blocks approval until a new preview and calibration are recorded.

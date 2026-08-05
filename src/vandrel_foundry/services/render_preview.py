@@ -96,6 +96,7 @@ def render_local_preview(
         )
         report = json.loads(report_path.read_text(encoding="utf-8"))
         version = str(report["blender_version"])
+        _validate_geometry_bounds(report)
         image_hash, image_size = _hash_file(image_path)
         report_hash, report_size = _hash_file(report_path)
         log_hash, log_size = _hash_file(log_path)
@@ -139,6 +140,8 @@ def render_local_preview(
         processor=processor,
     )
     manifest.artifacts.extend([image, evidence, log])
+    manifest.quality.observed["preview_geometry_bounds"] = report["geometry_bounds"]
+    manifest.quality.observed["preview_geometry_bounds_report_sha256"] = report_hash
     manifest.revision += 1
     manifest.asset.updated_at = utc_now()
     repository.save(manifest, "preview.rendered", expected_revision=manifest.revision - 1)
@@ -153,3 +156,20 @@ def _hash_file(path: Path) -> tuple[str, int]:
             digest.update(chunk)
             size += len(chunk)
     return digest.hexdigest(), size
+
+
+def _validate_geometry_bounds(report: dict[str, object]) -> None:
+    bounds = report.get("geometry_bounds")
+    if not isinstance(bounds, dict) or bounds.get("height_axis") != "z":
+        raise FoundryError("Blender preview report is missing evaluated geometry bounds.")
+    for name in ("minimum", "maximum", "dimensions"):
+        values = bounds.get(name)
+        if (
+            not isinstance(values, list)
+            or len(values) != 3
+            or any(not isinstance(value, (int, float)) for value in values)
+        ):
+            raise FoundryError(f"Blender preview geometry bounds are invalid: {name}")
+    dimensions = bounds["dimensions"]
+    if any(float(value) <= 0 for value in dimensions):
+        raise FoundryError("Blender preview geometry dimensions must be positive.")

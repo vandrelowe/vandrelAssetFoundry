@@ -97,7 +97,7 @@ def test_create_and_retrieve_image_task_use_v1_image_endpoint() -> None:
 
     transport = MeshyHttpTransport("https://api.meshy.ai", 10, opener)
     created = transport.create_image_task(
-        ImageTo3DRequest(image_url="data:image/png;base64,eA=="),
+        ImageTo3DRequest(image_url="data:image/png;base64,eA==", target_polycount=2500),
         "secret",
     )
     retrieved = transport.retrieve_image_task(created.result, "secret")

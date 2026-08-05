@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import datetime
 from typing import Annotated, Literal
 
@@ -10,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator,
 from vandrel_foundry.domain.custody import LogicalRoot, PortableCustodyPath
 from vandrel_foundry.domain.custody_assertion import evidence_freshness_sha256
 from vandrel_foundry.domain.errors import FoundryError
+from vandrel_foundry.domain.manifest import validate_scale_measurements
 from vandrel_foundry.storage.paths import RelativeManifestPath
 
 Sha256 = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
@@ -83,15 +85,16 @@ class ReleaseTechnicalV2(ReleaseModel):
     visible_skinned_mesh_count: int | None = Field(default=None, ge=0)
     visible_unskinned_mesh_count: int | None = Field(default=None, ge=0)
     visible_skinned_triangle_count: int | None = Field(default=None, ge=0)
-    inspected_processed_artifact_id: Annotated[
-        str,
-        Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),
-    ] | None = None
+    inspected_processed_artifact_id: (
+        Annotated[
+            str,
+            Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),
+        ]
+        | None
+    ) = None
     inspected_processed_sha256: Sha256 | None = None
     animation_source: Literal["meshy_same_rigging_task"] | None = None
-    recommended_fbx_embedded_texture_handling: (
-        Literal["embed_basis_universal"] | None
-    ) = None
+    recommended_fbx_embedded_texture_handling: Literal["embed_basis_universal"] | None = None
     collision_recommendation: Literal[
         "manual",
         "manual_review",
@@ -106,21 +109,25 @@ class ReleaseCustodyPolicyV2(ReleaseModel):
 
 
 class ReleaseCustodyRegisterV2(ReleaseModel):
-    schema_version: Literal["vandrel_foundry_custody_register/1.1"]
-    sha256: Sha256
-    root_fingerprints: Annotated[
-        dict[LogicalRoot, Sha256],
-        Field(min_length=3, max_length=3),
+    schema_version: Literal[
+        "vandrel_foundry_custody_register/1.1",
+        "vandrel_foundry_provider_provenance/1.0",
     ]
+    sha256: Sha256
+    root_fingerprints: (
+        Annotated[dict[LogicalRoot, Sha256], Field(min_length=3, max_length=3)]
+        | Annotated[dict[LogicalRoot, Sha256], Field(min_length=1, max_length=1)]
+    )
 
     @model_validator(mode="after")
     def complete_root_set(self) -> ReleaseCustodyRegisterV2:
-        if set(self.root_fingerprints) != {
-            "outside_assets",
-            "foundry_workspace",
-            "asset_library",
-        }:
-            raise ValueError("Release custody requires all three root fingerprints.")
+        expected = (
+            {"outside_assets", "foundry_workspace", "asset_library"}
+            if self.schema_version == "vandrel_foundry_custody_register/1.1"
+            else {"foundry_workspace"}
+        )
+        if set(self.root_fingerprints) != expected:
+            raise ValueError("Release custody roots do not match its evidence authority.")
         return self
 
 
@@ -158,7 +165,10 @@ class ReleaseCustodyContributionV2(ReleaseModel):
 
 
 class ReleaseCustodyV2(ReleaseModel):
-    schema_version: Literal["vandrel_foundry_candidate_custody/1.1"]
+    schema_version: Literal[
+        "vandrel_foundry_candidate_custody/1.1",
+        "vandrel_foundry_candidate_custody/1.2",
+    ]
     assessment_status: Literal["evaluated"]
     effective_rights_status: Literal["documented"]
     semantic_assertion_sha256: Sha256
@@ -218,9 +228,43 @@ class NativeHumanoidCompatibilityV2(ReleaseModel):
     report: PackagedHumanoidReportV2
 
 
-HumanoidCompatibilityV2 = (
-    RetargetHumanoidCompatibilityV2 | NativeHumanoidCompatibilityV2
-)
+HumanoidCompatibilityV2 = RetargetHumanoidCompatibilityV2 | NativeHumanoidCompatibilityV2
+
+
+class ReleaseScaleCalibrationV2(ReleaseModel):
+    processed_model_sha256: Sha256
+    preview_report_sha256: Sha256
+    source_bounds_min: Annotated[list[float], Field(min_length=3, max_length=3)] | None = None
+    source_bounds_max: Annotated[list[float], Field(min_length=3, max_length=3)] | None = None
+    source_dimensions: Annotated[list[float], Field(min_length=3, max_length=3)]
+    target_height_meters: float = Field(gt=0)
+    baseline_uniform_scale: float = Field(gt=0)
+    variation_min_multiplier: float = Field(gt=0)
+    variation_max_multiplier: float = Field(gt=0)
+    reference_standard: Literal["meter_grid_and_human_1_8m"]
+    reviewer: str = Field(min_length=1)
+    approved_at: datetime
+    notes: str = ""
+
+    @model_validator(mode="after")
+    def valid_scale_range(self) -> ReleaseScaleCalibrationV2:
+        validate_scale_measurements(
+            self.source_bounds_min,
+            self.source_bounds_max,
+            self.source_dimensions,
+            require_bounds=False,
+        )
+        scalars = (
+            self.target_height_meters,
+            self.baseline_uniform_scale,
+            self.variation_min_multiplier,
+            self.variation_max_multiplier,
+        )
+        if any(not math.isfinite(value) or value <= 0 for value in scalars):
+            raise ValueError("Release scale values must be finite and positive.")
+        if self.variation_min_multiplier > self.variation_max_multiplier:
+            raise ValueError("Release scale variation minimum cannot exceed maximum.")
+        return self
 
 
 class ReleaseProvenanceV2(ReleaseModel):
@@ -240,6 +284,7 @@ class ReleaseDescriptorV2(ReleaseModel):
     technical: ReleaseTechnicalV2
     custody: ReleaseCustodyV2
     humanoid_compatibility: HumanoidCompatibilityV2 | None = None
+    scale_calibration: ReleaseScaleCalibrationV2 | None = None
     provenance: ReleaseProvenanceV2
 
     @model_validator(mode="after")

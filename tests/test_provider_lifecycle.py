@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import bind_documented_test_custody
+from tests.conftest import bind_approved_test_scale, bind_documented_test_custody
 from vandrel_foundry.domain.errors import DownloadError
 from vandrel_foundry.domain.provider import ProviderTaskStatus
 from vandrel_foundry.domain.states import WorkflowState
@@ -376,6 +376,7 @@ def test_select_and_passthrough_processing_creates_distinct_verified_artifact(
     assert any(item.role == "godot_validation_report" for item in validated.artifacts)
 
     bind_documented_test_custody(validated, asset_root)
+    bind_approved_test_scale(validated)
     validated.revision += 1
     ManifestRepository(config.foundry.workspace_root).save(
         validated,
@@ -396,7 +397,9 @@ def test_select_and_passthrough_processing_creates_distinct_verified_artifact(
         "processed_model",
         "godot_wrapper_scene",
     }
-    approval_event = json.loads((asset_root / "events.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+    approval_event = json.loads(
+        (asset_root / "events.jsonl").read_text(encoding="utf-8").splitlines()[-1]
+    )
     assert approval_event["event"] == "asset.approved"
     assert approval_event["revision"] == approved.revision
     assert approval_event["asset_id"] == approved.asset.asset_id

@@ -191,7 +191,8 @@
         "schema_version": {
           "enum": [
             "vandrel_foundry_candidate_custody/1.0",
-            "vandrel_foundry_candidate_custody/1.1"
+            "vandrel_foundry_candidate_custody/1.1",
+            "vandrel_foundry_candidate_custody/1.2"
           ],
           "title": "Schema Version",
           "type": "string"
@@ -271,6 +272,22 @@
               },
               "maxProperties": 3,
               "minProperties": 3,
+              "propertyNames": {
+                "enum": [
+                  "outside_assets",
+                  "foundry_workspace",
+                  "asset_library"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "additionalProperties": {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "maxProperties": 1,
+              "minProperties": 1,
               "propertyNames": {
                 "enum": [
                   "outside_assets",
@@ -860,6 +877,194 @@
       "title": "Release",
       "type": "object"
     },
+    "ScaleCalibration": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "default": "not_calibrated",
+          "enum": [
+            "not_calibrated",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "processed_model_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Processed Model Sha256"
+        },
+        "preview_report_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preview Report Sha256"
+        },
+        "source_bounds_min": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Bounds Min"
+        },
+        "source_bounds_max": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Bounds Max"
+        },
+        "source_dimensions": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Dimensions"
+        },
+        "target_height_meters": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Height Meters"
+        },
+        "baseline_uniform_scale": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Uniform Scale"
+        },
+        "variation_min_multiplier": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variation Min Multiplier"
+        },
+        "variation_max_multiplier": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variation Max Multiplier"
+        },
+        "reference_standard": {
+          "anyOf": [
+            {
+              "const": "meter_grid_and_human_1_8m",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Standard"
+        },
+        "reviewer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reviewer"
+        },
+        "approved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approved At"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "ScaleCalibration",
+      "type": "object"
+    },
     "Validation": {
       "additionalProperties": false,
       "properties": {
@@ -981,6 +1186,9 @@
     },
     "quality": {
       "$ref": "#/$defs/Quality"
+    },
+    "scale_calibration": {
+      "$ref": "#/$defs/ScaleCalibration"
     },
     "validation": {
       "$ref": "#/$defs/Validation"

@@ -16,6 +16,8 @@ from vandrel_foundry.domain.manifest import (
     CustodyLicenseEvidence,
     CustodySourceContribution,
     CustodySourceInput,
+    ScaleCalibration,
+    utc_now,
 )
 
 
@@ -219,3 +221,24 @@ def bind_documented_test_custody(manifest, asset_root: Path) -> None:
     )
     manifest.approval.custody_assertion_sha256 = semantic_sha
     manifest.approval.custody_source_inputs = source_inputs
+
+
+def bind_approved_test_scale(manifest) -> None:
+    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
+    assert processed
+    manifest.scale_calibration = ScaleCalibration(
+        status="approved",
+        processed_model_sha256=processed[-1].sha256,
+        preview_report_sha256="9" * 64,
+        source_bounds_min=[0.0, 0.0, 0.0],
+        source_bounds_max=[1.0, 1.0, 1.0],
+        source_dimensions=[1.0, 1.0, 1.0],
+        target_height_meters=1.0,
+        baseline_uniform_scale=1.0,
+        variation_min_multiplier=0.9,
+        variation_max_multiplier=1.1,
+        reference_standard="meter_grid_and_human_1_8m",
+        reviewer="Test scale reviewer",
+        approved_at=utc_now(),
+        notes="Explicit test fixture calibration.",
+    )

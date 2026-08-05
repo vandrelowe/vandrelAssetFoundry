@@ -25,6 +25,9 @@ class TextTo3DRefineRequest(MeshyModel):
 class ImageTo3DRequest(MeshyModel):
     image_url: str = Field(min_length=1)
     target_formats: list[Literal["glb"]] = Field(default_factory=lambda: ["glb"])
+    should_remesh: Literal[True] = True
+    topology: Literal["triangle"] = "triangle"
+    target_polycount: int = Field(ge=100, le=300_000)
 
 
 class RemeshRequest(MeshyModel):

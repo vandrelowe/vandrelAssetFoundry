@@ -22,6 +22,7 @@ from vandrel_foundry.services.build_custody_inventory import (
     write_custody_outputs,
 )
 from vandrel_foundry.services.build_review_gallery import build_review_gallery
+from vandrel_foundry.services.calibrate_scale import calibrate_asset_scale
 from vandrel_foundry.services.candidate_custody import bind_candidate_custody
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.doctor import run_doctor
@@ -34,6 +35,7 @@ from vandrel_foundry.services.import_consumer_validation import (
 )
 from vandrel_foundry.services.init_library import initialize_asset_library
 from vandrel_foundry.services.inspect_assets import discover_assets, initialize_workspace
+from vandrel_foundry.services.inspect_creature_package import inspect_creature_animation_package
 from vandrel_foundry.services.inspect_glb import inspect_processed_glb
 from vandrel_foundry.services.offline_vision_rehearsal import (
     assess_offline_vision_rehearsal,
@@ -46,10 +48,17 @@ from vandrel_foundry.services.preflight_custody_readability import (
 from vandrel_foundry.services.prepare_native_character import (
     prepare_provider_native_character,
 )
+from vandrel_foundry.services.preview_package import (
+    launch_package_preview,
+    prepare_package_preview,
+    validate_package_preview,
+)
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.process_blender import process_with_blender
+from vandrel_foundry.services.provider_custody import bind_provider_custody
 from vandrel_foundry.services.publish_release import publish_release
 from vandrel_foundry.services.quantize_semantic_mask import quantize_semantic_mask
+from vandrel_foundry.services.reclassify_asset import reclassify_asset_lane
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
 from vandrel_foundry.services.release_fitness import inspect_release_fitness
 from vandrel_foundry.services.render_animation_samples import render_animation_samples
@@ -174,6 +183,26 @@ def lanes(
     console.print(table)
 
 
+@app.command("mesh-budgets")
+def mesh_budgets(
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Display asset-class triangle targets used before Meshy texturing."""
+    try:
+        _, lane_config = configured(config)
+    except FoundryError as exc:
+        fail(exc)
+    table = Table("Profile", "Target", "Maximum", "Use")
+    for name, budget in lane_config.mesh_budgets.items():
+        table.add_row(
+            name,
+            str(budget.target_triangles),
+            str(budget.maximum_triangles),
+            budget.description,
+        )
+    console.print(table)
+
+
 @app.command("create")
 def create(
     asset_id: Annotated[str, typer.Option("--id")],
@@ -285,6 +314,56 @@ def scan_sources(
         f"[green]Found[/green] {len(candidates)} supported models"
         + (f"; {warnings} warnings" if warnings else "")
     )
+
+
+@app.command("preview-package")
+def preview_package(
+    archive: Path,
+    output_root: Annotated[
+        Path | None,
+        typer.Option("--output-root", help="Optional root for the immutable preview sandbox."),
+    ] = None,
+    launch: Annotated[
+        bool,
+        typer.Option("--launch", help="Open the generated sandbox in configured Godot."),
+    ] = False,
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Safely stage a ZIP in a candidate-free standalone Godot viewer."""
+    try:
+        settings = load_config(config)
+        result = prepare_package_preview(settings, archive, output_root)
+        validated = validate_package_preview(settings, result.sandbox)
+        console.print(f"[green]Package preview verified[/green] {result.sandbox}")
+        console.print(f"Models: {len(result.models)}")
+        console.print(f"Report: {result.report}")
+        if launch:
+            launch_package_preview(settings, validated)
+            console.print("[green]Godot preview launched[/green]")
+    except (FoundryError, OSError) as exc:
+        fail(exc)
+
+
+@app.command("inspect-creature-package")
+def inspect_creature_package(
+    archive: Path,
+    family: Annotated[str, typer.Option("--family")] = "ursine",
+    animation_provider: Annotated[
+        str, typer.Option("--animation-provider")
+    ] = "anything_world_animate_anything",
+    rig_family: Annotated[str, typer.Option("--rig-family")] = "anything_world_quadruped_v1",
+) -> None:
+    """Inspect a creature ZIP's base rig and idle/walk/run clips without writing."""
+    try:
+        profile = inspect_creature_animation_package(
+            archive,
+            family,
+            animation_provider,
+            rig_family,
+        )
+        console.print_json(profile.model_dump_json(indent=2))
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
 
 
 @app.command("add-reference")
@@ -656,6 +735,42 @@ def bind_candidate_custody_command(
     )
 
 
+@app.command("bind-provider-custody")
+def bind_provider_custody_command(
+    asset_id: str,
+    policy: Annotated[Path, typer.Option("--policy")] = Path(
+        "config/provider-rights-policy.v1.json"
+    ),
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Bind a selected authenticated provider task without Outside Assets."""
+    try:
+        settings = load_config(config)
+        assertion = bind_provider_custody(settings, asset_id, policy)
+        console.print(
+            f"[green]Provider custody evaluated[/green] {asset_id}: "
+            f"{assertion.effective_rights_status}"
+        )
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("reclassify-lane")
+def reclassify_lane(
+    asset_id: str,
+    lane: Annotated[str, typer.Option("--lane")],
+    reason: Annotated[str, typer.Option("--reason")],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Reclassify an unreleased processed candidate with retained audit reason."""
+    try:
+        settings, lane_config = configured(config)
+        manifest = reclassify_asset_lane(settings, lane_config, asset_id, lane, reason)
+        console.print(f"[green]Reclassified[/green] {asset_id}: {manifest.asset.lane}")
+    except FoundryError as exc:
+        fail(exc)
+
+
 @app.command("validate-custody-register")
 def validate_custody_register_command(
     register: Annotated[Path, typer.Argument(help="Canonical custody register.")],
@@ -779,6 +894,14 @@ def submit_image(
         str | None,
         typer.Option("--reference", help="Recorded asset-relative reference path."),
     ] = None,
+    target_triangles: Annotated[
+        int | None,
+        typer.Option("--target-triangles", min=100, max=300_000),
+    ] = None,
+    budget_profile: Annotated[
+        str | None,
+        typer.Option("--budget-profile", help="Named checked-in asset-class mesh budget."),
+    ] = None,
     confirm_spend: Annotated[
         bool,
         typer.Option(
@@ -792,12 +915,34 @@ def submit_image(
     if not confirm_spend:
         fail(FoundryError("Paid image submission requires --confirm-spend."))
     try:
-        settings = load_config(config)
+        settings, lane_config = configured(config)
+        manifest = ManifestRepository(settings.foundry.workspace_root).load(asset_id)
+        lane = lane_config.lanes.get(manifest.asset.lane)
+        if lane is None:
+            raise FoundryError(f"Lane policy is unavailable: {manifest.asset.lane}")
+        if target_triangles is not None and budget_profile is not None:
+            raise FoundryError("Use either --target-triangles or --budget-profile, not both.")
+        if budget_profile is not None:
+            budget = lane_config.mesh_budgets.get(budget_profile)
+            if budget is None:
+                available = ", ".join(lane_config.mesh_budgets) or "none configured"
+                raise FoundryError(
+                    f"Unknown mesh budget profile {budget_profile!r}; available: {available}"
+                )
+            target = budget.target_triangles
+        else:
+            target = target_triangles or lane.target_triangles
+        if target is None:
+            raise FoundryError(
+                "Image submission requires a Meshy remesh target; use --target-triangles "
+                "or --budget-profile."
+            )
         selected = RelativeManifestPath(reference) if reference is not None else None
         task = submit_image_to_3d(
             settings,
             asset_id,
             _meshy_transport(settings),
+            target,
             reference=selected,
         )
         console.print(
@@ -875,6 +1020,10 @@ def remesh(
         int | None,
         typer.Option("--target-triangles", min=1),
     ] = None,
+    budget_profile: Annotated[
+        str | None,
+        typer.Option("--budget-profile", help="Named checked-in asset-class mesh budget."),
+    ] = None,
     confirm_spend: Annotated[
         bool,
         typer.Option("--confirm-spend", help="Confirm this paid Meshy remesh request."),
@@ -890,7 +1039,18 @@ def remesh(
         lane = lane_config.lanes.get(manifest.asset.lane)
         if lane is None:
             raise FoundryError(f"Lane policy is unavailable: {manifest.asset.lane}")
-        target = target_triangles or lane.target_triangles
+        if target_triangles is not None and budget_profile is not None:
+            raise FoundryError("Use either --target-triangles or --budget-profile, not both.")
+        if budget_profile is not None:
+            budget = lane_config.mesh_budgets.get(budget_profile)
+            if budget is None:
+                available = ", ".join(lane_config.mesh_budgets) or "none configured"
+                raise FoundryError(
+                    f"Unknown mesh budget profile {budget_profile!r}; available: {available}"
+                )
+            target = budget.target_triangles
+        else:
+            target = target_triangles or lane.target_triangles
         if target is None:
             raise FoundryError("No remesh target is configured; use --target-triangles.")
         task = submit_remesh(
@@ -1126,6 +1286,38 @@ def render_preview(
         settings = load_config(config)
         artifact = render_local_preview(settings, asset_id)
         console.print(f"[green]Rendered preview[/green] {artifact.path}")
+    except FoundryError as exc:
+        fail(exc)
+
+
+@app.command("calibrate-scale")
+def calibrate_scale(
+    asset_id: str,
+    target_height_meters: Annotated[float, typer.Option("--target-height-m")],
+    reviewer: Annotated[str, typer.Option("--reviewer")],
+    variation_min: Annotated[float, typer.Option("--variation-min")] = 0.9,
+    variation_max: Annotated[float, typer.Option("--variation-max")] = 1.1,
+    notes: Annotated[str, typer.Option("--notes")] = "",
+    config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
+) -> None:
+    """Approve real-world scale from evaluated preview bounds before asset approval."""
+    try:
+        settings = load_config(config)
+        result = calibrate_asset_scale(
+            settings,
+            asset_id,
+            target_height_meters,
+            reviewer,
+            variation_min_multiplier=variation_min,
+            variation_max_multiplier=variation_max,
+            notes=notes,
+        )
+        console.print(
+            f"[green]Scale calibrated[/green] {asset_id}: "
+            f"target={result.target_height_meters:g}m "
+            f"baseline={result.baseline_uniform_scale:.6g}x "
+            f"variation={result.variation_min_multiplier:g}-{result.variation_max_multiplier:g}"
+        )
     except FoundryError as exc:
         fail(exc)
 

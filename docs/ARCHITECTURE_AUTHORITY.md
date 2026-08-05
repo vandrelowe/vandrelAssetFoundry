@@ -43,6 +43,8 @@
 | Read-only custody root readability preflight | `src/vandrel_foundry/services/preflight_custody_readability.py` |
 | Deterministic custody inventory, typed workspace classification, and register validation | `src/vandrel_foundry/services/build_custody_inventory.py` |
 | Explicit candidate custody evaluation and retained evidence | `src/vandrel_foundry/services/candidate_custody.py` |
+| Authenticated provider-task custody and retained rights evidence | `src/vandrel_foundry/services/provider_custody.py` |
+| Audited unreleased candidate lane reclassification | `src/vandrel_foundry/services/reclassify_asset.py` |
 | Offline review gallery snapshots | `src/vandrel_foundry/services/build_review_gallery.py` |
 | Provider task status vocabulary | `src/vandrel_foundry/domain/provider.py` |
 | Recursive provider evidence redaction | `src/vandrel_foundry/providers/redaction.py` |
@@ -62,12 +64,15 @@
 | Bounded Blender cleanup/export | `src/vandrel_foundry/services/process_blender.py` |
 | In-Blender deterministic operations | `src/vandrel_foundry/blender/process_glb.py` |
 | Local Blender review preview rendering | `src/vandrel_foundry/services/render_preview.py` |
+| Hash-bound real-world scale calibration and baseline recommendation | `src/vandrel_foundry/services/calibrate_scale.py` |
 | Local Blender shader/material comparison evidence | `src/vandrel_foundry/services/experiment_shaders.py` |
 | Deterministic texture-region recoloring | `src/vandrel_foundry/services/apply_texture_mask.py` |
 | Missing-preview batch selection | `src/vandrel_foundry/services/render_missing_previews.py` |
 | Sequential fail-isolated static batch orchestration and timing ledger | `src/vandrel_foundry/services/run_static_batch.py` |
 | Validation-only offline-vision recovery rehearsal readiness | `src/vandrel_foundry/services/offline_vision_rehearsal.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
+| Candidate-free package preview staging, validation, and explicit launch | `src/vandrel_foundry/services/preview_package.py`; `src/vandrel_foundry/godot/package_preview.gd` owns only sandbox presentation |
+| Offline animated-creature package inspection and typed technical evidence | `src/vandrel_foundry/services/inspect_creature_package.py` orchestrates archive/GLB inspection; `src/vandrel_foundry/domain/creature_animation.py` owns the evidence shape |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
 | Bounded Godot import validation | `src/vandrel_foundry/services/validate_godot.py` |
 | Provider-native FBX character preparation and same-task playback evidence | `src/vandrel_foundry/services/prepare_native_character.py` |
@@ -86,6 +91,13 @@
 The Pydantic model is the source for
 `schemas/asset-manifest-v1.schema.json`; the checked-in schema is the portable
 contract and must match it exactly.
+
+The CLI may request and present these workflows but does not repeat their
+validation or own their mechanics. Package preview depends inward on the shared
+bounded-process adapter and produces sandbox-only visual evidence. Creature
+inspection depends inward on ZIP/GLB technical readers and produces typed
+Foundry evidence; neither corridor depends on Vandrel, provider transport,
+candidate workflow mutation, approval, or publication.
 
 ## Single-authority invariants
 

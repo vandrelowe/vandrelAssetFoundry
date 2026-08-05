@@ -64,6 +64,16 @@ foundry scan-sources C:\Dev\outsideassets
 foundry scan-sources C:\Dev\outsideassets --json
 foundry scan-sources C:\Dev\outsideassets --family meshy --lane static_prop
 
+# Safely inspect a ZIP in a standalone, candidate-free Godot sandbox.
+foundry preview-package C:\Users\you\Downloads\bear.zip
+foundry preview-package C:\Users\you\Downloads\bear.zip --launch
+
+# Read-only quadruped evidence; does not launch Godot or create a candidate.
+foundry inspect-creature-package C:\Users\you\Downloads\bear.zip `
+  --family ursine `
+  --animation-provider anything_world_animate_anything `
+  --rig-family anything_world_quadruped_v1
+
 # Skip Meshy entirely with GLB, FBX-plus-textures, or glTF packages.
 foundry add-source stone_knife_001 --model .\models\stone_knife.glb
 foundry add-source basket_001 --model .\meshy\basket.fbx
@@ -77,6 +87,12 @@ reports the current workflow and valid next actions.
 `scan-sources` performs a read-only recursive inventory of supported model
 packages and suggests static-prop or humanoid intake lanes; it does not copy,
 convert, submit, or create asset records.
+`preview-package` safely extracts supported content into a new immutable local
+sandbox with a metre grid, scale references, model switching, and embedded
+animation playback. It creates no candidate and never writes to Vandrel.
+`inspect-creature-package` produces a typed, read-only comparison of a
+base/final rig and idle, walk, and run GLBs. It distinguishes a coherent
+animation set from direct base-rig transfer compatibility.
 `audit` is also read-only. It rehashes every manifest artifact and checks
 artifact IDs, paths, derivation references, and approval bindings.
 `custody-preflight` enumerates the three configured custody roots, records the
@@ -111,6 +127,8 @@ foundry process-blender stone_knife_001
 foundry process-blender stone_knife_001 --target-triangles 2500
 foundry inspect stone_knife_001
 foundry render-preview stone_knife_001
+# Required before approval: choose intended real-world height from the reference preview.
+foundry calibrate-scale stone_knife_001 --target-height-m 0.35 --reviewer "Reviewer Name"
 foundry render-missing-previews
 foundry prepare-godot stone_knife_001
 foundry validate-godot stone_knife_001
@@ -135,6 +153,9 @@ foundry release stone_knife_001 --apply
 
 # Optional paid provider remesh; defaults to the lane target.
 foundry remesh stone_knife_001 --confirm-spend
+# Prefer a checked-in asset-class target for environment dressing.
+foundry mesh-budgets
+foundry remesh rock_outcrop_001 --budget-profile rock_outcrop --confirm-spend
 
 # After a preview succeeds, submit the paid texture/refine stage.
 foundry refine stone_knife_001 --from meshy_preview_001 --confirm-spend
@@ -145,6 +166,13 @@ foundry submit-image stone_knife_001 --confirm-spend
 foundry poll stone_knife_001
 foundry download stone_knife_001
 ```
+
+New scene-dressing work is reference-first: generate and review the concept
+image before attaching it with `add-reference`, then use `submit-image` with a
+native-remesh budget. Text-to-3D is reserved for an explicitly authorized
+provider experiment, not routine concept iteration. See
+`docs/systems/PROVIDER_PIPELINE_CONTRACT.md` for the governing spend and
+generation policy.
 
 If a submission times out after it may have reached Meshy, Foundry marks it
 ambiguous and refuses to retry automatically. After checking the Meshy

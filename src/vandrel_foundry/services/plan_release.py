@@ -87,11 +87,7 @@ def plan_release(
     if lane is None or not lane.release_enabled:
         raise FoundryError(f"Release is disabled for lane: {manifest.asset.lane}")
     library_asset_root = config.foundry.asset_library_root / "assets" / asset_id
-    revision = (
-        _next_revision(library_asset_root)
-        if release_revision is None
-        else release_revision
-    )
+    revision = _next_revision(library_asset_root) if release_revision is None else release_revision
     format_release_revision(revision)
     asset_root = config.foundry.workspace_root / "assets" / asset_id
     files: list[dict[str, Any]] = []
@@ -169,8 +165,7 @@ def plan_release(
             )
     if humanoid_report is not None:
         release_path = (
-            "evidence/humanoid/"
-            f"{humanoid_report.artifact_id}-{humanoid_report.sha256[:12]}.json"
+            f"evidence/humanoid/{humanoid_report.artifact_id}-{humanoid_report.sha256[:12]}.json"
         )
         files.append(
             {
@@ -192,12 +187,16 @@ def plan_release(
         check for check in manifest.validation.checks if check.get("name") == "godot_sandbox_import"
     ]
     if (
-        manifest.custody.schema_version != "vandrel_foundry_candidate_custody/1.1"
+        manifest.custody.schema_version
+        not in {
+            "vandrel_foundry_candidate_custody/1.1",
+            "vandrel_foundry_candidate_custody/1.2",
+        }
         or manifest.custody.register_root_fingerprints is None
         or manifest.custody.evidence_fingerprint_sha256 is None
     ):
         raise FoundryError(
-            "Release descriptor v2 requires custody assertion 1.1 with freshness bindings."
+            "Release descriptor v2 requires current custody with freshness bindings."
         )
     descriptor_value = {
         "schema_version": 2,
@@ -232,9 +231,7 @@ def plan_release(
                 "sha256": manifest.custody.register_sha256,
                 "root_fingerprints": manifest.custody.register_root_fingerprints,
             },
-            "evidence_fingerprint_sha256": (
-                manifest.custody.evidence_fingerprint_sha256
-            ),
+            "evidence_fingerprint_sha256": (manifest.custody.evidence_fingerprint_sha256),
             "evaluated_manifest_revision": manifest.custody.evaluated_manifest_revision,
             "source_contributions": [
                 {
@@ -255,9 +252,7 @@ def plan_release(
                             "release_path": evidence_release_paths[evidence.binding_id],
                             "sha256": evidence.evidence_sha256,
                             "size_bytes": evidence.size_bytes,
-                            "source_artifact_id": (
-                                evidence.candidate_evidence_artifact_id
-                            ),
+                            "source_artifact_id": (evidence.candidate_evidence_artifact_id),
                             "scope_root": _portable_custody_path(evidence.scope_root),
                             "rights_semantics": evidence.rights_semantics,
                         }
@@ -270,6 +265,27 @@ def plan_release(
         **(
             {"humanoid_compatibility": humanoid_compatibility}
             if humanoid_compatibility is not None
+            else {}
+        ),
+        **(
+            {
+                "scale_calibration": {
+                    "processed_model_sha256": manifest.scale_calibration.processed_model_sha256,
+                    "preview_report_sha256": manifest.scale_calibration.preview_report_sha256,
+                    "source_bounds_min": manifest.scale_calibration.source_bounds_min,
+                    "source_bounds_max": manifest.scale_calibration.source_bounds_max,
+                    "source_dimensions": manifest.scale_calibration.source_dimensions,
+                    "target_height_meters": manifest.scale_calibration.target_height_meters,
+                    "baseline_uniform_scale": manifest.scale_calibration.baseline_uniform_scale,
+                    "variation_min_multiplier": manifest.scale_calibration.variation_min_multiplier,
+                    "variation_max_multiplier": manifest.scale_calibration.variation_max_multiplier,
+                    "reference_standard": manifest.scale_calibration.reference_standard,
+                    "reviewer": manifest.scale_calibration.reviewer,
+                    "approved_at": manifest.scale_calibration.approved_at,
+                    "notes": manifest.scale_calibration.notes,
+                }
+            }
+            if manifest.scale_calibration.status == "approved"
             else {}
         ),
         "provenance": {

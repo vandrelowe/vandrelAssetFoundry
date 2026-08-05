@@ -73,6 +73,9 @@ authority. The plan contains:
 - evaluated custody assertion 1.1 with logical-root-qualified package,
   evidence, and scope paths, the exact three register root fingerprints, and
   the evidence-freshness fingerprint;
+- or evaluated provider custody assertion 1.2 with `foundry_workspace`-qualified
+  provider package/evidence paths, the provider-provenance fingerprint, and the
+  evidence-freshness fingerprint;
 - for humanoids, either mapping/donor compatibility facts or provider-native
   same-task playback facts, plus explicit candidate-only/runtime-unaccepted
   markers and a packaged report entry bound by release path, source artifact
@@ -220,3 +223,9 @@ Historical library revisions never imply current approval or consumer
 acceptance. Missing, unbound, stale, rejected, blocked, passing, and unknown
 consumer states remain distinct. The command is read-only, single-candidate,
 offline, and does not inspect Vandrel directly.
+
+## Scale-calibrated approval and handoff
+
+Manual asset approval requires an approved scale calibration bound to the exact current processed-model SHA-256. Approval fails closed when calibration is absent or stale. This is independent of technical validation, custody, and visual-quality approval; all gates remain required.
+
+Release descriptor v2 carries scale calibration when present: evaluated source dimensions, target height in meters, baseline uniform scale, bounded variation multipliers, reference standard, reviewer, timestamp, notes, and the processed-model and preview-report hashes. The record is a portable recommendation. It does not assign a Vandrel runtime path, placement behavior, collision, navigation, or gameplay authority. Historical already-approved candidates without calibration remain parse-compatible, while all approvals performed after this contract revision require calibration.
