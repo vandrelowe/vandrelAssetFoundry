@@ -70,7 +70,7 @@ concept iteration loop for these entries.
 | Order | Asset | Role | Lane / budget | Status | Prompt |
 |---:|---|---|---|---|---|
 | 1 | Dense dry grass tussock | common ground cover | `static_prop` / `dense_ground_cover` | `candidate` (`meshy_dense_dry_grass_tussock_001`, rejected text-first experiment; `meshy_dense_dry_grass_tussock_002`, reference-first candidate) | `prompts/examples/prehistoric_dense_dry_grass_tussock_001.txt` |
-| 2 | Lush broad-blade grass clump | damp ground cover | `static_prop` / `dense_ground_cover` | `candidate` (`meshy_lush_broad_blade_grass_clump_001`; reference-first experiment, detached geometry, not visually accepted) | `prompts/examples/prehistoric_lush_grass_clump_001.txt` |
+| 2 | Lush broad-blade grass clump | damp ground cover | `static_prop` / `dense_ground_cover` | `candidate` (`meshy_lush_broad_blade_grass_clump_001`, rejected detached experiment; `_002`, accepted provisionally for contextual testing with known detached-blade compromise) | `prompts/examples/prehistoric_lush_grass_clump_001.txt` |
 | 3 | Thick bracken fern patch | forest understory | `static_prop` / `dense_ground_cover` | `selected` | `prompts/examples/prehistoric_bracken_fern_patch_001.txt` |
 | 4 | Forest mushroom cluster | focal ground detail | `static_prop` / `small_plant` | `selected` | `prompts/examples/prehistoric_mushroom_cluster_001.txt` |
 | 5 | Dense berry bush | food-bearing shrub | `static_prop` / `large_bush` | `selected` | `prompts/examples/prehistoric_dense_berry_bush_001.txt` |
