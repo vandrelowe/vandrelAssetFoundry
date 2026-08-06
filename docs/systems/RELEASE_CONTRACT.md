@@ -25,6 +25,11 @@
 - Release creation and Git commit/push are separate user-controlled actions.
 - A release contains technical facts and provenance, not Vandrel gameplay or
   mod authority.
+- The `creature` lane is release-enabled only for a technically inspected,
+  hash-bound compound result with complete continuous playback evidence and
+  explicit visual review for the current model. Its packaged playback report
+  records clip-family, deformation, scale, and ground-contact evidence without
+  assigning species, prey, hunting, carcass, recipe, job, or runtime semantics.
 - A humanoid release is a candidate package, not canonical Vandrel rig,
   animation, deformation, root-motion, or runtime acceptance.
 - Humanoid release planning requires either a passing, hash-bound

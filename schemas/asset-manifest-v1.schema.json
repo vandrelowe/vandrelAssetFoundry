@@ -192,7 +192,8 @@
           "enum": [
             "vandrel_foundry_candidate_custody/1.0",
             "vandrel_foundry_candidate_custody/1.1",
-            "vandrel_foundry_candidate_custody/1.2"
+            "vandrel_foundry_candidate_custody/1.2",
+            "vandrel_foundry_candidate_custody/1.3"
           ],
           "title": "Schema Version",
           "type": "string"

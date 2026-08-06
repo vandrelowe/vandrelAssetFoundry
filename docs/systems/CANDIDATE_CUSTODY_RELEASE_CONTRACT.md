@@ -23,6 +23,11 @@ evidence. Assertion 1.0 remains readable but is historical-only and cannot
 authorize approval or release. Register 1.0 likewise cannot authorize a new
 inventory custody decision.
 
+Assertion 1.3 is the narrow user-directed local-use route. It binds a retained
+declaration to the exact complete root-source hash union and permits only the
+declared local Foundry, local Asset Library, and local Vandrel pipeline scope.
+It does not claim provider-task provenance or broader redistribution rights.
+
 ## Candidate assertion
 
 An evaluated assertion records:

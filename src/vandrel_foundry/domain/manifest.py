@@ -247,6 +247,7 @@ class CustodyAssertion(StrictModel):
         "vandrel_foundry_candidate_custody/1.0",
         "vandrel_foundry_candidate_custody/1.1",
         "vandrel_foundry_candidate_custody/1.2",
+        "vandrel_foundry_candidate_custody/1.3",
     ]
     assessment_status: Literal["absent", "historical_unassessed", "evaluated"]
     source_contributions: list[CustodySourceContribution] = Field(default_factory=list)
@@ -333,7 +334,7 @@ class CustodyAssertion(StrictModel):
                     raise ValueError(
                         "Custody assertion 1.1 paths require the outside_assets logical root."
                     )
-            else:
+            elif self.schema_version.endswith("/1.2"):
                 if (
                     self.register_schema_version != "vandrel_foundry_provider_provenance/1.0"
                     or self.register_root_fingerprints is None
@@ -349,6 +350,24 @@ class CustodyAssertion(StrictModel):
                 ):
                     raise ValueError(
                         "Custody assertion 1.2 paths require the foundry_workspace logical root."
+                    )
+            else:
+                if (
+                    self.register_schema_version
+                    != "vandrel_foundry_user_local_use_declaration/1.0"
+                    or self.register_root_fingerprints is None
+                    or set(self.register_root_fingerprints) != {"foundry_workspace"}
+                ):
+                    raise ValueError(
+                        "Custody assertion 1.3 requires user local-use authority."
+                    )
+                if any(
+                    not isinstance(value, PortableCustodyPath)
+                    or value.logical_root != "foundry_workspace"
+                    for value in portable_paths
+                ):
+                    raise ValueError(
+                        "Custody assertion 1.3 paths require the foundry_workspace logical root."
                     )
         elif (
             any(value is not None for value in (*evaluated_fields, *freshness_fields))

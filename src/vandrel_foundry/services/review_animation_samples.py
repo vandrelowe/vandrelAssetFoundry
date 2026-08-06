@@ -35,17 +35,32 @@ def accept_animation_samples(
     models = [item for item in manifest.artifacts if item.role == "processed_model"]
     sheets = [item for item in manifest.artifacts if item.role == "animation_sample_contact_sheet"]
     reports = [item for item in manifest.artifacts if item.role == "animation_sample_report"]
-    if not models or not sheets or not reports:
+    playback_reports = [
+        item for item in manifest.artifacts if item.role == "creature_playback_report"
+    ]
+    playback_videos = [
+        item for item in manifest.artifacts if item.role == "creature_playback_video"
+    ]
+    creature_review = manifest.asset.lane == "creature"
+    if not models or (creature_review and (not playback_reports or not playback_videos)) or (
+        not creature_review and (not sheets or not reports)
+    ):
         raise FoundryError("Animation visual review evidence is incomplete.")
     model = models[-1]
-    sheet = sheets[-1]
-    report = reports[-1]
-    if model.artifact_id not in sheet.derived_from:
+    sheet = None if creature_review else sheets[-1]
+    report = playback_reports[-1] if creature_review else reports[-1]
+    if sheet is not None and model.artifact_id not in sheet.derived_from:
         raise FoundryError("Animation sample sheet is stale for the current processed model.")
     if model.artifact_id not in report.derived_from:
         raise FoundryError("Animation sample report is stale for the current processed model.")
+    reviewed_videos = []
+    if creature_review:
+        video_ids = set(report.derived_from) - {model.artifact_id}
+        reviewed_videos = [item for item in playback_videos if item.artifact_id in video_ids]
+        if not video_ids or {item.artifact_id for item in reviewed_videos} != video_ids:
+            raise FoundryError("Creature playback report does not bind its complete video set.")
     asset_root = config.foundry.workspace_root / "assets" / asset_id
-    for artifact in (model, sheet, report):
+    for artifact in (model, report, *reviewed_videos, *((sheet,) if sheet else ())):
         _verify_artifact(asset_root, artifact)
 
     number = sum(item.role == "animation_visual_review" for item in manifest.artifacts) + 1
@@ -59,8 +74,14 @@ def accept_animation_samples(
         "reviewed_at": utc_now().isoformat(),
         "notes": notes,
         "processed_model": _binding(model),
-        "animation_sample_contact_sheet": _binding(sheet),
-        "animation_sample_report": _binding(report),
+        "animation_sample_contact_sheet": _binding(sheet) if sheet else None,
+        "animation_sample_report": _binding(report) if not creature_review else None,
+        "creature_continuous_playback_report": (
+            _binding(report) if creature_review else None
+        ),
+        "creature_continuous_playback_videos": [
+            _binding(item) for item in reviewed_videos
+        ],
         "review_scope": [
             "gross deformation",
             "limb orientation",
@@ -84,7 +105,12 @@ def accept_animation_samples(
         path=relative,
         sha256=digest,
         size_bytes=size,
-        derived_from=[model.artifact_id, sheet.artifact_id, report.artifact_id],
+        derived_from=[
+            model.artifact_id,
+            report.artifact_id,
+            *(item.artifact_id for item in reviewed_videos),
+            *((sheet.artifact_id,) if sheet else ()),
+        ],
         processor=processor,
     )
     manifest.artifacts.append(artifact)
@@ -93,7 +119,9 @@ def accept_animation_samples(
         "passed": True,
         "report": str(relative),
         "processed_model_sha256": model.sha256,
-        "contact_sheet_sha256": sheet.sha256,
+        "contact_sheet_sha256": sheet.sha256 if sheet else None,
+        "continuous_playback_report_sha256": report.sha256 if creature_review else None,
+        "continuous_playback_clip_count": len(reviewed_videos) if creature_review else None,
         "reviewer": reviewer,
     }
     manifest.validation.checks = [

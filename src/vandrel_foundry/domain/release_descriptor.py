@@ -50,6 +50,7 @@ ReleaseFileRole = Literal[
     "animation_run",
     "custody_license_evidence",
     "humanoid_compatibility_report",
+    "creature_playback_report",
 ]
 
 
@@ -112,6 +113,7 @@ class ReleaseCustodyRegisterV2(ReleaseModel):
     schema_version: Literal[
         "vandrel_foundry_custody_register/1.1",
         "vandrel_foundry_provider_provenance/1.0",
+        "vandrel_foundry_user_local_use_declaration/1.0",
     ]
     sha256: Sha256
     root_fingerprints: (
@@ -168,6 +170,7 @@ class ReleaseCustodyV2(ReleaseModel):
     schema_version: Literal[
         "vandrel_foundry_candidate_custody/1.1",
         "vandrel_foundry_candidate_custody/1.2",
+        "vandrel_foundry_candidate_custody/1.3",
     ]
     assessment_status: Literal["evaluated"]
     effective_rights_status: Literal["documented"]

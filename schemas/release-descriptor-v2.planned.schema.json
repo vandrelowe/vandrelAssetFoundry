@@ -235,7 +235,8 @@
         "schema_version": {
           "enum": [
             "vandrel_foundry_custody_register/1.1",
-            "vandrel_foundry_provider_provenance/1.0"
+            "vandrel_foundry_provider_provenance/1.0",
+            "vandrel_foundry_user_local_use_declaration/1.0"
           ],
           "title": "Schema Version",
           "type": "string"
@@ -330,7 +331,8 @@
         "schema_version": {
           "enum": [
             "vandrel_foundry_candidate_custody/1.1",
-            "vandrel_foundry_candidate_custody/1.2"
+            "vandrel_foundry_candidate_custody/1.2",
+            "vandrel_foundry_candidate_custody/1.3"
           ],
           "title": "Schema Version",
           "type": "string"
@@ -400,7 +402,8 @@
             "animation_walk",
             "animation_run",
             "custody_license_evidence",
-            "humanoid_compatibility_report"
+            "humanoid_compatibility_report",
+            "creature_playback_report"
           ],
           "title": "Role",
           "type": "string"

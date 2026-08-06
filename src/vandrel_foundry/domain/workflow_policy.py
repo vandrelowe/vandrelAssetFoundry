@@ -145,7 +145,7 @@ def approval_artifact_roles(manifest: AssetManifest) -> tuple[str, ...]:
     processor_name = _current_processed_model_processor(manifest)
     return BASE_APPROVAL_ROLES + (
         PROVIDER_NATIVE_APPROVAL_ROLES if processor_name == PROVIDER_NATIVE_PROCESSOR else ()
-    )
+    ) + (("creature_playback_report",) if manifest.asset.lane == "creature" else ())
 
 
 def approval_checks_pass(manifest: AssetManifest) -> bool:
@@ -153,7 +153,28 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
         str(check.get("name")): bool(check.get("passed")) for check in manifest.validation.checks
     }
     processor_name = _current_processed_model_processor(manifest)
-    if _current_processed_model_has_suspended_ancestry(manifest):
+    is_compound_creature = (
+        manifest.asset.lane == "creature"
+        and processor_name == "blender_compound_creature_derivation"
+    )
+    disallowed_suspension = _current_processed_model_has_disallowed_suspension(manifest)
+    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
+    creature_playback_passes = bool(
+        is_compound_creature
+        and processed
+        and any(
+            check.get("name") == "creature_continuous_playback"
+            and check.get("passed")
+            and check.get("processed_model_sha256") == processed[-1].sha256
+            for check in manifest.validation.checks
+        )
+    )
+    if disallowed_suspension:
+        return False
+    if (
+        processor_name in SUSPENDED_APPROVAL_PROCESSORS
+        and not (is_compound_creature and creature_playback_passes)
+    ):
         return False
     required_checks = (
         REQUIRED_APPROVAL_CHECKS - {"glb_structure"} | {"provider_native_character_playback"}
@@ -166,7 +187,6 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
         and all(checks_by_name[name] for name in required_checks)
     )
     requires_animation_review = processor_name == "blender_rest_pose_retarget"
-    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
     animation_review_passes = bool(
         processed
         and any(
@@ -176,6 +196,7 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
             for check in manifest.validation.checks
         )
     )
+    requires_animation_review = requires_animation_review or is_compound_creature
     return standard_checks_pass and (not requires_animation_review or animation_review_passes)
 
 
@@ -201,21 +222,29 @@ def _current_processed_model_processor(manifest: AssetManifest) -> str | None:
     return processed[-1].processor.name
 
 
-def _current_processed_model_has_suspended_ancestry(manifest: AssetManifest) -> bool:
+def _current_processed_model_has_disallowed_suspension(manifest: AssetManifest) -> bool:
     processed = [item for item in manifest.artifacts if item.role == "processed_model"]
     if not processed:
         return False
     by_id = {item.artifact_id: item for item in manifest.artifacts}
-    pending = [processed[-1]]
+    current = processed[-1]
+    pending = [(current, True)]
     visited: set[str] = set()
     while pending:
-        artifact = pending.pop()
+        artifact, is_current = pending.pop()
         if artifact.artifact_id in visited:
             continue
         visited.add(artifact.artifact_id)
-        if artifact.processor and artifact.processor.name in SUSPENDED_APPROVAL_PROCESSORS:
+        if (
+            artifact.processor
+            and artifact.processor.name in SUSPENDED_APPROVAL_PROCESSORS
+            and not (
+                is_current
+                and artifact.processor.name == "blender_compound_creature_derivation"
+            )
+        ):
             return True
         if any(parent not in by_id for parent in artifact.derived_from):
             return True
-        pending.extend(by_id[parent] for parent in artifact.derived_from)
+        pending.extend((by_id[parent], False) for parent in artifact.derived_from)
     return False

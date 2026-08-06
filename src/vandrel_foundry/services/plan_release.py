@@ -28,6 +28,10 @@ RELEASE_ROLES = {
     ),
     "processed_animation_walk": ("animations/walk.res", "animation_walk"),
     "processed_animation_run": ("animations/run.res", "animation_run"),
+    "creature_playback_report": (
+        "evidence/creature/continuous-playback.json",
+        "creature_playback_report",
+    ),
 }
 OPTIONAL_RELEASE_ROLES = {
     "godot_animation_loader_script",
@@ -96,6 +100,13 @@ def plan_release(
         asset_root,
     )
     model = _approved_artifact(manifest, asset_root, "processed_model")
+    if manifest.asset.lane == "creature" and (
+        model.processor is None
+        or model.processor.name != "blender_compound_creature_derivation"
+    ):
+        raise FoundryError(
+            "Creature release requires the current compound-creature derivation model."
+        )
     files.append(
         {
             "role": "model",
@@ -106,6 +117,8 @@ def plan_release(
         }
     )
     for source_role, (release_path, release_role) in RELEASE_ROLES.items():
+        if source_role == "creature_playback_report" and manifest.asset.lane != "creature":
+            continue
         approved_hash = manifest.approval.approved_artifact_hashes.get(source_role)
         if approved_hash is None and source_role in OPTIONAL_RELEASE_ROLES:
             continue
@@ -191,6 +204,7 @@ def plan_release(
         not in {
             "vandrel_foundry_candidate_custody/1.1",
             "vandrel_foundry_candidate_custody/1.2",
+            "vandrel_foundry_candidate_custody/1.3",
         }
         or manifest.custody.register_root_fingerprints is None
         or manifest.custody.evidence_fingerprint_sha256 is None

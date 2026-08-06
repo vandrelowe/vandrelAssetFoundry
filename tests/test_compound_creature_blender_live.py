@@ -32,26 +32,40 @@ def test_real_blender_adapter_output_is_independently_valid(
 from pathlib import Path
 from mathutils import Vector
 root=Path(sys.argv[sys.argv.index('--')+1])
-bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.mesh.primitive_cube_add(); mesh=bpy.context.object; mesh.name='CreatureMesh'
-image=bpy.data.images.new('fur', width=2, height=2); image.filepath_raw=str(root/'fur.png')
-image.file_format='PNG'; image.save()
-mat=bpy.data.materials.new('CreatureMaterial'); mat.use_nodes=True
-texture=mat.node_tree.nodes.new('ShaderNodeTexImage'); texture.image=image
-mat.node_tree.links.new(texture.outputs['Color'], mat.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
-mesh.data.materials.append(mat)
-bpy.ops.export_scene.fbx(filepath=str(root/'mesh.fbx'), use_selection=False)
-bpy.ops.wm.read_factory_settings(use_empty=True)
-arm_data=bpy.data.armatures.new('DonorRig'); arm=bpy.data.objects.new('DonorRig',arm_data)
-bpy.context.collection.objects.link(arm); bpy.context.view_layer.objects.active=arm; arm.select_set(True)
-bpy.ops.object.mode_set(mode='EDIT'); root_bone=arm_data.edit_bones.new('root')
-root_bone.head=Vector((0,0,0)); root_bone.tail=Vector((0,0,1)); child=arm_data.edit_bones.new('spine')
-child.head=root_bone.tail; child.tail=Vector((0,0,2)); child.parent=root_bone
-bpy.ops.object.mode_set(mode='POSE'); pose_bone=arm.pose.bones['root']
-bpy.context.scene.frame_set(1); pose_bone.location.x=0; pose_bone.keyframe_insert('location')
-bpy.context.scene.frame_set(20); pose_bone.location.x=0.2; pose_bone.keyframe_insert('location')
-bpy.ops.object.mode_set(mode='OBJECT')
-bpy.ops.export_scene.gltf(filepath=str(root/'donor.glb'), export_format='GLB', export_animations=True)
+def make_rig(name, names, parents):
+    data=bpy.data.armatures.new(name); arm=bpy.data.objects.new(name,data)
+    bpy.context.collection.objects.link(arm); bpy.context.view_layer.objects.active=arm; arm.select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT'); made={}
+    for index,bone_name in enumerate(names):
+        bone=data.edit_bones.new(bone_name); bone.head=Vector((0,0,index*.2)); bone.tail=bone.head+Vector((0,0,.15)); made[bone_name]=bone
+    for child,parent in parents.items(): made[child].parent=made[parent]
+    bpy.ops.object.mode_set(mode='OBJECT'); return arm
+def add_skinned_cube(arm, root_name, material=None):
+    bpy.ops.mesh.primitive_cube_add(location=(0,0,1)); mesh=bpy.context.object
+    mesh.name='CreatureMesh'; group=mesh.vertex_groups.new(name=root_name)
+    group.add(list(range(len(mesh.data.vertices))),1.0,'REPLACE')
+    modifier=mesh.modifiers.new('NativeArmature','ARMATURE'); modifier.object=arm
+    mesh.parent=arm; mesh.matrix_parent_inverse=arm.matrix_world.inverted()
+    if material: mesh.data.materials.append(material)
+    return mesh
+source_names=['Hips','chest','head','tailstart','tail1','tail2','backleg','backleg0','backleg1','backleg2','R_backleg','R_backleg0','R_backleg1','R_backleg2','frontleg','frontleg0','frontleg1','R_frontleg','R_frontleg0','R_frontleg1']
+source_parents={'chest':'Hips','head':'chest','tailstart':'Hips','tail1':'tailstart','tail2':'tail1','backleg0':'backleg','backleg1':'backleg0','backleg2':'backleg1','R_backleg0':'R_backleg','R_backleg1':'R_backleg0','R_backleg2':'R_backleg1','frontleg0':'frontleg','frontleg1':'frontleg0','R_frontleg0':'R_frontleg','R_frontleg1':'R_frontleg0'}
+donor_names=['Body','Torso3','Head','Tail1','Tail2','Tail3','BackShoulder.L','BackLeg.L','BackUpperLeg.L','BackLowerLeg.L','BackShoulder.R','BackLeg.R','BackUpperLeg.R','BackLowerLeg.R','FrontShoulder.L','FrontUpperLeg.L','FrontLowerLeg.L','FrontShoulder.R','FrontUpperLeg.R','FrontLowerLeg.R']
+donor_parents={'Torso3':'Body','Head':'Torso3','Tail1':'Body','Tail2':'Tail1','Tail3':'Tail2','BackLeg.L':'BackShoulder.L','BackUpperLeg.L':'BackLeg.L','BackLowerLeg.L':'BackUpperLeg.L','BackLeg.R':'BackShoulder.R','BackUpperLeg.R':'BackLeg.R','BackLowerLeg.R':'BackUpperLeg.R','FrontUpperLeg.L':'FrontShoulder.L','FrontLowerLeg.L':'FrontUpperLeg.L','FrontUpperLeg.R':'FrontShoulder.R','FrontLowerLeg.R':'FrontUpperLeg.R'}
+bpy.ops.wm.read_factory_settings(use_empty=True); source_arm=make_rig('Armature',source_names,source_parents)
+image=bpy.data.images.new('fur',width=2,height=2); image.filepath_raw=str(root/'fur.png'); image.file_format='PNG'; image.save()
+mat=bpy.data.materials.new('CreatureMaterial'); mat.use_nodes=True; texture=mat.node_tree.nodes.new('ShaderNodeTexImage'); texture.image=image
+mat.node_tree.links.new(texture.outputs['Color'],mat.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
+add_skinned_cube(source_arm,'Hips',mat); source_arm.animation_data_create(); action=bpy.data.actions.new('Walking'); source_arm.animation_data.action=action
+pose=source_arm.pose.bones['Hips']; pose.rotation_mode='XYZ'
+for frame,angle in ((1,0.0),(10,.1),(20,0.0)): bpy.context.scene.frame_set(frame); pose.rotation_euler.x=angle; pose.keyframe_insert('rotation_euler')
+bpy.ops.export_scene.fbx(filepath=str(root/'mesh.fbx'),use_selection=False)
+bpy.ops.wm.read_factory_settings(use_empty=True); arm=make_rig('DonorRig',donor_names,donor_parents); add_skinned_cube(arm,'Body')
+arm.animation_data_create(); pose=arm.pose.bones['Body']; pose.rotation_mode='XYZ'
+for action_name in ['Idle','Eating','Walk','Gallop','Jump_toIdle','Idle_HitReact1','Attack_Kick','Death']:
+    action=bpy.data.actions.new(action_name); arm.animation_data.action=action
+    for frame,angle in ((0,0.0),(10,.15),(20,0.0)): bpy.context.scene.frame_set(frame); pose.rotation_euler.x=angle; pose.keyframe_insert('rotation_euler')
+bpy.ops.export_scene.gltf(filepath=str(root/'donor.glb'),export_format='GLB',export_animations=True)
 """,
         encoding="utf-8",
     )
@@ -78,7 +92,7 @@ bpy.ops.export_scene.gltf(filepath=str(root/'donor.glb'), export_format='GLB', e
     inspection = inspect_glb(output)
     facts = json.loads(adapter_report.read_text(encoding="utf-8"))["transformation_facts"]
     assert inspection.mesh_count == 1 and inspection.material_count >= 1
-    assert inspection.skin_count == 1 and inspection.joint_count == 2
+    assert inspection.skin_count == 1 and inspection.joint_count >= 20
     assert inspection.animation_count >= 1
     assert facts["output_skin_count"] == inspection.skin_count
     assert facts["output_animation_count"] == inspection.animation_count

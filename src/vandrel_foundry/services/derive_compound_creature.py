@@ -104,7 +104,8 @@ def derive_compound_creature(
             config.tools.maximum_output_bytes,
         )
         if result.return_code != 0 or result.timed_out or result.output_limited:
-            raise FoundryError("Bounded Blender compound creature derivation failed.")
+            detail = (result.stderr or result.stdout or "no tool diagnostic").strip()[-2000:]
+            raise FoundryError(f"Bounded Blender compound creature derivation failed: {detail}")
         if not temporary_model.is_file() or not adapter_report.is_file():
             raise FoundryError("Blender did not create compound model and adapter report.")
         adapter = json.loads(adapter_report.read_text(encoding="utf-8"))
@@ -125,7 +126,9 @@ def derive_compound_creature(
             raise FoundryError("Compound GLB fails geometry, material, skin, joint, or animation gates.")
         facts = adapter["transformation_facts"]
         expected = {
-            "donor_armatures_retained": 1,
+            "donor_armatures_retained": 0,
+            "source_armatures_retained": 1,
+            "binding_method": "semantic_rest_space_animation_retarget",
             "material_dependencies_declared": len(material_paths),
             "material_dependencies_used": len(material_paths),
             "animations_exported": True,

@@ -13,6 +13,7 @@ from vandrel_foundry.domain.manifest import (
 CUSTODY_SCHEMA = "vandrel_foundry_candidate_custody/1.0"
 CUSTODY_SCHEMA_V1_1 = "vandrel_foundry_candidate_custody/1.1"
 CUSTODY_SCHEMA_V1_2 = "vandrel_foundry_candidate_custody/1.2"
+CUSTODY_SCHEMA_V1_3 = "vandrel_foundry_candidate_custody/1.3"
 EVIDENCE_FRESHNESS_SCHEMA = "vandrel_foundry_custody_evidence_freshness/1.0"
 
 
@@ -82,6 +83,20 @@ def semantic_assertion_sha256(
     return hashlib.sha256(canonical).hexdigest()
 
 
+def user_local_use_semantic_sha256(
+    contributions: list[CustodySourceContribution],
+) -> str:
+    value = {
+        "schema_version": CUSTODY_SCHEMA_V1_3,
+        "source_contributions": [
+            item.model_dump(mode="json")
+            for item in sorted(contributions, key=lambda value: value.contribution_id)
+        ],
+    }
+    canonical = (json.dumps(value, sort_keys=True, indent=2, ensure_ascii=True) + "\n").encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def evidence_freshness_sha256(
     policy_schema_version: str,
     policy_sha256: str,
@@ -143,7 +158,11 @@ def custody_freshness(manifest: AssetManifest) -> tuple[bool, list[str]]:
         blockers.append("custody_assertion_legacy_stale")
     if assertion.effective_rights_status != "documented":
         blockers.append(f"custody_rights_{assertion.effective_rights_status}")
-    semantic = semantic_assertion_sha256(assertion.source_contributions)
+    semantic = (
+        user_local_use_semantic_sha256(assertion.source_contributions)
+        if assertion.schema_version == CUSTODY_SCHEMA_V1_3
+        else semantic_assertion_sha256(assertion.source_contributions)
+    )
     if semantic != assertion.semantic_assertion_sha256:
         blockers.append("custody_semantic_hash_stale")
     if assertion.schema_version.endswith("/1.1"):
@@ -195,6 +214,24 @@ def custody_freshness(manifest: AssetManifest) -> tuple[bool, list[str]]:
             )
         ):
             blockers.append("custody_evidence_fingerprint_stale")
+    elif assertion.schema_version.endswith("/1.3"):
+        root_fingerprints = assertion.register_root_fingerprints or {}
+        expected = user_local_use_register_sha256(manifest, assertion.policy_sha256 or "")
+        if (
+            assertion.register_schema_version
+            != "vandrel_foundry_user_local_use_declaration/1.0"
+            or assertion.register_sha256 != expected
+            or root_fingerprints != {"foundry_workspace": expected}
+        ):
+            blockers.append("custody_user_local_use_declaration_stale")
+        elif assertion.evidence_fingerprint_sha256 != evidence_freshness_sha256(
+            assertion.policy_schema_version or "",
+            assertion.policy_sha256 or "",
+            assertion.register_schema_version,
+            assertion.register_sha256,
+            root_fingerprints,
+        ):
+            blockers.append("custody_evidence_fingerprint_stale")
     bound_inputs = sorted(
         (
             item
@@ -223,6 +260,17 @@ def custody_freshness(manifest: AssetManifest) -> tuple[bool, list[str]]:
         ):
             blockers.append(f"custody_evidence_stale:{evidence.binding_id}")
     return not blockers, sorted(set(blockers))
+
+
+def user_local_use_register_sha256(manifest: AssetManifest, declaration_sha256: str) -> str:
+    value = {
+        "schema_version": "vandrel_foundry_user_local_use_declaration/1.0",
+        "asset_id": manifest.asset.asset_id,
+        "declaration_sha256": declaration_sha256,
+        "source_inputs": [item.model_dump(mode="json") for item in current_source_inputs(manifest)],
+    }
+    canonical = (json.dumps(value, sort_keys=True, indent=2, ensure_ascii=True) + "\n").encode()
+    return hashlib.sha256(canonical).hexdigest()
 
 
 def approval_custody_freshness(manifest: AssetManifest) -> tuple[bool, list[str]]:

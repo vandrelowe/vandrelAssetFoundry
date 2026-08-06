@@ -14,6 +14,7 @@ from vandrel_foundry.domain.workflow_policy import (
     ALLOWED_WORKFLOW_TRANSITIONS,
     approval_artifact_roles,
     approval_bindings_resolve,
+    approval_checks_pass,
     invalidate_approval,
     transition_workflow,
 )
@@ -184,6 +185,122 @@ def test_approval_roles_and_bindings_are_neutral_exact_policy() -> None:
         "godot_animation_loader_script",
     )
     assert not approval_bindings_resolve(manifest)
+
+
+def test_unrelated_suspended_creature_processor_is_rejected_without_exception() -> None:
+    manifest = _manifest()
+    manifest.asset.lane = "creature"
+    processed = _artifact("processed", "processed_model", "1" * 64)
+    processed.processor = Processor(name="blender_rest_pose_retarget", version="1")
+    manifest.artifacts = [processed]
+    manifest.validation.result = "passed"
+    manifest.validation.checks = [
+        {"name": name, "passed": True}
+        for name in (
+            "glb_structure",
+            "geometry_present",
+            "triangle_budget",
+            "materials_required",
+            "skeleton_required",
+            "godot_sandbox_import",
+        )
+    ]
+
+    assert not approval_checks_pass(manifest)
+
+
+def test_compound_creature_requires_exact_playback_and_visual_review() -> None:
+    manifest = _manifest()
+    manifest.asset.lane = "creature"
+    processed = _artifact("processed", "processed_model", "1" * 64)
+    processed.processor = Processor(name="blender_compound_creature_derivation", version="1")
+    manifest.artifacts = [processed]
+    manifest.validation.result = "passed"
+    manifest.validation.checks = [
+        {"name": name, "passed": True}
+        for name in (
+            "glb_structure",
+            "geometry_present",
+            "triangle_budget",
+            "materials_required",
+            "skeleton_required",
+            "godot_sandbox_import",
+        )
+    ]
+    assert not approval_checks_pass(manifest)
+    manifest.validation.checks.extend(
+        [
+            {
+                "name": "creature_continuous_playback",
+                "passed": True,
+                "processed_model_sha256": processed.sha256,
+            },
+            {
+                "name": "animation_visual_review",
+                "passed": True,
+                "processed_model_sha256": processed.sha256,
+            },
+        ]
+    )
+    assert approval_checks_pass(manifest)
+
+
+@pytest.mark.parametrize(
+    "ancestor_processor",
+    ["blender_rest_pose_retarget", "blender_compound_creature_derivation"],
+)
+def test_compound_playback_does_not_excuse_additional_suspended_ancestor(
+    ancestor_processor,
+) -> None:
+    manifest = _compound_playback_manifest()
+    ancestor = _artifact("ancestor", "processing_intermediate", "2" * 64)
+    ancestor.processor = Processor(name=ancestor_processor, version="1")
+    manifest.artifacts.insert(0, ancestor)
+    manifest.artifacts[-1].derived_from = [ancestor.artifact_id]
+
+    assert not approval_checks_pass(manifest)
+
+
+def test_compound_playback_fails_closed_on_missing_parent() -> None:
+    manifest = _compound_playback_manifest()
+    manifest.artifacts[-1].derived_from = ["missing-parent"]
+
+    assert not approval_checks_pass(manifest)
+
+
+def _compound_playback_manifest() -> AssetManifest:
+    manifest = _manifest()
+    manifest.asset.lane = "creature"
+    processed = _artifact("processed", "processed_model", "1" * 64)
+    processed.processor = Processor(name="blender_compound_creature_derivation", version="1")
+    manifest.artifacts = [processed]
+    manifest.validation.result = "passed"
+    manifest.validation.checks = [
+        {"name": name, "passed": True}
+        for name in (
+            "glb_structure",
+            "geometry_present",
+            "triangle_budget",
+            "materials_required",
+            "skeleton_required",
+            "godot_sandbox_import",
+        )
+    ]
+    manifest.validation.checks.extend(
+        [
+            {
+                "name": "creature_continuous_playback",
+                "passed": True,
+                "processed_model_sha256": processed.sha256,
+            },
+            {
+                "name": "animation_visual_review",
+                "passed": True,
+                "processed_model_sha256": processed.sha256,
+            },
+        ]
+    )
+    return manifest
 
 
 def _manifest() -> AssetManifest:

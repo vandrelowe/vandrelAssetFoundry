@@ -234,6 +234,57 @@ def test_published_current_set_remains_separate_from_absent_consumer(config, lan
     assert view.vandrel_consumer.acceptance_status == "unknown"
 
 
+def test_published_creature_playback_evidence_matches_approval(config, lanes, prompt):
+    repository, model, wrapper = _candidate(config, lanes, prompt)
+    playback = b"continuous playback evidence"
+    manifest = repository.load("fitness_asset_001")
+    manifest.approval.approved_artifact_hashes = {}
+    manifest.artifacts.append(
+        Artifact(
+            artifact_id="creature_playback_report_001",
+            role="creature_playback_report",
+            stage="validation",
+            format="json",
+            path="reports/creature-playback.json",
+            sha256=_sha(playback),
+            size_bytes=len(playback),
+        )
+    )
+    root = config.foundry.workspace_root / "assets" / "fitness_asset_001"
+    (root / "reports" / "creature-playback.json").write_bytes(playback)
+    manifest.revision += 1
+    repository.save(manifest, "test.playback", expected_revision=manifest.revision - 1)
+    _approve(repository, "fitness_asset_001", model, wrapper)
+    manifest = repository.load("fitness_asset_001")
+    manifest.approval.approved_artifact_hashes["creature_playback_report"] = _sha(playback)
+    manifest.revision += 1
+    repository.save(manifest, "test.playback_approved", expected_revision=manifest.revision - 1)
+    _library(config, "fitness_asset_001", model, wrapper)
+    descriptor_path = (
+        config.foundry.asset_library_root
+        / "assets"
+        / "fitness_asset_001"
+        / "r001"
+        / "asset-release.json"
+    )
+    descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
+    descriptor["files"].append(
+        {
+            "role": "creature_playback_report",
+            "path": "creature-playback.json",
+            "sha256": _sha(playback),
+            "size_bytes": len(playback),
+            "source_artifact_id": "creature_playback_report_001",
+        }
+    )
+    descriptor_path.write_text(json.dumps(descriptor), encoding="utf-8")
+
+    view = inspect_release_fitness(config, lanes, "fitness_asset_001")
+
+    assert view.library.status == "current_set"
+    assert view.library.matches_current_approved_set is True
+
+
 def test_exact_bound_consumer_rejection_is_not_inferred_as_release_state(config, lanes, prompt):
     repository, model, wrapper = _candidate(config, lanes, prompt)
     _approve(repository, "fitness_asset_001", model, wrapper)

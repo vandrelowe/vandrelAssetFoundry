@@ -37,7 +37,7 @@ wrapper_template = "creature_candidate"
 collision_policy = "manual_review"
 requires_materials = true
 requires_skeleton = true
-release_enabled = false
+release_enabled = true
 
 
 [mesh_budgets.rock_small]

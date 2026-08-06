@@ -85,7 +85,9 @@ def _runner(arguments, cwd, environment, timeout, maximum):
     report.write_text(json.dumps({
         "tool_version": "Blender-test",
         "transformation_facts": {
-            "donor_armatures_retained": 1, "material_dependencies_declared": 2,
+            "donor_armatures_retained": 0, "source_armatures_retained": 1,
+            "binding_method": "semantic_rest_space_animation_retarget",
+            "material_dependencies_declared": 2,
             "material_dependencies_used": 2,
             "animations_exported": True, "output_skin_count": 1, "output_animation_count": 2,
             "unweighted_exported_vertex_count": 0,

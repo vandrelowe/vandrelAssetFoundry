@@ -22,6 +22,7 @@ from vandrel_foundry.domain.manifest import (
     CustodyLicenseEvidence,
     CustodySourceContribution,
     CustodySourceInput,
+    Processor,
     utc_now,
 )
 from vandrel_foundry.domain.states import WorkflowState
@@ -162,6 +163,52 @@ def _humanoid_lanes() -> LaneConfiguration:
             }
         }
     )
+
+
+def _creature_lanes() -> LaneConfiguration:
+    return LaneConfiguration.model_validate(
+        {
+            "lanes": {
+                "creature": {
+                    "wrapper_template": "creature_candidate",
+                    "collision_policy": "manual_review",
+                    "requires_materials": True,
+                    "requires_skeleton": True,
+                    "release_enabled": True,
+                }
+            }
+        }
+    )
+
+
+def test_creature_release_rejects_noncompound_processed_model(config, lanes, prompt):
+    _approved_asset(config, lanes, prompt)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load("stone_knife_001")
+    manifest.asset.lane = "creature"
+    model = next(item for item in manifest.artifacts if item.role == "processed_model")
+    model.processor = Processor(name="blender_cleanup", version="1")
+    playback = b"playback"
+    root = repository.asset_directory("stone_knife_001")
+    (root / "review" / "playback.json").write_bytes(playback)
+    manifest.artifacts.append(
+        Artifact(
+            artifact_id="creature-playback-001",
+            role="creature_playback_report",
+            stage="review",
+            format="json",
+            path="review/playback.json",
+            sha256=_sha256(playback),
+            size_bytes=len(playback),
+            derived_from=[model.artifact_id],
+        )
+    )
+    manifest.approval.approved_artifact_hashes["creature_playback_report"] = _sha256(playback)
+    manifest.revision += 1
+    repository.save(manifest, "test.noncompound_creature", expected_revision=manifest.revision - 1)
+
+    with pytest.raises(FoundryError, match="compound-creature derivation"):
+        plan_release(config, _creature_lanes(), "stone_knife_001")
 
 
 def _approved_humanoid(config, prompt: Path, compatibility: dict | None) -> None:

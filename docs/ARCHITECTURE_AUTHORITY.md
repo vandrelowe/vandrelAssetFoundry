@@ -71,7 +71,7 @@
 | Sequential fail-isolated static batch orchestration and timing ledger | `src/vandrel_foundry/services/run_static_batch.py` |
 | Validation-only offline-vision recovery rehearsal readiness | `src/vandrel_foundry/services/offline_vision_rehearsal.py` |
 | GLB structure and lane-budget inspection | `src/vandrel_foundry/services/inspect_glb.py` |
-| Manifest-backed compound creature derivation and complete root lineage | `src/vandrel_foundry/services/derive_compound_creature.py`; report schema in `src/vandrel_foundry/domain/compound_creature.py`; bounded tool adapter in `src/vandrel_foundry/blender/derive_compound_creature.py` |
+| Manifest-backed compound creature derivation, complete root lineage, and semantic rig retarget policy | `src/vandrel_foundry/services/derive_compound_creature.py`; report schema in `src/vandrel_foundry/domain/compound_creature.py`; normalized anatomical-role and hierarchy authority in `src/vandrel_foundry/domain/creature_retarget.py`; bounded tool adapter in `src/vandrel_foundry/blender/derive_compound_creature.py` |
 | Candidate-free package preview staging and bounded headless validation | `src/vandrel_foundry/services/preview_package.py`; `src/vandrel_foundry/godot/package_preview.gd` owns only sandbox presentation; interactive launch is unavailable |
 | Offline animated-creature package inspection and typed technical evidence | `src/vandrel_foundry/services/inspect_creature_package.py` orchestrates archive/GLB inspection; `src/vandrel_foundry/domain/creature_animation.py` owns the evidence shape |
 | Godot validation-sandbox staging | `src/vandrel_foundry/services/stage_godot.py` |
@@ -99,6 +99,13 @@ bounded-process adapter and produces sandbox-only visual evidence. Creature
 inspection depends inward on ZIP/GLB technical readers and produces typed
 Foundry evidence; neither corridor depends on Vandrel, provider transport,
 candidate workflow mutation, approval, or publication.
+
+Compound creature retargeting preserves the primary mesh contribution's native
+skin and bind relationship. Donor motion is admitted only through the checked-in
+normalized anatomical-role map, complete required-chain and hierarchy checks,
+explicit rest-space conversion, and declared root-motion scale policy. Bone
+indices, gameplay species, prey classification, and hunting semantics are not
+retarget authority.
 
 ## Single-authority invariants
 

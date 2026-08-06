@@ -34,6 +34,7 @@ CONSUMER_ROLE = "vandrel_consumer_validation_report"
 RELEASE_ROLE_TO_APPROVAL = {
     "model": "processed_model",
     "godot_wrapper_scene": "godot_wrapper_scene",
+    "creature_playback_report": "creature_playback_report",
     "animation_walk": "processed_animation_walk",
     "animation_run": "processed_animation_run",
     "godot_animation_loader_script": "godot_animation_loader_script",
