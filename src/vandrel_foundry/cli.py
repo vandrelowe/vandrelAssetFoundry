@@ -25,6 +25,7 @@ from vandrel_foundry.services.build_review_gallery import build_review_gallery
 from vandrel_foundry.services.calibrate_scale import calibrate_asset_scale
 from vandrel_foundry.services.candidate_custody import bind_candidate_custody
 from vandrel_foundry.services.create_asset import create_asset
+from vandrel_foundry.services.derive_compound_creature import derive_compound_creature
 from vandrel_foundry.services.doctor import run_doctor
 from vandrel_foundry.services.download_artifact import download_text_preview_glb
 from vandrel_foundry.services.experiment_semantic_mask import experiment_semantic_mask
@@ -1559,6 +1560,34 @@ def retarget_animation_library(
             f"[green]Retargeted {result.animation_count} animations[/green] "
             f"into {result.model.path}"
         )
+        console.print(f"Evidence: {result.report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("derive-compound-creature")
+def derive_compound_creature_asset(
+    asset_id: str,
+    mesh_source_artifact: Annotated[str, typer.Option("--mesh-source-artifact")],
+    rig_donor_artifact: Annotated[str, typer.Option("--rig-donor-artifact")],
+    material_artifact: Annotated[
+        list[str], typer.Option("--material-artifact", help="Repeat for every material root.")
+    ],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Bind a root mesh contribution to a root rig/animation contribution."""
+    try:
+        settings = load_config(config)
+        result = derive_compound_creature(
+            settings,
+            asset_id,
+            [
+                ("mesh_material_source", mesh_source_artifact),
+                *(("material_dependency", item) for item in material_artifact),
+                ("rig_animation_donor", rig_donor_artifact),
+            ],
+        )
+        console.print(f"[green]Derived compound creature[/green] {result.model.path}")
         console.print(f"Evidence: {result.report.path}")
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)

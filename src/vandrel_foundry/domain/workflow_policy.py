@@ -27,7 +27,9 @@ REQUIRED_APPROVAL_CHECKS = frozenset(
         "godot_sandbox_import",
     }
 )
-SUSPENDED_APPROVAL_PROCESSORS = frozenset({"blender_rest_pose_retarget"})
+SUSPENDED_APPROVAL_PROCESSORS = frozenset(
+    {"blender_rest_pose_retarget", "blender_compound_creature_derivation"}
+)
 PROVIDER_NATIVE_PROCESSOR = "godot_provider_native_character"
 
 
@@ -151,7 +153,7 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
         str(check.get("name")): bool(check.get("passed")) for check in manifest.validation.checks
     }
     processor_name = _current_processed_model_processor(manifest)
-    if processor_name in SUSPENDED_APPROVAL_PROCESSORS:
+    if _current_processed_model_has_suspended_ancestry(manifest):
         return False
     required_checks = (
         REQUIRED_APPROVAL_CHECKS - {"glb_structure"} | {"provider_native_character_playback"}
@@ -197,3 +199,23 @@ def _current_processed_model_processor(manifest: AssetManifest) -> str | None:
     if not processed or processed[-1].processor is None:
         return None
     return processed[-1].processor.name
+
+
+def _current_processed_model_has_suspended_ancestry(manifest: AssetManifest) -> bool:
+    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
+    if not processed:
+        return False
+    by_id = {item.artifact_id: item for item in manifest.artifacts}
+    pending = [processed[-1]]
+    visited: set[str] = set()
+    while pending:
+        artifact = pending.pop()
+        if artifact.artifact_id in visited:
+            continue
+        visited.add(artifact.artifact_id)
+        if artifact.processor and artifact.processor.name in SUSPENDED_APPROVAL_PROCESSORS:
+            return True
+        if any(parent not in by_id for parent in artifact.derived_from):
+            return True
+        pending.extend(by_id[parent] for parent in artifact.derived_from)
+    return False

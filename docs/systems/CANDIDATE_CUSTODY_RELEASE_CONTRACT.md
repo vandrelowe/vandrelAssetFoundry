@@ -71,6 +71,11 @@ set exactly. Missing, duplicate, or ambiguous package assignments fail.
 Compound assets use multiple `source_contributions`; custody is not collapsed
 to one provider.
 
+A manifest-backed compound derivation preserves every root contribution as a
+root artifact and records every root artifact ID on the derived output. The
+processor report is evidence of transformation and lineage, not rights
+evidence; custody must still independently bind the exact complete root union.
+
 ## Approval and freshness
 
 Approval requires evaluated, documented, fresh custody and verifies retained

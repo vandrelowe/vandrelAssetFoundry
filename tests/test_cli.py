@@ -30,6 +30,42 @@ def invoke(command: list[str], config: Path):
     )
 
 
+def test_compound_creature_cli_preserves_repeated_material_options(
+    cli_config: Path, monkeypatch
+) -> None:
+    captured = {}
+
+    class Result:
+        class Item:
+            path = "fixture"
+        model = Item()
+        report = Item()
+
+    def fake_derive(settings, asset_id, contributions):
+        captured["asset_id"] = asset_id
+        captured["contributions"] = contributions
+        return Result()
+
+    monkeypatch.setattr(cli, "derive_compound_creature", fake_derive)
+    result = invoke(
+        [
+            "derive-compound-creature", "creature_001",
+            "--mesh-source-artifact", "mesh_001",
+            "--rig-donor-artifact", "rig_001",
+            "--material-artifact", "fur_001",
+            "--material-artifact", "eyes_001",
+        ],
+        cli_config,
+    )
+    assert result.exit_code == 0, result.output
+    assert captured["contributions"] == [
+        ("mesh_material_source", "mesh_001"),
+        ("material_dependency", "fur_001"),
+        ("material_dependency", "eyes_001"),
+        ("rig_animation_donor", "rig_001"),
+    ]
+
+
 def test_package_preview_launch_is_disabled_before_any_process_or_workspace_write(
     cli_config: Path, config_data: dict, tmp_path: Path, monkeypatch
 ) -> None:

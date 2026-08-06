@@ -278,6 +278,39 @@ path and enters the same downloaded-state corridor as provider output.
 
 ## Bounded subprocess execution
 
+### Compound creature derivation
+
+The `blender_compound_creature_derivation` processor is the sole bounded
+multi-contribution creature corridor. It consumes exactly one immutable primary
+mesh root declared as `mesh_material_source`, one or more immutable used texture
+roots declared as `material_dependency`, and exactly one distinct immutable
+root declared as `rig_animation_donor`. This declared set must equal the complete
+current root source set. The service verifies every manifest-bound hash and size
+before and after the subprocess. Caller-selected output paths are not accepted.
+
+The service allocates new, contained `processed/compound_creature/` and
+`reports/compound-creature-*.json` destinations. The adapter writes into an
+operation-owned temporary directory; existing final destinations fail closed.
+Only verified output and report bytes are promoted by create-only same-volume
+hard links; the operation-root cleanup owns the temporary links. A pre-commit
+manifest failure removes them; a post-replace or partial-event failure follows
+the manifest journal's exact ambiguous-save diagnosis and reconciliation and
+never deletes output referenced by a durable target manifest. The manifest
+records the derived model with every root artifact ID in `derived_from`; the report binds
+all contributions, their declared roles, paths, hashes, sizes, processor and
+tool versions, exact portable logical/redacted arguments (artifact IDs, roles,
+and relative destinations), transformation facts, output hash and size,
+and the complete contribution union. A composite is never recorded as an
+external pass-through source.
+
+Successful derivation returns the workflow to `processed`, clears all prior
+technical validation checks, scale calibration, and approval bindings. The
+processor and every processed descendant are approval-suspended. Custody for
+the complete contribution union
+and separate creature playback/release gates must be ratified and pass before
+approval is possible. This corridor records no species, prey, hunting,
+carcass, recipe, job, or other gameplay semantics.
+
 A future Godot or Blender subprocess adapter is permitted only when it:
 
 - executes an explicitly configured absolute executable path;
