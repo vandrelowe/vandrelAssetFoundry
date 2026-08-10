@@ -1,0 +1,30 @@
+{
+  "schema": "vandrel_foundry_meshy_native_provider_character_intake_evidence/1.0",
+  "authority_basis": "user_authorized_local_provider_native_download",
+  "provider_access_by_foundry": "not_performed",
+  "license_metadata": "not_inspected",
+  "user_observed_credit_balance_before_after": "1249 before and after both user-directed native biped rig tasks",
+  "candidates": [
+    {
+      "asset_id": "meshy_native_primal_male_001",
+      "source_zip_sha256": "a951d30d742c556af2284d619a90c196e525934afced481c1b26671ab5c877f0",
+      "source_task_id": "ee2df617-89e6-4593-94fb-dd89e347a1e9",
+      "remesh_task_id": "cfcddced-ed3d-4d2c-a855-9c5f7f9fdcd4",
+      "remesh_face_count": 5145,
+      "rig_task_id": "019fe912-89bc-7363-8eb0-67ef625f0f77",
+      "inspection_report_sha256": "8591c22fd5594c8621027b22d0b06bf45eacfece535353bb32470ddb9de0aaf5",
+      "walking_webp_sha256": "10d993a83f989cccd128accbc303af119ca9a23f4e6fe318093182764a7a237d"
+    },
+    {
+      "asset_id": "meshy_native_primal_female_001",
+      "source_zip_sha256": "8dcde4448e14eb8ebe31642b75dcfd5ef5af229eefd5ba1abda62fa2cbccfb71",
+      "source_task_id": "dea7c723-2770-4e90-8b41-cff6499bfeb5",
+      "remesh_task_id": "c4099988-5a17-4bc4-b777-584fb97bda88",
+      "remesh_face_count": 5087,
+      "rig_task_id": "019fe918-9955-7605-ad94-477c5084b449",
+      "excluded_duplicate_rig_task_id": "019fe917-5890-7419-9636-70f37e684cae",
+      "inspection_report_sha256": "76b017eb13e6e27cd73344a55176e9cf5e00dce8970fa731ef023f8a88f6bc31",
+      "walking_webp_sha256": "87bb9f465fc893b6e7d4507f65f6960a59edb60c9b742d5e49d1e780a5178554"
+    }
+  ]
+}

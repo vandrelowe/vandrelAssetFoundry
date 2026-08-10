@@ -197,6 +197,80 @@ Consumer integration should set the character FBX's embedded-texture handling
 to `Embed as Basis Universal`; this preserves the working material while
 avoiding an unpacked duplicate PNG in the consumer source tree.
 
+User-selected local Meshy merged-animation archives may enter the distinct
+`meshy-native-canary` corridor when the archive and its sole FBX member are
+both retained as separate immutable source roots. Intake rejects traversal,
+links, encryption, unsupported compression, excessive expansion, missing or
+additional members, and caller/hash disagreement. After the initial source
+hash, intake copies the archive once into its operation-owned temporary root,
+rehashes that copy, and performs all archive inspection and extraction only
+from the verified copy. Promoted archive, member, and report bytes are rehashed
+before manifest save and after any ambiguous-save reconciliation. The intake
+service records provider lookup as not performed and embedded metadata only as
+actually inspected; separate account research remains separate evidence. Local
+selection does not manufacture provider provenance or release rights.
+
+`normalize-meshy-native-animations` is a bounded, profile-specific processor
+for the observed Meshy 24-joint hierarchy. It is not a general retargeter. It
+requires the exact archive/FBX root union, one native armature and skin,
+materials, ten unique actions, the named Running and Walking actions, and zero
+unweighted vertices. It preserves bone rest matrices, vertices, vertex-group
+weights, and the armature modifier relationship; applies one deterministic
+positive-90-degree X world normalization; subtracts each clip's starting hips
+translation; raises the full clip's lowest sampled geometry point to ground;
+and retains every exact action name. It creates one combined GLB and ten
+single-action GLBs, then independently verifies material, skin, 24 joints,
+animation counts, and exact names before manifest registration. All inputs are
+rehashed after the subprocess. The immutable report binds a separate bounded
+process log containing tool/version, portable logical arguments, exit state,
+UTC start/end and duration, timeout/output limits, and bounded redacted
+stdout/stderr.
+
+`render-meshy-native-playback` produces neutral-gray lateral animated WebP
+evidence for all ten exact actions and binds it to the current normalized GLB
+and report hashes. Blender establishes the normalized 30 FPS timebase before
+GLB import. Every encoded WebP duration must match the bound normalization clip
+duration within 0.002 seconds; this gate applies to every named and unresolved
+action. Blender writes frames and its adapter report only under an
+operation-owned temporary root. Foundry validates there, creates the final
+directory and files without overwrite, and follows exact-target manifest-save
+reconciliation: exact committed outputs survive post-replace/event/lock
+ambiguity, while only a proven old unreferencing manifest permits rollback.
+The final report references registered WebP identities, never deleted temporary
+PNG frames, and binds a separate bounded process log. Model and normalization
+report inputs are rehashed after the subprocess and again before manifest save.
+Playback evidence records root/ground bounds and semantic limitations, but does
+not confer visual acceptance, custody, approval, release, or gameplay meaning.
+
+A carrier canary proves only the Meshy-native processing corridor. For a real
+Brukk or Takka adoption, the preferred subsequent corridor is exact account/task
+resolution followed by intake of the character's provider-native Meshy biped
+auto-rig output, retaining its provider-native skeleton, skin, bind matrices,
+materials, and textures. It is not local binding of an unrigged export and is
+not a Mixamo migration bridge. Provider calls, downloads, and spend remain
+separately authorized actions.
+
+User-authorized local Meshy-native character ZIPs use a separate, narrow
+four-root intake: the original ZIP, `Character_output.fbx`, its exact
+`Animation_Walking_withSkin.fbx`, and the PNG texture. The service copies and
+rehashes the ZIP once before inspecting or extracting it, records supplied task
+identities only as `user_observed_provider_metadata`, and records license data
+as `not_inspected` unless the service itself inspected and hash-bound it.
+Direct inspection requires the exact four-root union, one armature, skinned
+geometry, nonempty joints, and zero unweighted vertices in both FBXs. It emits
+numbered neutral-gray Walking WebP and bounded process evidence from an
+operation-owned temporary root, then compares joint names and in-joint
+hierarchy with the current fixed 24-joint canary. That comparison establishes
+only skeleton compatibility evidence: it neither retargets canary motions nor
+asserts that they are safe to adopt. The candidate remains unreleased and
+unapproved; no game identity, Mixamo bridge, or Vandrel integration is created.
+The service rehashes every manifest-owned root immediately after Blender,
+again immediately before promoting final outputs and saving the manifest, and
+again after a successful or exact-target-reconciled save alongside every
+registered output. A changed source root fails before promotion; ambiguous
+save recovery preserves outputs only when the live manifest is proven to be
+the exact intended target.
+
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.

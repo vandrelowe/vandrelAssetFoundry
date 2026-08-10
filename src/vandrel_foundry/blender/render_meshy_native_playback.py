@@ -1,0 +1,185 @@
+"""Render neutral-gray continuous evidence for every Meshy-native canary action."""
+
+import json
+import math
+import re
+import sys
+from pathlib import Path
+
+import bpy
+from mathutils import Vector
+
+
+def main() -> None:
+    values = sys.argv[sys.argv.index("--") + 1 :]
+    if len(values) != 4:
+        raise RuntimeError(
+            "Expected input GLB, output directory, report JSON, and bound durations JSON."
+        )
+    source, output, report, durations_path = map(Path, values)
+    expected_durations = json.loads(durations_path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(expected_durations, dict)
+        or len(expected_durations) != 10
+        or any(
+            not isinstance(name, str)
+            or isinstance(duration, bool)
+            or not isinstance(duration, (int, float))
+            or float(duration) <= 0
+            for name, duration in expected_durations.items()
+        )
+    ):
+        raise RuntimeError("Bound Meshy native clip durations are invalid.")
+    output.mkdir(parents=True, exist_ok=False)
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    scene = bpy.context.scene
+    scene.render.fps = 30
+    scene.render.fps_base = 1.0
+    bpy.ops.import_scene.gltf(filepath=str(source))
+    armatures = [item for item in scene.objects if item.type == "ARMATURE"]
+    if len(armatures) != 1:
+        raise RuntimeError("Meshy native playback requires exactly one armature.")
+    armature = armatures[0]
+    meshes = [
+        item
+        for item in scene.objects
+        if item.type == "MESH"
+        and any(mod.type == "ARMATURE" and mod.object == armature for mod in item.modifiers)
+    ]
+    actions = sorted(bpy.data.actions, key=lambda item: item.name.casefold())
+    if not meshes or len(actions) != 10:
+        raise RuntimeError("Meshy native playback requires skinned geometry and ten actions.")
+    if [action.name for action in actions] != list(expected_durations):
+        raise RuntimeError("Imported actions do not match the bound normalization report order.")
+
+    camera_data = bpy.data.cameras.new("MeshyNativePlaybackCamera")
+    camera = bpy.data.objects.new("MeshyNativePlaybackCamera", camera_data)
+    scene.collection.objects.link(camera)
+    scene.camera = camera
+    scene.render.engine = "BLENDER_WORKBENCH"
+    scene.display.shading.light = "STUDIO"
+    scene.display.shading.color_type = "SINGLE"
+    scene.display.shading.single_color = (0.62, 0.62, 0.62)
+    scene.display.shading.background_type = "WORLD"
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("MeshyNativePlaybackWorld")
+    scene.world.color = (0.0, 0.0, 0.0)
+    scene.render.resolution_x = 384
+    scene.render.resolution_y = 384
+    scene.render.resolution_percentage = 100
+    scene.render.image_settings.file_format = "PNG"
+    armature.animation_data_create()
+    clips = []
+    for action in actions:
+        armature.animation_data.action = action
+        source_start = float(action.frame_range[0])
+        source_end = float(action.frame_range[1])
+        source_duration = (source_end - source_start) / float(scene.render.fps)
+        bound_duration = float(expected_durations[action.name])
+        if abs(source_duration - bound_duration) > 0.002:
+            raise RuntimeError(
+                f"Imported clip duration changed for {action.name}: "
+                f"{source_duration} != {bound_duration}."
+            )
+        start = math.floor(source_start)
+        end = max(start, math.ceil(source_end))
+        step = max(1, math.ceil((end - start + 1) / 72))
+        frames = list(range(start, end + 1, step))
+        if frames[-1] != end:
+            frames.append(end)
+        bounds = []
+        ground = []
+        for frame in frames:
+            scene.frame_set(frame)
+            bpy.context.view_layer.update()
+            minimum, maximum = _bounds(meshes)
+            bounds.extend((minimum, maximum))
+            ground.append(float(minimum.z))
+        minimum = Vector(tuple(min(point[index] for point in bounds) for index in range(3)))
+        maximum = Vector(tuple(max(point[index] for point in bounds) for index in range(3)))
+        center = (minimum + maximum) / 2
+        extent = max(maximum - minimum)
+        if extent <= 0:
+            raise RuntimeError(f"Meshy native playback has zero extent: {action.name}.")
+        camera.location = center + Vector((1.6, -0.12, 0.28)).normalized() * (
+            extent / math.tan(camera_data.angle / 2) * 1.45
+        )
+        camera.rotation_euler = (center - camera.location).to_track_quat("-Z", "Y").to_euler()
+        camera_data.clip_start = max(extent / 1000, 0.000001)
+        camera_data.clip_end = extent * 100
+        directory = output / _slug(action.name)
+        directory.mkdir()
+        frame_files = []
+        for index, frame in enumerate(frames):
+            scene.frame_set(frame)
+            destination = directory / f"{index:04d}.png"
+            scene.render.filepath = str(destination)
+            bpy.ops.render.render(write_still=True)
+            frame_files.append(f"{directory.name}/{destination.name}")
+        clips.append(
+            {
+                "exact_name": action.name,
+                "frame_range": [start, end],
+                "frame_step": step,
+                "sampled_frame_count": len(frames),
+                "frame_files": frame_files,
+                "source_timebase_fps": scene.render.fps,
+                "source_duration_seconds": source_duration,
+                "bound_normalization_duration_seconds": bound_duration,
+                "duration_delta_seconds": abs(source_duration - bound_duration),
+                "bounds_min": list(minimum),
+                "bounds_max": list(maximum),
+                "sampled_ground_minimum_range": [min(ground), max(ground)],
+            }
+        )
+    armature.animation_data.action = None
+    report.write_text(
+        json.dumps(
+            {
+                "schema": "vandrel_foundry_meshy_native_playback/1.0",
+                "blender_version": bpy.app.version_string,
+                "neutral_gray": True,
+                "lateral_camera": True,
+                "continuous_temporal_output": True,
+                "clip_count": len(clips),
+                "clips": clips,
+                "review_scope": [
+                    "all_exact_actions",
+                    "deformation",
+                    "root_motion",
+                    "ground_contact",
+                    "locomotion_loop_closure",
+                    "eating_and_butchery_semantic_fit",
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _bounds(meshes):
+    graph = bpy.context.evaluated_depsgraph_get()
+    points = []
+    for item in meshes:
+        evaluated = item.evaluated_get(graph)
+        mesh = evaluated.to_mesh()
+        try:
+            points.extend(evaluated.matrix_world @ vertex.co for vertex in mesh.vertices)
+        finally:
+            evaluated.to_mesh_clear()
+    if not points:
+        raise RuntimeError("Meshy native playback has no evaluated vertices.")
+    return (
+        Vector(tuple(min(point[index] for point in points) for index in range(3))),
+        Vector(tuple(max(point[index] for point in points) for index in range(3))),
+    )
+
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
+
+
+if __name__ == "__main__":
+    main()

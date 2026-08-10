@@ -1,0 +1,47 @@
+{
+  "schema": "vandrel_foundry_local_source_provenance/1.0",
+  "observed_on": "2026-08-09",
+  "authority_basis": "user_selected_local_source",
+  "permission_scope": "Foundry intake and unreleased local technical canary only",
+  "archive": {
+    "path": "C:/Users/vandr/Downloads/Meshy_AI_biped (2).zip",
+    "modified_at": "2026-08-09T16:30:19.4867398-07:00",
+    "size_bytes": 1191509,
+    "sha256": "ab17ab1e1e57045aa8d5436972253edac0a895b3e53e9f4b8c8b40b2dc80eab4"
+  },
+  "fbx_member": {
+    "path": "Meshy_AI_biped/Meshy_AI_biped_Meshy_AI_Meshy_Merged_Animations.fbx",
+    "size_bytes": 2347260,
+    "compressed_size_bytes": 1191245,
+    "compression": "deflate",
+    "crc32": "25a80ced",
+    "sha256": "48b6e3d300bc32c9b67f8747bb9dd9f36418b37f45c4be3989048c9f360720b3"
+  },
+  "provider": {
+    "name": "meshy",
+    "provider_task_identity": "unresolved_not_embedded",
+    "license_metadata": "not_embedded",
+    "account_lookup": "controllable_browser_session_showed_log_in",
+    "provider_writes": false,
+    "additional_downloads": false,
+    "credits_spent": 0
+  },
+  "semantic_policy": "Retain exact names. Do not infer semantics for UUID actions.",
+  "provider_native_adoption_direction": {
+    "authority": "vp_direction_not_observed_by_intake_service",
+    "preferred_path": "resolve original Brukk and Takka Meshy character/task identities, then separately intake their provider-native biped auto-rig outputs while retaining native skeleton, skin/binds, materials, and textures",
+    "rejected_as_current_direction": [
+      "local binding of the unrigged exported character mesh",
+      "Mixamo migration bridge"
+    ],
+    "next_read_only_facts": [
+      "redacted signed-in account evidence",
+      "exact character task/model UUID, prompt or display name, creation time, and source output identity",
+      "exact auto-rig task UUID, biped preset, status, input identity, output identity, format, and withSkin status",
+      "joint hierarchy, rest and inverse-bind facts, skin and unweighted counts, materials and texture identities",
+      "account-visible entitlement, download or credit cost, local-use or license terms, and supporting redacted evidence"
+    ],
+    "provider_actions_performed_by_this_package": false
+  },
+  "release_authority": "absent"
+}

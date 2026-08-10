@@ -1,0 +1,6 @@
+User-selected local Meshy-native humanoid animation package for an unreleased
+Brukk adoption canary. Preserve exact source hashes and exact action names,
+including unresolved UUIDs. Validate the 24-joint native carrier, global axis,
+per-clip root baseline, locomotion loops, deformation, and grounding. Do not
+infer eating or butchery semantics, retarget to Mixamo, publish, release, or
+mutate Vandrel.

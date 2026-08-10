@@ -11,6 +11,12 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.states import WorkflowState, next_actions
 from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
+from vandrel_foundry.services.add_meshy_native_animation_package import (
+    add_meshy_native_animation_package,
+)
+from vandrel_foundry.services.add_meshy_native_character_package import (
+    add_meshy_native_character_package,
+)
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
 from vandrel_foundry.services.apply_texture_mask import apply_texture_mask
@@ -38,6 +44,12 @@ from vandrel_foundry.services.init_library import initialize_asset_library
 from vandrel_foundry.services.inspect_assets import discover_assets, initialize_workspace
 from vandrel_foundry.services.inspect_creature_package import inspect_creature_animation_package
 from vandrel_foundry.services.inspect_glb import inspect_processed_glb
+from vandrel_foundry.services.inspect_meshy_native_character import (
+    inspect_meshy_native_character,
+)
+from vandrel_foundry.services.normalize_meshy_native_animations import (
+    normalize_meshy_native_animations,
+)
 from vandrel_foundry.services.offline_vision_rehearsal import (
     assess_offline_vision_rehearsal,
 )
@@ -62,6 +74,7 @@ from vandrel_foundry.services.reclassify_asset import reclassify_asset_lane
 from vandrel_foundry.services.reconcile_submission import reconcile_ambiguous_submission
 from vandrel_foundry.services.release_fitness import inspect_release_fitness
 from vandrel_foundry.services.render_animation_samples import render_animation_samples
+from vandrel_foundry.services.render_meshy_native_playback import render_meshy_native_playback
 from vandrel_foundry.services.render_missing_previews import render_missing_previews
 from vandrel_foundry.services.render_multi_angle_preview import render_multi_angle_preview
 from vandrel_foundry.services.render_preview import render_local_preview
@@ -83,6 +96,9 @@ from vandrel_foundry.services.submit_preview import (
     submit_rigging,
     submit_text_preview,
     submit_text_refine,
+)
+from vandrel_foundry.services.supersede_meshy_native_intake_provenance import (
+    supersede_meshy_native_intake_provenance,
 )
 from vandrel_foundry.services.validate_godot import validate_godot_sandbox
 from vandrel_foundry.services.validate_humanoid_retarget import validate_humanoid_retarget
@@ -1589,6 +1605,127 @@ def derive_compound_creature_asset(
         )
         console.print(f"[green]Derived compound creature[/green] {result.model.path}")
         console.print(f"Evidence: {result.report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("add-meshy-native-animation-package")
+def add_meshy_native_package(
+    asset_id: str,
+    archive: Annotated[Path, typer.Option("--archive")],
+    archive_sha256: Annotated[str, typer.Option("--archive-sha256")],
+    fbx_sha256: Annotated[str, typer.Option("--fbx-sha256")],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Intake one exact user-selected local Meshy animation ZIP and its FBX root."""
+    try:
+        settings = load_config(config)
+        artifacts = add_meshy_native_animation_package(
+            settings, asset_id, archive, archive_sha256, fbx_sha256
+        )
+        console.print(
+            f"[green]Intaken Meshy native package[/green] "
+            f"{', '.join(item.artifact_id for item in artifacts)}"
+        )
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("normalize-meshy-native-animations")
+def normalize_meshy_native_package(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Normalize and split the exact ten-action Meshy-native canary package."""
+    try:
+        settings = load_config(config)
+        result = normalize_meshy_native_animations(settings, asset_id)
+        console.print(f"[green]Normalized Meshy native canary[/green] {result.model.path}")
+        console.print(f"Split clips: {len(result.clips)}; evidence: {result.report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("supersede-meshy-native-intake-provenance")
+def supersede_meshy_native_provenance(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Record corrected non-inspection vocabulary without rewriting intake history."""
+    try:
+        settings = load_config(config)
+        artifact = supersede_meshy_native_intake_provenance(settings, asset_id)
+        console.print(f"[green]Superseded intake provenance[/green] {artifact.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("add-meshy-native-character-package")
+def add_meshy_native_character(
+    asset_id: str,
+    archive: Annotated[Path, typer.Option("--archive")],
+    archive_sha256: Annotated[str, typer.Option("--archive-sha256")],
+    source_task_id: Annotated[str, typer.Option("--source-task-id")],
+    source_display_name: Annotated[str, typer.Option("--source-display-name")],
+    remesh_task_id: Annotated[str, typer.Option("--remesh-task-id")],
+    remesh_face_count: Annotated[str, typer.Option("--remesh-face-count")],
+    rig_task_id: Annotated[str, typer.Option("--rig-task-id")],
+    excluded_duplicate_rig_task_id: Annotated[str, typer.Option("--excluded-duplicate-rig-task-id")] = "",
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Intake one exact local Meshy native character ZIP without provider access."""
+    try:
+        settings = load_config(config)
+        artifacts = add_meshy_native_character_package(
+            settings,
+            asset_id,
+            archive,
+            archive_sha256,
+            {
+                "source_task_id": source_task_id,
+                "source_display_name": source_display_name,
+                "remesh_task_id": remesh_task_id,
+                "remesh_face_count": remesh_face_count,
+                "rig_task_id": rig_task_id,
+                "excluded_duplicate_rig_task_id": excluded_duplicate_rig_task_id,
+            },
+        )
+        console.print(f"[green]Intaken Meshy native character[/green] {len(artifacts)} artifacts")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("inspect-meshy-native-character")
+def inspect_meshy_native_character_command(
+    asset_id: str,
+    observed_credit_balance_before_after: Annotated[
+        str | None, typer.Option("--observed-credit-balance-before-after")
+    ] = None,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Inspect direct Meshy character and walking FBXs and render neutral evidence."""
+    try:
+        settings = load_config(config)
+        report = inspect_meshy_native_character(
+            settings,
+            asset_id,
+            observed_credit_balance_before_after=observed_credit_balance_before_after,
+        )
+        console.print(f"[green]Inspected Meshy native character[/green] {report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("render-meshy-native-playback")
+def render_meshy_native_package_playback(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Render neutral-gray continuous evidence for all exact native actions."""
+    try:
+        settings = load_config(config)
+        report = render_meshy_native_playback(settings, asset_id)
+        console.print(f"[green]Rendered Meshy native playback[/green] {report.path}")
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 

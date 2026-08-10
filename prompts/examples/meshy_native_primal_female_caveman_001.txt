@@ -1,0 +1,5 @@
+User-authorized local Meshy provider-native biped package for technical intake.
+Preserve its exact character, Walking-withSkin, and texture roots; inspect its
+native skeleton, skin/binds, materials, texture, and Walking motion. Compare
+facts to the Meshy-native carrier canary. Do not retarget, infer gameplay
+identity, approve, release, publish, call Meshy, or modify Vandrel.
