@@ -271,6 +271,43 @@ registered output. A changed source root fails before promotion; ambiguous
 save recovery preserves outputs only when the live manifest is proven to be
 the exact intended target.
 
+`assemble-meshy-native-character-motion` extends that same native corridor for
+an inspected real character. It copies the accepted current canary model and
+normalization report into the character candidate as two immutable source
+contributions; together with the exact four character roots they form the
+complete six-root union. Blender preserves the real character mesh, 24-joint
+hierarchy and inverse-bind relationship, material, and exact texture while
+applying canary pose deltas by native joint identity in rest space. Because the
+Godot-facing glTF corridor uses one four-influence set, the processor does not
+claim byte-exact native skin-weight preservation. It deterministically orders
+positive bone influences by descending weight with a bone-name tie-break,
+retains four, and renormalizes them before export. The report records the
+source maximum, affected-vertex count, and discarded source-weight total.
+Index grafting, Mixamo retargeting, and provider-native character migration are
+forbidden. Clip timing remains bound to the canary normalization report, and
+each clip receives target-mesh XY root baseline and ground reconciliation.
+
+Before adding actions, Blender exports a temporary policy-bound reference GLB.
+After the animated export, the service independently decodes both GLBs. It
+requires exactly `JOINTS_0` and `WEIGHTS_0`, at most four positive influences,
+normalized nonzero weights for every exported vertex, matching skin payload,
+matching inverse bind matrices, matching primitive/material bindings, and the
+exact embedded source-texture bytes. The service also checks geometry, joints,
+action count/names, continuous playback duration, and every input/output hash.
+All six manifest-owned roots are rehashed again immediately before manifest
+replacement and with every registered output after success or exact-target
+save reconciliation. A retry creates a new numbered model/report/playback
+attempt and never rewrites an earlier attempt.
+
+Provider UI labels for the four UUID actions live only in a fresh immutable
+semantic evidence artifact as `user_observed_provider_metadata`; they do not
+enter generic manifest identity or gameplay fields. Both observed variants for
+each squat-eat and squat-butcher semantic remain present. The comparison report
+may select the best currently visible variant while explicitly retaining motion
+debt. A package with no neutral idle and no death/fall motion ending in a stable
+held pose must say `vandrel_ready: false` and list those smallest missing native
+provider motions; unrelated clips cannot substitute for them.
+
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard
 link.

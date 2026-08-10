@@ -20,6 +20,9 @@ from vandrel_foundry.services.add_meshy_native_character_package import (
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
 from vandrel_foundry.services.apply_texture_mask import apply_texture_mask
+from vandrel_foundry.services.assemble_meshy_native_character_motion import (
+    assemble_meshy_native_character_motion,
+)
 from vandrel_foundry.services.audit_asset import audit_asset
 from vandrel_foundry.services.audit_library import audit_library
 from vandrel_foundry.services.build_custody_inventory import (
@@ -1670,7 +1673,9 @@ def add_meshy_native_character(
     remesh_task_id: Annotated[str, typer.Option("--remesh-task-id")],
     remesh_face_count: Annotated[str, typer.Option("--remesh-face-count")],
     rig_task_id: Annotated[str, typer.Option("--rig-task-id")],
-    excluded_duplicate_rig_task_id: Annotated[str, typer.Option("--excluded-duplicate-rig-task-id")] = "",
+    excluded_duplicate_rig_task_id: Annotated[
+        str, typer.Option("--excluded-duplicate-rig-task-id")
+    ] = "",
     config: Annotated[Path | None, typer.Option("--config")] = None,
 ) -> None:
     """Intake one exact local Meshy native character ZIP without provider access."""
@@ -1712,6 +1717,21 @@ def inspect_meshy_native_character_command(
             observed_credit_balance_before_after=observed_credit_balance_before_after,
         )
         console.print(f"[green]Inspected Meshy native character[/green] {report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("assemble-meshy-native-character-motion")
+def assemble_meshy_native_character_motion_command(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Assemble accepted Meshy-native canary actions onto one real native character."""
+    try:
+        settings = load_config(config)
+        result = assemble_meshy_native_character_motion(settings, asset_id)
+        console.print(f"[green]Assembled Meshy-native character motion[/green] {result.model.path}")
+        console.print(f"Playback clips: {len(result.playback)}; report: {result.report.path}")
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 
