@@ -1,5 +1,76 @@
 {
   "$defs": {
+    "MeshyNativeAssemblyCompatibilityV2": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_route": {
+          "const": "meshy_native_motion_assembly",
+          "title": "Evidence Route",
+          "type": "string"
+        },
+        "candidate_only": {
+          "const": true,
+          "title": "Candidate Only",
+          "type": "boolean"
+        },
+        "vandrel_runtime_accepted": {
+          "const": false,
+          "title": "Vandrel Runtime Accepted",
+          "type": "boolean"
+        },
+        "provider_native_rig": {
+          "const": true,
+          "title": "Provider Native Rig",
+          "type": "boolean"
+        },
+        "shared_animation_pool_compatible": {
+          "const": false,
+          "title": "Shared Animation Pool Compatible",
+          "type": "boolean"
+        },
+        "clip_count": {
+          "const": 29,
+          "title": "Clip Count",
+          "type": "integer"
+        },
+        "embedded_texture_sha256s": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Embedded Texture Sha256S",
+          "type": "array"
+        },
+        "known_hand_visual_debt": {
+          "const": "accepted_bounded_debt",
+          "title": "Known Hand Visual Debt",
+          "type": "string"
+        },
+        "h4_additional_hand_corruption": {
+          "const": false,
+          "title": "H4 Additional Hand Corruption",
+          "type": "boolean"
+        },
+        "report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        }
+      },
+      "required": [
+        "evidence_route",
+        "candidate_only",
+        "vandrel_runtime_accepted",
+        "provider_native_rig",
+        "shared_animation_pool_compatible",
+        "clip_count",
+        "embedded_texture_sha256s",
+        "known_hand_visual_debt",
+        "h4_additional_hand_corruption",
+        "report"
+      ],
+      "title": "MeshyNativeAssemblyCompatibilityV2",
+      "type": "object"
+    },
     "NativeHumanoidCompatibilityV2": {
       "additionalProperties": false,
       "properties": {
@@ -950,6 +1021,9 @@
         },
         {
           "$ref": "#/$defs/NativeHumanoidCompatibilityV2"
+        },
+        {
+          "$ref": "#/$defs/MeshyNativeAssemblyCompatibilityV2"
         },
         {
           "type": "null"

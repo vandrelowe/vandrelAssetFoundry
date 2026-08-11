@@ -89,6 +89,40 @@ def test_planned_v2_fixture_is_strict_and_valid() -> None:
     assert descriptor.custody.custody_register.root_fingerprints["outside_assets"] == "3" * 64
 
 
+def test_v2_accepts_bounded_meshy_native_assembly_evidence() -> None:
+    value = _fixture("release-v2.json")
+    report = {
+        "role": "humanoid_compatibility_report",
+        "path": "evidence/humanoid/meshy-native-release.json",
+        "sha256": "a" * 64,
+        "size_bytes": 17,
+        "source_artifact_id": "meshy-native-release-001",
+    }
+    value["files"].append(report)
+    value["humanoid_compatibility"] = {
+        "evidence_route": "meshy_native_motion_assembly",
+        "candidate_only": True,
+        "vandrel_runtime_accepted": False,
+        "provider_native_rig": True,
+        "shared_animation_pool_compatible": False,
+        "clip_count": 29,
+        "embedded_texture_sha256s": ["b" * 64],
+        "known_hand_visual_debt": "accepted_bounded_debt",
+        "h4_additional_hand_corruption": False,
+        "report": {
+            "release_path": report["path"],
+            "sha256": report["sha256"],
+            "size_bytes": report["size_bytes"],
+            "source_artifact_id": report["source_artifact_id"],
+        },
+    }
+
+    descriptor = ReleaseDescriptorV2.model_validate(value)
+
+    assert descriptor.humanoid_compatibility is not None
+    assert descriptor.humanoid_compatibility.evidence_route == "meshy_native_motion_assembly"
+
+
 def test_historical_v2_scale_fixture_without_bounds_is_model_and_schema_compatible() -> None:
     value = _historical_v2_scale_fixture()
     before = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()

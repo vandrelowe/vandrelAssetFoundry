@@ -82,6 +82,65 @@ def publish_release(
         )
 
 
+def publish_releases(
+    config: FoundryConfig,
+    lanes: LaneConfiguration,
+    asset_ids: tuple[str, ...],
+    git_runner: GitRunner = run_git,
+) -> tuple[PublicationResult, ...]:
+    """Publish one explicitly bounded set under a single clean-tree preflight."""
+    if not asset_ids or len(set(asset_ids)) != len(asset_ids):
+        raise FoundryError("Batch publication requires unique asset identities.")
+    root = config.foundry.asset_library_root
+    verify_git_worktree(root, git_runner)
+    lock = root / ".git" / "foundry-publication.lock"
+    with AssetLock(lock):
+        repository = ManifestRepository(config.foundry.workspace_root)
+        manifests = [repository.load(asset_id) for asset_id in asset_ids]
+        planned = [
+            _plan_with_recovery(config, lanes, asset_id, root) for asset_id in asset_ids
+        ]
+        effective = [recovery or plan for plan, recovery in planned]
+        allowed = set().union(*(_allowed_transaction_paths(plan) for plan in effective))
+        unrelated = changed_paths(root, git_runner) - allowed
+        if unrelated:
+            sample = ", ".join(sorted(unrelated)[:3])
+            raise FoundryError(f"Asset-library worktree has unrelated changes: {sample}")
+        for plan in effective:
+            for item in plan.descriptor["files"]:
+                if Path(item["path"]).suffix.lower() in {".glb", ".gltf", ".fbx"}:
+                    verify_lfs_path(
+                        root,
+                        _release_relative_path(plan, item["path"]),
+                        git_runner,
+                    )
+        for asset_id, ((_, recovery), plan) in zip(
+            asset_ids, zip(planned, effective, strict=True), strict=True
+        ):
+            if recovery is None:
+                _stage_and_promote(config, asset_id, plan)
+        for plan in effective:
+            _verify_promoted_release(plan)
+            apply_release_acl(config, plan.destination)
+        _update_catalog_many(
+            root,
+            [
+                (plan, _sha256_file(plan.destination / "asset-release.json"))
+                for plan in effective
+            ],
+        )
+        for manifest, plan in zip(manifests, effective, strict=True):
+            _record_manifest_release(repository, manifest, plan.release_revision)
+        return tuple(
+            PublicationResult(
+                destination=plan.destination,
+                release_revision=plan.release_revision,
+                recovered=recovery is not None,
+            )
+            for (plan, (_, recovery)) in zip(effective, planned, strict=True)
+        )
+
+
 def _plan_with_recovery(
     config: FoundryConfig,
     lanes: LaneConfiguration,
@@ -294,23 +353,31 @@ def _verify_promoted_release(plan: ReleasePlan) -> None:
 
 
 def _update_catalog(root: Path, plan: ReleasePlan, descriptor_hash: str) -> None:
+    _update_catalog_many(root, [(plan, descriptor_hash)])
+
+
+def _update_catalog_many(
+    root: Path,
+    publications: list[tuple[ReleasePlan, str]],
+) -> None:
     path = root / CATALOG_PATH
     catalog = _load_catalog(path)
     assets = catalog.setdefault("assets", {})
-    asset = assets.setdefault(plan.descriptor["asset_id"], {"releases": []})
-    releases = asset["releases"]
-    entry = {
-        "revision": plan.release_revision,
-        "path": _release_relative_path(plan, "asset-release.json"),
-        "descriptor_sha256": descriptor_hash,
-    }
-    existing = [item for item in releases if item.get("revision") == plan.release_revision]
-    if existing and existing != [entry]:
-        raise FoundryError("Catalog release entry conflicts with immutable release.")
-    if not existing:
-        releases.append(entry)
-        releases.sort(key=lambda item: item["revision"])
-    asset["latest_revision"] = max(item["revision"] for item in releases)
+    for plan, descriptor_hash in publications:
+        asset = assets.setdefault(plan.descriptor["asset_id"], {"releases": []})
+        releases = asset["releases"]
+        entry = {
+            "revision": plan.release_revision,
+            "path": _release_relative_path(plan, "asset-release.json"),
+            "descriptor_sha256": descriptor_hash,
+        }
+        existing = [item for item in releases if item.get("revision") == plan.release_revision]
+        if existing and existing != [entry]:
+            raise FoundryError("Catalog release entry conflicts with immutable release.")
+        if not existing:
+            releases.append(entry)
+            releases.sort(key=lambda item: item["revision"])
+        asset["latest_revision"] = max(item["revision"] for item in releases)
     temporary = write_json_temp(root, catalog)
     try:
         os.replace(temporary, path)

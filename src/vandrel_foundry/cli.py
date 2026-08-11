@@ -108,6 +108,9 @@ from vandrel_foundry.services.supersede_meshy_native_intake_provenance import (
 )
 from vandrel_foundry.services.validate_godot import validate_godot_sandbox
 from vandrel_foundry.services.validate_humanoid_retarget import validate_humanoid_retarget
+from vandrel_foundry.services.validate_meshy_native_character_release import (
+    validate_meshy_native_character_release,
+)
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath
 
@@ -1494,6 +1497,20 @@ def validate_humanoid_rig(
             "direct animation transfer candidate: "
             f"{'yes' if result.shared_animation_transfer_candidate else 'no'}"
         )
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("validate-meshy-native-release")
+def validate_meshy_native_release(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Validate the exact current H4 Meshy-native assembly for technical release."""
+    try:
+        settings = load_config(config)
+        result = validate_meshy_native_character_release(settings, asset_id)
+        console.print(f"[green]Meshy-native release evidence:[/green] {result.report.path}")
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 

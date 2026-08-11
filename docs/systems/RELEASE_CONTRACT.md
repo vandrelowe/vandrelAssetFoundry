@@ -32,9 +32,10 @@
   assigning species, prey, hunting, carcass, recipe, job, or runtime semantics.
 - A humanoid release is a candidate package, not canonical Vandrel rig,
   animation, deformation, root-motion, or runtime acceptance.
-- Humanoid release planning requires either a passing, hash-bound
-  humanoid-retarget compatibility check or passing, hash-bound provider-native
-  same-task playback evidence for the exact approved processed model.
+- Humanoid release planning requires one ratified, hash-bound route for the
+  exact approved processed model: humanoid-retarget compatibility,
+  provider-native same-task playback, or Meshy-native H4 motion-assembly
+  release evidence.
 - Provider-native humanoid evidence must prove that nonempty character
   geometry is actually bound to a resolvable imported skeleton; a static mesh
   placed beside an animated reference rig is not releasable.
@@ -81,10 +82,10 @@ authority. The plan contains:
 - or evaluated provider custody assertion 1.2 with `foundry_workspace`-qualified
   provider package/evidence paths, the provider-provenance fingerprint, and the
   evidence-freshness fingerprint;
-- for humanoids, either mapping/donor compatibility facts or provider-native
-  same-task playback facts, plus explicit candidate-only/runtime-unaccepted
-  markers and a packaged report entry bound by release path, source artifact
-  ID, SHA-256, and size;
+- for humanoids, mapping/donor compatibility facts, provider-native same-task
+  playback facts, or exact Meshy-native H4 assembly facts, plus explicit
+  candidate-only/runtime-unaccepted markers and a packaged report entry bound
+  by release path, source artifact ID, SHA-256, and size;
 - exact role, release path, source artifact ID, SHA-256, and size reconciliation
   for every packaged custody-evidence and humanoid-report reference; neither a
   model nor another static release role may substitute for evidence;
@@ -105,8 +106,23 @@ intent and one ratified evidence route. The mapping route requires passing
 approved FBX model and approved compact walk/run resources to derive from one
 Meshy rigging task and pass bounded Godot playback. Its descriptor states
 `shared_animation_pool_compatible: false` and
-`vandrel_runtime_accepted: false`. Neither route may claim consumer-side
+`vandrel_runtime_accepted: false`. No route may claim consumer-side
 runtime acceptance.
+
+The Meshy-native assembly route applies only when the current approved model
+was produced by `blender_meshy_native_character_motion_assembly`. It requires
+`meshy_native_character_release_playback` for that exact model hash, a packaged
+`meshy_native_character_release_report`, the exact 28-root assembly lineage,
+29 unique runtime clip names, 13 retained continuous playback artifacts,
+bounded Godot import/playback with each imported duration reconciled to the
+source duration within at most one 30 FPS frame of engine import quantization,
+independently decoded top-four-normalized skin
+with zero unweighted vertices, preserved bind/material/embedded-texture
+signatures, and the H4 transfer deltas. The report records the user-accepted
+bounded provider-native hand orientation/weighting debt and proves the H4
+transfer introduced no additional hand corruption. The descriptor retains the
+complete technical clip inventory in the packaged report, does not assign
+gameplay action IDs, and remains `vandrel_runtime_accepted: false`.
 
 A Workspace-relative humanoid report string is never a portable release
 reference. Planning verifies the manifest-owned report bytes and includes the
@@ -130,6 +146,13 @@ lock, it:
    the immutable descriptor hash; and
 7. records the published revision in the Foundry manifest only after the
    library catalog is durable.
+
+An explicitly bounded multi-asset finalization may use `publish_releases` to
+perform the same checks for a unique asset-ID set under one clean-tree
+preflight and library lock. It promotes each immutable descriptor journal,
+rehashes every package, replaces the catalog once with the complete set, and
+then records each Foundry release. It does not authorize assets outside the
+caller-supplied set or relax unrelated-change detection.
 
 Normal `list` and `status` output surface that recorded `rNNN` revision while
 retaining the approval workflow state. Publication does not invent a second

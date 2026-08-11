@@ -31,6 +31,9 @@ SUSPENDED_APPROVAL_PROCESSORS = frozenset(
     {"blender_rest_pose_retarget", "blender_compound_creature_derivation"}
 )
 PROVIDER_NATIVE_PROCESSOR = "godot_provider_native_character"
+MESHY_NATIVE_ASSEMBLY_PROCESSOR = "blender_meshy_native_character_motion_assembly"
+MESHY_NATIVE_RELEASE_CHECK = "meshy_native_character_release_playback"
+MESHY_NATIVE_RELEASE_REPORT_ROLE = "meshy_native_character_release_report"
 
 
 ALLOWED_WORKFLOW_TRANSITIONS: dict[WorkflowState, frozenset[WorkflowState]] = {
@@ -145,6 +148,10 @@ def approval_artifact_roles(manifest: AssetManifest) -> tuple[str, ...]:
     processor_name = _current_processed_model_processor(manifest)
     return BASE_APPROVAL_ROLES + (
         PROVIDER_NATIVE_APPROVAL_ROLES if processor_name == PROVIDER_NATIVE_PROCESSOR else ()
+    ) + (
+        (MESHY_NATIVE_RELEASE_REPORT_ROLE,)
+        if processor_name == MESHY_NATIVE_ASSEMBLY_PROCESSOR
+        else ()
     ) + (("creature_playback_report",) if manifest.asset.lane == "creature" else ())
 
 
@@ -179,7 +186,11 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
     required_checks = (
         REQUIRED_APPROVAL_CHECKS - {"glb_structure"} | {"provider_native_character_playback"}
         if processor_name == PROVIDER_NATIVE_PROCESSOR
-        else REQUIRED_APPROVAL_CHECKS
+        else (
+            REQUIRED_APPROVAL_CHECKS | {MESHY_NATIVE_RELEASE_CHECK}
+            if processor_name == MESHY_NATIVE_ASSEMBLY_PROCESSOR
+            else REQUIRED_APPROVAL_CHECKS
+        )
     )
     standard_checks_pass = (
         manifest.validation.result == "passed"
@@ -197,7 +208,26 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
         )
     )
     requires_animation_review = requires_animation_review or is_compound_creature
-    return standard_checks_pass and (not requires_animation_review or animation_review_passes)
+    meshy_release_passes = bool(
+        processor_name != MESHY_NATIVE_ASSEMBLY_PROCESSOR
+        or (
+            processed
+            and any(
+                check.get("name") == MESHY_NATIVE_RELEASE_CHECK
+                and check.get("passed")
+                and check.get("processed_model_sha256") == processed[-1].sha256
+                and check.get("clip_count") == 29
+                and check.get("accepted_hand_visual_debt") is True
+                and check.get("h4_additional_hand_corruption") is False
+                for check in manifest.validation.checks
+            )
+        )
+    )
+    return (
+        standard_checks_pass
+        and (not requires_animation_review or animation_review_passes)
+        and meshy_release_passes
+    )
 
 
 def approval_bindings_resolve(manifest: AssetManifest) -> bool:

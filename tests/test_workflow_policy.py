@@ -187,6 +187,52 @@ def test_approval_roles_and_bindings_are_neutral_exact_policy() -> None:
     assert not approval_bindings_resolve(manifest)
 
 
+def test_meshy_native_assembly_requires_exact_current_release_evidence() -> None:
+    manifest = _manifest()
+    manifest.asset.lane = "humanoid"
+    processed = _artifact("processed", "processed_model", "1" * 64)
+    processed.processor = Processor(
+        name="blender_meshy_native_character_motion_assembly", version="2"
+    )
+    report = _artifact(
+        "release-report", "meshy_native_character_release_report", "2" * 64
+    )
+    manifest.artifacts = [processed, report]
+    manifest.validation.result = "passed"
+    manifest.validation.checks = [
+        {"name": name, "passed": True}
+        for name in (
+            "glb_structure",
+            "geometry_present",
+            "triangle_budget",
+            "materials_required",
+            "skeleton_required",
+            "godot_sandbox_import",
+        )
+    ]
+    assert approval_artifact_roles(manifest) == (
+        "processed_model",
+        "godot_wrapper_scene",
+        "meshy_native_character_release_report",
+    )
+    assert not approval_checks_pass(manifest)
+
+    manifest.validation.checks.append(
+        {
+            "name": "meshy_native_character_release_playback",
+            "passed": True,
+            "processed_model_sha256": processed.sha256,
+            "clip_count": 29,
+            "accepted_hand_visual_debt": True,
+            "h4_additional_hand_corruption": False,
+        }
+    )
+    assert approval_checks_pass(manifest)
+
+    manifest.validation.checks[-1]["processed_model_sha256"] = "3" * 64
+    assert not approval_checks_pass(manifest)
+
+
 def test_unrelated_suspended_creature_processor_is_rejected_without_exception() -> None:
     manifest = _manifest()
     manifest.asset.lane = "creature"

@@ -231,7 +231,24 @@ class NativeHumanoidCompatibilityV2(ReleaseModel):
     report: PackagedHumanoidReportV2
 
 
-HumanoidCompatibilityV2 = RetargetHumanoidCompatibilityV2 | NativeHumanoidCompatibilityV2
+class MeshyNativeAssemblyCompatibilityV2(ReleaseModel):
+    evidence_route: Literal["meshy_native_motion_assembly"]
+    candidate_only: Literal[True]
+    vandrel_runtime_accepted: Literal[False]
+    provider_native_rig: Literal[True]
+    shared_animation_pool_compatible: Literal[False]
+    clip_count: Literal[29]
+    embedded_texture_sha256s: list[Sha256] = Field(min_length=1)
+    known_hand_visual_debt: Literal["accepted_bounded_debt"]
+    h4_additional_hand_corruption: Literal[False]
+    report: PackagedHumanoidReportV2
+
+
+HumanoidCompatibilityV2 = (
+    RetargetHumanoidCompatibilityV2
+    | NativeHumanoidCompatibilityV2
+    | MeshyNativeAssemblyCompatibilityV2
+)
 
 
 class ReleaseScaleCalibrationV2(ReleaseModel):

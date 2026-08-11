@@ -1,6 +1,7 @@
 import hashlib
 import os
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 from vandrel_foundry.config import FoundryConfig
@@ -27,6 +28,15 @@ POLICY_SCHEMA = "vandrel_foundry_user_local_use_policy/1.0"
 REGISTER_SCHEMA = "vandrel_foundry_user_local_use_declaration/1.0"
 
 
+@dataclass(frozen=True)
+class UserLocalUseContributionSpec:
+    contribution_id: str
+    source_id: str
+    package_id: str
+    package_root: RelativeManifestPath
+    artifact_ids: tuple[str, ...]
+
+
 def bind_user_local_use_custody(
     config: FoundryConfig,
     asset_id: str,
@@ -34,22 +44,75 @@ def bind_user_local_use_custody(
     meshy_artifact_ids: list[str],
     quaternius_artifact_ids: list[str],
 ) -> CustodyAssertion:
+    return _bind_user_local_use_custody(
+        config,
+        asset_id,
+        declaration_path,
+        [
+            UserLocalUseContributionSpec(
+                contribution_id="meshy_mesh_material",
+                source_id="meshy_user_directed_local",
+                package_id="meshy_silent_grey_doe_exact_roots",
+                package_root=RelativeManifestPath("source/compound_roots_001"),
+                artifact_ids=tuple(meshy_artifact_ids),
+            ),
+            UserLocalUseContributionSpec(
+                contribution_id="quaternius_rig_animation",
+                source_id="quaternius_user_directed_local",
+                package_id="quaternius_deer_exact_root",
+                package_root=RelativeManifestPath("source/compound_roots_001"),
+                artifact_ids=tuple(quaternius_artifact_ids),
+            ),
+        ],
+        binding_id="user_directed_local_use_2026_08_06",
+        evidence_scope_root=RelativeManifestPath("source/compound_roots_001"),
+    )
+
+
+def bind_user_local_use_custody_contributions(
+    config: FoundryConfig,
+    asset_id: str,
+    declaration_path: Path,
+    contributions: list[UserLocalUseContributionSpec],
+) -> CustodyAssertion:
+    return _bind_user_local_use_custody(
+        config,
+        asset_id,
+        declaration_path,
+        contributions,
+        binding_id="user_directed_local_use_2026_08_10",
+        evidence_scope_root=RelativeManifestPath("source"),
+    )
+
+
+def _bind_user_local_use_custody(
+    config: FoundryConfig,
+    asset_id: str,
+    declaration_path: Path,
+    contribution_specs: list[UserLocalUseContributionSpec],
+    *,
+    binding_id: str,
+    evidence_scope_root: RelativeManifestPath,
+) -> CustodyAssertion:
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
     if manifest.custody is not None and manifest.custody.assessment_status == "evaluated":
-        return _verify_committed_retry(
+        return _verify_committed_retry_specs(
             repository.asset_directory(asset_id),
             manifest,
             declaration_path,
-            meshy_artifact_ids,
-            quaternius_artifact_ids,
+            contribution_specs,
         )
     current = current_source_inputs(manifest)
     expected_ids = {item.artifact_id for item in current}
-    declared_ids = {*meshy_artifact_ids, *quaternius_artifact_ids}
+    declared = [item for spec in contribution_specs for item in spec.artifact_ids]
+    declared_ids = set(declared)
     if (
-        not meshy_artifact_ids or not quaternius_artifact_ids
-        or len(declared_ids) != len(meshy_artifact_ids) + len(quaternius_artifact_ids)
+        not contribution_specs
+        or any(not spec.artifact_ids for spec in contribution_specs)
+        or len({spec.contribution_id for spec in contribution_specs})
+        != len(contribution_specs)
+        or len(declared_ids) != len(declared)
         or declared_ids != expected_ids
     ):
         raise FoundryError("User local-use custody assignments must equal the exact root union.")
@@ -74,27 +137,30 @@ def bind_user_local_use_custody(
     )
     by_id = {item.artifact_id: item for item in current}
     evidence = CustodyLicenseEvidence(
-        binding_id="user_directed_local_use_2026_08_06",
+        binding_id=binding_id,
         original_evidence_path=PortableCustodyPath(logical_root="foundry_workspace", path=str(relative)),
         evidence_sha256=declaration_hash, size_bytes=len(content),
-        scope_root=PortableCustodyPath(logical_root="foundry_workspace", path="source/compound_roots_001"),
+        scope_root=PortableCustodyPath(
+            logical_root="foundry_workspace", path=str(evidence_scope_root)
+        ),
         rights_semantics="documented", candidate_evidence_artifact_id=evidence_id,
     )
     contributions = [
         CustodySourceContribution(
-            contribution_id="meshy_mesh_material", source_id="meshy_user_directed_local",
-            package_id="meshy_silent_grey_doe_exact_roots",
-            package_root=PortableCustodyPath(logical_root="foundry_workspace", path="source/compound_roots_001"),
-            source_inputs=sorted((by_id[item] for item in meshy_artifact_ids), key=lambda item: item.artifact_id),
-            rights_status="documented", license_evidence=[evidence],
-        ),
-        CustodySourceContribution(
-            contribution_id="quaternius_rig_animation", source_id="quaternius_user_directed_local",
-            package_id="quaternius_deer_exact_root",
-            package_root=PortableCustodyPath(logical_root="foundry_workspace", path="source/compound_roots_001"),
-            source_inputs=sorted((by_id[item] for item in quaternius_artifact_ids), key=lambda item: item.artifact_id),
-            rights_status="documented", license_evidence=[evidence],
-        ),
+            contribution_id=spec.contribution_id,
+            source_id=spec.source_id,
+            package_id=spec.package_id,
+            package_root=PortableCustodyPath(
+                logical_root="foundry_workspace", path=str(spec.package_root)
+            ),
+            source_inputs=sorted(
+                (by_id[item] for item in spec.artifact_ids),
+                key=lambda item: item.artifact_id,
+            ),
+            rights_status="documented",
+            license_evidence=[evidence],
+        )
+        for spec in contribution_specs
     ]
     register_hash = user_local_use_register_sha256(manifest, declaration_hash)
     root_fingerprints = {"foundry_workspace": register_hash}
@@ -133,6 +199,35 @@ def _verify_committed_retry(
     meshy_artifact_ids: list[str],
     quaternius_artifact_ids: list[str],
 ) -> CustodyAssertion:
+    return _verify_committed_retry_specs(
+        asset_root,
+        manifest,
+        declaration_path,
+        [
+            UserLocalUseContributionSpec(
+                "meshy_mesh_material",
+                "meshy_user_directed_local",
+                "meshy_silent_grey_doe_exact_roots",
+                RelativeManifestPath("source/compound_roots_001"),
+                tuple(meshy_artifact_ids),
+            ),
+            UserLocalUseContributionSpec(
+                "quaternius_rig_animation",
+                "quaternius_user_directed_local",
+                "quaternius_deer_exact_root",
+                RelativeManifestPath("source/compound_roots_001"),
+                tuple(quaternius_artifact_ids),
+            ),
+        ],
+    )
+
+
+def _verify_committed_retry_specs(
+    asset_root: Path,
+    manifest,
+    declaration_path: Path,
+    contribution_specs: list[UserLocalUseContributionSpec],
+) -> CustodyAssertion:
     assertion = manifest.custody
     assert assertion is not None
     digest = hashlib.sha256(declaration_path.read_bytes()).hexdigest()
@@ -142,8 +237,10 @@ def _verify_committed_retry(
         }
         for contribution in assertion.source_contributions
     }
-    meshy_ids = set(meshy_artifact_ids)
-    quaternius_ids = set(quaternius_artifact_ids)
+    expected_partition = {
+        spec.contribution_id: set(spec.artifact_ids) for spec in contribution_specs
+    }
+    declared = [item for spec in contribution_specs for item in spec.artifact_ids]
     evidence = [
         item
         for item in manifest.artifacts
@@ -151,12 +248,8 @@ def _verify_committed_retry(
     ]
     if (
         assertion.schema_version != CUSTODY_SCHEMA_V1_3
-        or len(meshy_ids) != len(meshy_artifact_ids)
-        or len(quaternius_ids) != len(quaternius_artifact_ids)
-        or meshy_ids & quaternius_ids
-        or by_contribution.get("meshy_mesh_material") != meshy_ids
-        or by_contribution.get("quaternius_rig_animation") != quaternius_ids
-        or set(by_contribution) != {"meshy_mesh_material", "quaternius_rig_animation"}
+        or len(set(declared)) != len(declared)
+        or by_contribution != expected_partition
         or len(evidence) != 1
         or assertion.policy_sha256 != digest
     ):

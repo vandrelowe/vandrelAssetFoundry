@@ -28,7 +28,7 @@ from vandrel_foundry.domain.manifest import (
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.plan_release import plan_release
-from vandrel_foundry.services.publish_release import publish_release
+from vandrel_foundry.services.publish_release import publish_release, publish_releases
 from vandrel_foundry.storage.manifests import ManifestRepository
 
 
@@ -57,8 +57,12 @@ def _sha256(value: bytes) -> str:
 
 
 def _approved_asset(config, lanes, prompt: Path) -> None:
-    create_asset(config, lanes, "stone_knife_001", "static_prop", "Stone Knife", prompt)
-    root = config.foundry.workspace_root / "assets" / "stone_knife_001"
+    _approved_named_asset(config, lanes, prompt, "stone_knife_001")
+
+
+def _approved_named_asset(config, lanes, prompt: Path, asset_id: str) -> None:
+    create_asset(config, lanes, asset_id, "static_prop", asset_id, prompt)
+    root = config.foundry.workspace_root / "assets" / asset_id
     model = b"fixture glb"
     wrapper = b"[gd_scene format=3]\n"
     (root / "processed").mkdir(exist_ok=True)
@@ -66,7 +70,7 @@ def _approved_asset(config, lanes, prompt: Path) -> None:
     (root / "review").mkdir(exist_ok=True)
     (root / "review" / "wrapper.tscn").write_bytes(wrapper)
     repository = ManifestRepository(config.foundry.workspace_root)
-    manifest = repository.load("stone_knife_001")
+    manifest = repository.load(asset_id)
     manifest.artifacts.extend(
         [
             Artifact(
@@ -353,6 +357,38 @@ def test_publish_creates_immutable_release_catalog_and_manifest_record(
     manifest = ManifestRepository(config.foundry.workspace_root).load("stone_knife_001")
     assert manifest.release.released
     assert manifest.release.release_revision == 1
+
+
+def test_bounded_batch_publication_uses_one_clean_preflight_and_catalog_update(
+    config,
+    lanes,
+    prompt: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _approved_named_asset(config, lanes, prompt, "batch_asset_one_001")
+    _approved_named_asset(config, lanes, prompt, "batch_asset_two_001")
+    root = _library(config)
+    acl_destinations: list[Path] = []
+    monkeypatch.setattr(
+        publication,
+        "apply_release_acl",
+        lambda _config, destination: acl_destinations.append(destination),
+    )
+
+    results = publish_releases(
+        config,
+        lanes,
+        ("batch_asset_one_001", "batch_asset_two_001"),
+        git_runner=FakeGit(),
+    )
+
+    assert [item.release_revision for item in results] == [1, 1]
+    assert acl_destinations == [item.destination for item in results]
+    catalog = json.loads((root / "catalog.json").read_text())
+    assert set(catalog["assets"]) == {"batch_asset_one_001", "batch_asset_two_001"}
+    repository = ManifestRepository(config.foundry.workspace_root)
+    assert repository.load("batch_asset_one_001").release.release_revision == 1
+    assert repository.load("batch_asset_two_001").release.release_revision == 1
 
 
 def test_v2_plan_projects_only_closed_technical_and_qualified_custody(

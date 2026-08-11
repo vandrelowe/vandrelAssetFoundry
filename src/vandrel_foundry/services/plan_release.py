@@ -40,6 +40,8 @@ OPTIONAL_RELEASE_ROLES = {
 }
 HUMANOID_LANE = "humanoid"
 HUMANOID_COMPATIBILITY_CHECK = "humanoid_retarget_compatibility"
+MESHY_NATIVE_ASSEMBLY_PROCESSOR = "blender_meshy_native_character_motion_assembly"
+MESHY_NATIVE_RELEASE_CHECK = "meshy_native_character_release_playback"
 UNSAFE_RELEASE_COMPONENT = re.compile(r"[^a-zA-Z0-9._-]+")
 PORTABLE_TECHNICAL_FIELDS = {
     "triangle_count",
@@ -331,6 +333,61 @@ def _humanoid_release_evidence(
 ) -> tuple[dict[str, Any] | None, Artifact | None]:
     if manifest.asset.lane != HUMANOID_LANE:
         return None, None
+    processed_models = [item for item in manifest.artifacts if item.role == "processed_model"]
+    current_model = processed_models[-1] if processed_models else None
+    if (
+        current_model is not None
+        and current_model.processor is not None
+        and current_model.processor.name == MESHY_NATIVE_ASSEMBLY_PROCESSOR
+    ):
+        checks = [
+            check
+            for check in manifest.validation.checks
+            if check.get("name") == MESHY_NATIVE_RELEASE_CHECK
+        ]
+        if not checks:
+            raise FoundryError(
+                "Meshy-native assembly release requires hash-bound playback evidence."
+            )
+        check = checks[-1]
+        approved_model_hash = manifest.approval.approved_artifact_hashes.get(
+            "processed_model"
+        )
+        approved_report_hash = manifest.approval.approved_artifact_hashes.get(
+            "meshy_native_character_release_report"
+        )
+        if (
+            not check.get("passed")
+            or check.get("processed_model_sha256") != approved_model_hash
+            or check.get("report_sha256") != approved_report_hash
+            or check.get("clip_count") != 29
+            or check.get("playback_evidence_count") != 13
+            or check.get("godot_playback_passed") is not True
+            or check.get("skin_binding_passed") is not True
+            or check.get("zero_unweighted_vertices") is not True
+            or check.get("accepted_hand_visual_debt") is not True
+            or check.get("h4_additional_hand_corruption") is not False
+        ):
+            raise FoundryError(
+                "Meshy-native assembly release evidence is incomplete or stale."
+            )
+        report_artifact = _packaged_humanoid_report(
+            manifest, asset_root, check.get("report")
+        )
+        embedded_hashes = check.get("embedded_texture_sha256s")
+        if not isinstance(embedded_hashes, list) or not embedded_hashes:
+            raise FoundryError("Meshy-native embedded texture evidence is unavailable.")
+        return {
+            "evidence_route": "meshy_native_motion_assembly",
+            "candidate_only": True,
+            "vandrel_runtime_accepted": False,
+            "provider_native_rig": True,
+            "shared_animation_pool_compatible": False,
+            "clip_count": 29,
+            "embedded_texture_sha256s": embedded_hashes,
+            "known_hand_visual_debt": "accepted_bounded_debt",
+            "h4_additional_hand_corruption": False,
+        }, report_artifact
     native_checks = [
         check
         for check in manifest.validation.checks
@@ -465,6 +522,7 @@ def _packaged_humanoid_report(
         in {
             "humanoid_retarget_compatibility_report",
             "provider_native_character_report",
+            "meshy_native_character_release_report",
         }
     ]
     if not candidates:
