@@ -18,8 +18,26 @@ from vandrel_foundry.domain.meshy_native_character_motion import (
     MeshyNativeCharacterMotionReport,
     MeshyNativeMotionSemanticEvidence,
 )
+from vandrel_foundry.domain.meshy_native_multi_motion import (
+    MeshyNativeMultiMotionIntakeReport,
+)
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import invalidate_approval
+from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
+    ARCHIVE_ID as MULTI_ARCHIVE_ID,
+)
+from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
+    FBX_IDS as MULTI_FBX_IDS,
+)
+from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
+    REPORT_ID as MULTI_REPORT_ID,
+)
+from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
+    ROOT_IDS as MULTI_ROOT_IDS,
+)
+from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
+    TEXTURE_ID as MULTI_TEXTURE_ID,
+)
 from vandrel_foundry.services.inspect_glb import inspect_glb, load_glb_document
 from vandrel_foundry.services.inspect_glb_skin import (
     inspect_top4_glb_skin,
@@ -32,7 +50,7 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "blender_meshy_native_character_motion_assembly"
-PROCESSOR_VERSION = "3"
+PROCESSOR_VERSION = "4"
 CHARACTER_ROOTS = {
     "meshy_native_character_archive_root_001",
     "meshy_native_character_fbx_root_001",
@@ -43,6 +61,7 @@ MOTION_ROOTS = {
     "meshy_native_motion_model_root_001",
     "meshy_native_motion_report_root_001",
 }
+EXTENDED_ROOTS = CHARACTER_ROOTS | MOTION_ROOTS | set(MULTI_ROOT_IDS)
 
 
 @dataclass(frozen=True)
@@ -69,10 +88,11 @@ def assemble_meshy_native_character_motion(
     if frozenset(current_root_ids) not in {
         frozenset(CHARACTER_ROOTS),
         frozenset([*CHARACTER_ROOTS, *MOTION_ROOTS]),
+        frozenset(EXTENDED_ROOTS),
     }:
         raise FoundryError(
             "Meshy-native character motion assembly requires the exact four character roots "
-            "or the exact established six-root union."
+            "the established six-root union, or the exact 28-root extended union."
         )
     by_id = {
         item.artifact_id: item
@@ -90,6 +110,7 @@ def assemble_meshy_native_character_motion(
     asset_root = repository.asset_directory(asset_id)
     paths = {key: contained_path(asset_root, item.path) for key, item in by_id.items()}
     adding_motion_roots = current_root_ids == CHARACTER_ROOTS
+    extended_motion = current_root_ids == EXTENDED_ROOTS
     if adding_motion_roots:
         canary = repository.load("meshy_native_brukk_canary_001")
         motion_model = _artifact(canary, "meshy_native_canary_model_005")
@@ -131,7 +152,31 @@ def assemble_meshy_native_character_motion(
             key: (contained_path(asset_root, item.path), item)
             for key, item in motion_by_id.items()
         }
+    multi_by_id: dict[str, Artifact] = {}
+    multi_report_data = None
+    if extended_motion:
+        multi_by_id = {
+            item.artifact_id: item
+            for item in current_roots
+            if item.artifact_id in MULTI_ROOT_IDS
+        }
+        if set(multi_by_id) != set(MULTI_ROOT_IDS):
+            raise FoundryError("Meshy multi-motion source root union is incomplete.")
+        _require_multi_root_roles(multi_by_id)
+        multi_report = _artifact(manifest, MULTI_REPORT_ID)
+        if (
+            multi_report.role != "meshy_native_multi_motion_intake_report"
+            or multi_report.format != "json"
+            or set(multi_report.derived_from) != set(MULTI_ROOT_IDS)
+        ):
+            raise FoundryError("Meshy multi-motion intake report binding is invalid.")
+        multi_report_path = contained_path(asset_root, multi_report.path)
+        _verify(multi_report_path, multi_report)
+        multi_report_data = MeshyNativeMultiMotionIntakeReport.model_validate(
+            _load_json(multi_report_path, "Meshy multi-motion intake report")
+        )
     _verify_inputs(paths, by_id, external)
+    _verify_local(asset_root, list(multi_by_id.values()))
     executable = config.tools.blender_executable
     if executable is None or not executable.is_absolute() or not executable.is_file():
         raise FoundryError("Configure tools.blender_executable as an existing absolute file.")
@@ -195,6 +240,32 @@ def assemble_meshy_native_character_motion(
         assembly_script = (
             Path(__file__).parents[1] / "blender" / "assemble_meshy_native_character.py"
         )
+        extension_manifest = None
+        if extended_motion:
+            if multi_report_data is None:
+                raise FoundryError("Meshy multi-motion intake evidence is unavailable.")
+            extension_manifest = temporary / "multi-motion-entries.json"
+            extension_entries = []
+            for entry in multi_report_data.entries:
+                if entry.role != "meshy_native_multi_animation_fbx":
+                    continue
+                artifact = multi_by_id[entry.artifact_id]
+                if (artifact.sha256, artifact.size_bytes) != (
+                    entry.sha256,
+                    entry.size_bytes,
+                ):
+                    raise FoundryError(
+                        "Meshy multi-motion intake entry does not match its root artifact."
+                    )
+                extension_entries.append(
+                    {
+                        "artifact_id": artifact.artifact_id,
+                        "exact_export_name": entry.exact_export_name,
+                        "runtime_eligibility": entry.runtime_eligibility,
+                        "path": str(contained_path(asset_root, artifact.path)),
+                    }
+                )
+            _write_new(extension_manifest, json_bytes({"entries": extension_entries}))
         assembly_args = [
             str(executable),
             "--background",
@@ -212,6 +283,8 @@ def assemble_meshy_native_character_motion(
             str(temp_model),
             str(adapter_report),
         ]
+        if extension_manifest is not None:
+            assembly_args.append(str(extension_manifest))
         assembly_log, assembly_result = _run(
             config,
             runner,
@@ -223,29 +296,48 @@ def assemble_meshy_native_character_motion(
             assembly_script,
         )
         adapter = _load_json(adapter_report, "Meshy-native assembly adapter")
-        if adapter.get("schema") != "vandrel_foundry_meshy_native_character_assembly_adapter/3.0":
+        expected_adapter_schema = (
+            "vandrel_foundry_meshy_native_character_assembly_adapter/4.0"
+            if extended_motion
+            else "vandrel_foundry_meshy_native_character_assembly_adapter/3.0"
+        )
+        if adapter.get("schema") != expected_adapter_schema:
             raise FoundryError("Meshy-native assembly adapter report is invalid.")
         facts = adapter.get("transformation_facts")
         clips = adapter.get("clips")
-        if not isinstance(facts, dict) or not isinstance(clips, list) or len(clips) != 10:
+        if not isinstance(facts, dict) or not isinstance(clips, list):
             raise FoundryError("Meshy-native assembly adapter report is incomplete.")
-        _require_facts(facts)
+        names = [item.get("exact_name") for item in clips if isinstance(item, dict)]
+        if len(names) != len(clips) or any(not isinstance(name, str) for name in names):
+            raise FoundryError("Meshy-native assembly action inventory is invalid.")
+        if len(set(names)) != len(names):
+            raise FoundryError("Meshy-native assembly emitted duplicate runtime action names.")
+        _require_facts(facts, len(names), extended_motion)
         canary_data = _load_json(temp_motion_report, "Meshy-native canary report")
         canary_clips = canary_data.get("clips")
         if not isinstance(canary_clips, list) or len(canary_clips) != 10:
             raise FoundryError("Bound canary report has an invalid clip inventory.")
-        durations = {item["exact_name"]: float(item["duration_seconds"]) for item in canary_clips}
-        names = [item.get("exact_name") for item in clips]
-        duration_deltas = {
-            item["exact_name"]: abs(float(item["duration_seconds"]) - durations[item["exact_name"]])
-            for item in clips
-            if item.get("exact_name") in durations
+        canary_durations = {
+            item["exact_name"]: float(item["duration_seconds"]) for item in canary_clips
         }
-        if names != list(durations) or any(value > 0.002 for value in duration_deltas.values()):
+        clip_durations = {
+            item["exact_name"]: float(item["duration_seconds"]) for item in clips
+        }
+        duration_deltas = {
+            name: abs(clip_durations.get(name, math.inf) - duration)
+            for name, duration in canary_durations.items()
+        }
+        if any(value > 0.002 for value in duration_deltas.values()):
             raise FoundryError(
-                "Assembled action names or durations do not match the bound canary report: "
-                f"names_match={names == list(durations)}, duration_deltas={duration_deltas}."
+                "Base action names or durations do not match the bound canary report: "
+                f"duration_deltas={duration_deltas}."
             )
+        extension_entries = adapter.get("extension_entries", [])
+        collisions = adapter.get("collisions", [])
+        if extended_motion:
+            _require_multi_extension(extension_entries, collisions, facts, names)
+        elif extension_entries or collisions or len(names) != 10:
+            raise FoundryError("Base Meshy-native assembly unexpectedly contains extensions.")
         inspection = inspect_glb(temp_model)
         if (
             inspection.mesh_count < 1
@@ -253,8 +345,8 @@ def assemble_meshy_native_character_motion(
             or inspection.image_count < 1
             or inspection.skin_count != 1
             or inspection.joint_count != 24
-            or inspection.animation_count != 10
-            or _animation_names(temp_model) != names
+            or inspection.animation_count != len(names)
+            or set(_animation_names(temp_model)) != set(names)
         ):
             raise FoundryError(
                 "Assembled Meshy-native character failed independent GLB inspection."
@@ -267,6 +359,8 @@ def assemble_meshy_native_character_motion(
             by_id["meshy_native_character_texture_root_001"].sha256,
         )
 
+        playback_names = _playback_names(names, extended_motion)
+        durations = {name: clip_durations[name] for name in playback_names}
         durations_path = temporary / "durations.json"
         _write_new(durations_path, json_bytes(durations))
         frames_root = temporary / "playback-frames"
@@ -302,7 +396,7 @@ def assemble_meshy_native_character_motion(
         if (
             playback_data.get("schema") != "vandrel_foundry_meshy_native_playback/1.0"
             or not isinstance(playback_clips, list)
-            or len(playback_clips) != 10
+            or len(playback_clips) != len(durations)
         ):
             raise FoundryError("Meshy-native playback adapter report is invalid.")
         output_skin = inspect_top4_glb_skin(temp_model)
@@ -350,9 +444,13 @@ def assemble_meshy_native_character_motion(
             temporary / "playback-process.json", playback_log, playback_result
         )
         model_hash, model_size = _hash(temp_model)
-        root_ids = sorted([*CHARACTER_ROOTS, *MOTION_ROOTS])
+        root_ids = sorted(EXTENDED_ROOTS if extended_motion else CHARACTER_ROOTS | MOTION_ROOTS)
         report = MeshyNativeCharacterMotionReport(
-            schema="vandrel_foundry_meshy_native_character_motion/1.1",
+            schema=(
+                "vandrel_foundry_meshy_native_character_motion/1.2"
+                if extended_motion
+                else "vandrel_foundry_meshy_native_character_motion/1.1"
+            ),
             asset_id=asset_id,
             processor={
                 "name": PROCESSOR_NAME,
@@ -360,7 +458,9 @@ def assemble_meshy_native_character_motion(
                 "tool_version": adapter.get("blender_version"),
             },
             source_union=root_ids,
-            source_bindings=_source_bindings(list(by_id.values()), motion_model, motion_report),
+            source_bindings=_source_bindings(
+                [*by_id.values(), *multi_by_id.values()], motion_model, motion_report
+            ),
             semantic_evidence={
                 "artifact_id": f"meshy_native_motion_semantic_evidence_{suffix}",
                 "sha256": semantic_hash,
@@ -372,11 +472,16 @@ def assemble_meshy_native_character_motion(
                 "independent_top4_reference_skin": reference_skin.__dict__,
                 "independent_final_top4_skin": output_skin.__dict__,
                 "independent_top4_reference_match": True,
+                "source_animation_entry_count": 30 if extended_motion else 10,
+                "compatible_source_animation_entry_count": 29 if extended_motion else 10,
+                "final_unique_runtime_action_count": len(names),
             },
             clips=clips,
             playback=playback_descriptors,
-            comparison=_comparison(),
-            runtime_readiness=_runtime_gaps(names),
+                comparison=(
+                    _comparison(collisions) if extended_motion else _comparison()
+                ),
+            runtime_readiness=_runtime_gaps(names, extended_motion),
             output={
                 "artifact_id": f"meshy_native_character_animated_model_{suffix}",
                 "path": str(model_relative),
@@ -389,6 +494,7 @@ def assemble_meshy_native_character_motion(
         _write_new(temp_report, json_bytes(report.model_dump(mode="json", by_alias=True)))
         report_hash, report_size = _hash(temp_report)
         _verify_inputs(paths, by_id, external)
+        _verify_local(asset_root, list(multi_by_id.values()))
         promotion_pairs = [
             (temp_model, contained_path(asset_root, model_relative)),
             (temp_semantic, contained_path(asset_root, semantic_relative)),
@@ -509,6 +615,7 @@ def assemble_meshy_native_character_motion(
         _verify_local(asset_root, targets)
         root_artifacts = [
             *by_id.values(),
+            *multi_by_id.values(),
             *(
                 source_artifacts
                 if adding_motion_roots
@@ -609,7 +716,7 @@ def _write_process(path, value, _result):
     }
 
 
-def _require_facts(facts):
+def _require_facts(facts, expected_action_count, extended):
     required = {
         "target_joint_count": 24,
         "source_joint_count": 24,
@@ -628,10 +735,24 @@ def _require_facts(facts):
         "skin_weights_exactly_preserved": False,
         "top4_normalized": True,
         "preexport_unweighted_vertex_count": 0,
-        "output_action_count": 10,
+        "output_action_count": expected_action_count,
     }
     if any(facts.get(key) != value for key, value in required.items()):
         raise FoundryError("Meshy-native assembly facts violate the contract.")
+    if extended:
+        extended_required = {
+            "base_action_count": 10,
+            "extension_source_entry_count": 20,
+            "extension_compatible_entry_count": 19,
+            "extension_provenance_only_entry_count": 1,
+            "runtime_collision_count": 4,
+        }
+        if any(facts.get(key) != value for key, value in extended_required.items()):
+            raise FoundryError("Meshy-native extended assembly facts violate the contract.")
+        if facts.get("runtime_deduplicated_collision_count", 0) + facts.get(
+            "runtime_source_qualified_collision_count", 0
+        ) != 4:
+            raise FoundryError("Meshy-native collision accounting is incomplete.")
     if facts.get("target_bind_matrix_signature_before") != facts.get(
         "target_bind_matrix_signature_after"
     ) or facts.get("target_material_signature_before") != facts.get(
@@ -652,8 +773,85 @@ def _require_facts(facts):
             raise FoundryError("Meshy-native H4 orientation reconstruction did not close.")
 
 
-def _comparison():
-    return {
+def _require_multi_extension(entries, collisions, facts, names):
+    if not isinstance(entries, list) or len(entries) != 20:
+        raise FoundryError("Meshy multi-motion entry evidence is incomplete.")
+    if not isinstance(collisions, list) or len(collisions) != 4:
+        raise FoundryError("Meshy multi-motion collision evidence is incomplete.")
+    compatible = [
+        item for item in entries if item.get("runtime_eligibility") == "identity_normalized"
+    ]
+    excluded = [
+        item
+        for item in entries
+        if item.get("runtime_eligibility") == "provenance_only_legacy_outlier"
+    ]
+    if len(compatible) != 19 or len(excluded) != 1 or excluded[0].get(
+        "exact_export_name"
+    ) != "019fee70-fd9d-7b6e-914a-d6dad2a49eeb":
+        raise FoundryError("Meshy multi-motion compatibility partition is invalid.")
+    rest_signatures = {item.get("rest_signature") for item in compatible}
+    if len(rest_signatures) != 1 or None in rest_signatures:
+        raise FoundryError("Meshy multi-motion compatible rest signatures differ.")
+    if any(abs(float(item.get("container_rotation_degrees", math.inf))) > 0.01 for item in compatible):
+        raise FoundryError("Meshy multi-motion compatible container is not identity-normalized.")
+    legacy_angle = float(excluded[0].get("container_rotation_degrees", 0.0))
+    if not 89.0 <= legacy_angle <= 91.0 or excluded[0].get("runtime_action_name") is not None:
+        raise FoundryError("Meshy multi-motion legacy outlier was not excluded correctly.")
+    expected_collisions = {
+        "Walking",
+        "Running",
+        "Female_Crouch_Pick_Fruit_Basket_Stand",
+        "Female_Stand_Pick_Fruit_Basket",
+    }
+    if {item.get("exact_export_name") for item in collisions} != expected_collisions:
+        raise FoundryError("Meshy multi-motion collision set is not exact.")
+    for item in collisions:
+        base = f"target_character|{item['exact_export_name']}"
+        if (
+            item.get("existing_runtime_action_name") != base
+            or item.get("selected_runtime_action_name") != base
+            or item.get("resolution")
+            not in {"deduplicated_identical", "source_qualified_alternative"}
+        ):
+            raise FoundryError("Meshy multi-motion collision resolution is invalid.")
+        if item["resolution"] == "deduplicated_identical":
+            if item.get("retained_alternative_action_name") is not None:
+                raise FoundryError("Identical Meshy collision retained a duplicate action.")
+        else:
+            expected = f"target_character|multi_fc7f5947|{item['exact_export_name']}"
+            if item.get("retained_alternative_action_name") != expected or expected not in names:
+                raise FoundryError("Materially different Meshy collision lost its stable ID.")
+    if facts.get("output_action_count") != len(names) or not 25 <= len(names) <= 29:
+        raise FoundryError("Meshy multi-motion final unique action count is invalid.")
+
+
+def _playback_names(names, extended):
+    if not extended:
+        return names
+    selected = [
+        "target_character|019fe8ca-a6c4-7968-822f-92efebbab5a4",
+        "target_character|019fe8d7-ed16-7b82-a594-728d821ee711",
+        "target_character|Idle_6",
+        "target_character|Dead",
+        "target_character|Stand_To_Side_Lying",
+        "target_character|Walking",
+        "target_character|Running",
+        "target_character|Angry_Ground_Stomp",
+        "target_character|Hit_Reaction_1",
+        "target_character|Carry_Heavy_Object_Walk",
+        "target_character|Collect_Object",
+        "target_character|Female_Crouch_Pick_Fruit_Basket_Stand",
+        "target_character|Female_Stand_Pick_Fruit_Basket",
+    ]
+    missing = [name for name in selected if name not in names]
+    if missing:
+        raise FoundryError(f"Meshy multi-motion proportional playback is missing: {missing}.")
+    return selected
+
+
+def _comparison(collisions=None):
+    value = {
         "basis": "visible_semantics_deformation_and_loopability",
         "eating": {
             "selected": "target_character|019fe8ca-a6c4-7968-822f-92efebbab5a4",
@@ -667,9 +865,46 @@ def _comparison():
         },
         "clean_motion_claimed": False,
     }
+    if collisions is not None:
+        value.update(
+            {
+                "default_idle": {
+                    "selected": "target_character|Idle_6",
+                    "policy": "user_directed_candidate_mapping",
+                },
+                "death": {
+                    "selected": "target_character|Dead",
+                    "runtime_policy": "play_once_then_hold_final_frame",
+                    "motionless_final_ten_frame_plateau_required": False,
+                },
+                "lie_down_held_pose": {
+                    "selected": "target_character|Stand_To_Side_Lying",
+                    "classified_as_death": False,
+                },
+                "gender_policy": (
+                    "female_prefix_is_provenance_only_and_does_not_restrict_humanoid_use"
+                ),
+                "collisions": collisions,
+                "runtime_action_selection_authority": "user_directed_candidate_only",
+            }
+        )
+    return value
 
 
-def _runtime_gaps(names):
+def _runtime_gaps(names, extended):
+    if extended:
+        return {
+            "vandrel_ready": False,
+            "motion_set_ready": True,
+            "available_named_locomotion": [
+                name for name in names if name.endswith(("|Walking", "|Running"))
+            ],
+            "missing_required_motions": [],
+            "death_runtime_policy": "play_once_then_hold_final_frame",
+            "motionless_final_ten_frame_plateau_required": False,
+            "remaining_gate": "Vandrel consumer validation and explicit adoption",
+            "substitution_policy": "frozen_eat_butcher_and_explicit_collision_selection",
+        }
     return {
         "vandrel_ready": False,
         "available_named_locomotion": [
@@ -795,6 +1030,19 @@ def _artifact(manifest, artifact_id):
     return values[0]
 
 
+def _require_multi_root_roles(roots):
+    archive = roots[MULTI_ARCHIVE_ID]
+    texture = roots[MULTI_TEXTURE_ID]
+    if (archive.role, archive.format) != ("meshy_native_multi_motion_archive", "zip"):
+        raise FoundryError("Meshy multi-motion archive root role is invalid.")
+    if (texture.role, texture.format) != ("meshy_native_multi_motion_texture", "png"):
+        raise FoundryError("Meshy multi-motion texture root role is invalid.")
+    for artifact_id in MULTI_FBX_IDS:
+        artifact = roots[artifact_id]
+        if (artifact.role, artifact.format) != ("meshy_native_multi_motion_fbx", "fbx"):
+            raise FoundryError("Meshy multi-motion FBX root role is invalid.")
+
+
 def _animation_names(path):
     animations = load_glb_document(path).get("animations", [])
     names = [item.get("name") for item in animations if isinstance(item, dict)]
@@ -824,8 +1072,11 @@ def _verify_local(root, artifacts):
 
 def _verify_exact_root_union(root, artifacts):
     ids = [artifact.artifact_id for artifact in artifacts]
-    if len(ids) != 6 or len(set(ids)) != 6 or set(ids) != CHARACTER_ROOTS | MOTION_ROOTS:
-        raise FoundryError("Meshy-native motion save requires the exact six-root union.")
+    expected = set(ids)
+    if expected != CHARACTER_ROOTS | MOTION_ROOTS and expected != EXTENDED_ROOTS:
+        raise FoundryError("Meshy-native motion save requires an exact authorized root union.")
+    if len(ids) != len(expected):
+        raise FoundryError("Meshy-native motion save root union contains duplicates.")
     _verify_local(root, artifacts)
 
 

@@ -17,6 +17,9 @@ from vandrel_foundry.services.add_meshy_native_animation_package import (
 from vandrel_foundry.services.add_meshy_native_character_package import (
     add_meshy_native_character_package,
 )
+from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
+    add_meshy_native_multi_motion_package,
+)
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
 from vandrel_foundry.services.apply_texture_mask import apply_texture_mask
@@ -1717,6 +1720,27 @@ def inspect_meshy_native_character_command(
             observed_credit_balance_before_after=observed_credit_balance_before_after,
         )
         console.print(f"[green]Inspected Meshy native character[/green] {report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("add-meshy-native-multi-motion-package")
+def add_meshy_native_multi_motion(
+    asset_id: str,
+    archive: Annotated[Path, typer.Option("--archive")],
+    archive_sha256: Annotated[str, typer.Option("--archive-sha256")],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Intake one exact local Meshy 20-action native ZIP without provider access."""
+    try:
+        settings = load_config(config)
+        artifacts = add_meshy_native_multi_motion_package(
+            settings, asset_id, archive, archive_sha256
+        )
+        console.print(
+            f"[green]Intaken Meshy native multi-motion package[/green] "
+            f"{len(artifacts)} artifacts"
+        )
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 

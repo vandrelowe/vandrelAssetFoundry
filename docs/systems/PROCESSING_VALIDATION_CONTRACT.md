@@ -305,14 +305,45 @@ replacement and with every registered output after success or exact-target
 save reconciliation. A retry creates a new numbered model/report/playback
 attempt and never rewrites an earlier attempt.
 
+The multi-entry extension of this corridor adds one immutable archive root,
+all twenty exact `withSkin` FBX entry roots, and the exact texture root. The
+intake report is derived from that complete 22-root contribution set; it never
+collapses the archive into a fictitious merged-FBX lineage. Every manifest-owned
+root is verified before processing, immediately before manifest replacement,
+and after success or exact-target reconciliation. Nineteen entries must share
+the identity-normalized 24-joint hierarchy/rest container. The exact legacy
+UUID `019fee70-fd9d-7b6e-914a-d6dad2a49eeb` remains in provenance but is
+excluded from assembly because it carries the known positive-90-degree legacy
+container normalization. No other entry may be silently excluded.
+
+Extended assembly retains the ten accepted canary actions plus all nineteen
+compatible multi-entry contributions: 29 compatible source actions before
+runtime-name collision resolution. `Walking`, `Running`,
+`Female_Crouch_Pick_Fruit_Basket_Stand`, and
+`Female_Stand_Pick_Fruit_Basket` are exact collision candidates. Curve and
+duration identity deduplicates only the runtime action while retaining both
+source contributions in lineage. A material difference receives the stable
+source-qualified `target_character|multi_fc7f5947|...` internal ID; the
+existing accepted action remains the explicit runtime selection. Duplicate
+runtime names are forbidden. Reports state the source-entry count and final
+unique runtime-action count separately.
+
 Provider UI labels for the four UUID actions live only in a fresh immutable
 semantic evidence artifact as `user_observed_provider_metadata`; they do not
 enter generic manifest identity or gameplay fields. Both observed variants for
 each squat-eat and squat-butcher semantic remain present. The comparison report
 may select the best currently visible variant while explicitly retaining motion
-debt. A package with no neutral idle and no death/fall motion ending in a stable
-held pose must say `vandrel_ready: false` and list those smallest missing native
-provider motions; unrelated clips cannot substitute for them.
+debt. The frozen candidate mappings are eating
+`019fe8ca-a6c4-7968-822f-92efebbab5a4` and butchering
+`019fe8d7-ed16-7b82-a594-728d821ee711`; alternates remain present. `Idle_6`
+is the selected default idle. `Dead` is the selected death motion with a
+consumer policy of play once and hold its final frame; a motionless final
+ten-frame plateau is not a Foundry requirement. `Stand_To_Side_Lying` is a
+lie-down/held-pose action, not death. `Female_` in the two fruit-picking source
+filenames is provenance text only and imposes no gender restriction. The
+extended report may mark the motion set complete while keeping
+`vandrel_ready: false` until Vandrel performs its separate consumer validation
+and explicitly adopts the package.
 
 A pass-through processor still creates a physically distinct output. It may
 preserve bytes and hashes, but it must not alias the source file through a hard

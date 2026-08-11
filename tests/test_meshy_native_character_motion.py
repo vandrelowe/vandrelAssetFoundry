@@ -16,6 +16,10 @@ from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.services.add_meshy_native_character_package import (
     add_meshy_native_character_package,
 )
+from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
+    LEGACY_UUID,
+    add_meshy_native_multi_motion_package,
+)
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.manifests import ManifestRepository
@@ -36,6 +40,35 @@ ACTIONS = sorted(
     ],
     key=str.casefold,
 )
+
+MULTI_ACTIONS = [
+    LEGACY_UUID,
+    "Angry_Ground_Stomp",
+    "Carry_Heavy_Object_Walk",
+    "Collect_Object",
+    "Crouch_and_Step_Back",
+    "Dead",
+    "dying_backwards",
+    "Fall_Dead_from_Abdominal_Injury",
+    "falling_down",
+    "Female_Crouch_Pick_Fruit_Basket_Stand",
+    "Female_Stand_Pick_Fruit_Basket",
+    "Hit_Reaction_1",
+    "Idle_02",
+    "Idle_6",
+    "Idle_7",
+    "Idle_9",
+    "Running",
+    "Skill_01",
+    "Stand_To_Side_Lying",
+    "Walking",
+]
+COLLISION_NAMES = {
+    "Walking",
+    "Running",
+    "Female_Crouch_Pick_Fruit_Basket_Stand",
+    "Female_Stand_Pick_Fruit_Basket",
+}
 
 
 def _lanes():
@@ -243,6 +276,25 @@ def _candidate(config, prompt: Path, tmp_path: Path):
     return repository, repository.asset_directory("native_motion_test_001"), durations
 
 
+def _extend_candidate(config, repository, tmp_path: Path, durations):
+    service.assemble_meshy_native_character_motion(
+        config, "native_motion_test_001", _runner(durations)
+    )
+    archive = tmp_path / "multi-motion.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as value:
+        for index, name in enumerate(MULTI_ACTIONS):
+            value.writestr(
+                f"Meshy_AI_Primal_Female_Caveman_biped_Animation_{name}_withSkin.fbx",
+                f"entry-{index}-{name}".encode(),
+            )
+        value.writestr("Meshy_AI_Primal_Female_Caveman_biped_texture_0.png", b"texture")
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    add_meshy_native_multi_motion_package(
+        config, "native_motion_test_001", archive, digest
+    )
+    return repository.load("native_motion_test_001")
+
+
 def _runner(
     durations,
     *,
@@ -255,6 +307,8 @@ def _runner(
     direct_basis=False,
     old_postfactor=False,
     orientation_delta=0.0,
+    extension_mode=None,
+    bad_container=False,
 ):
     calls = 0
 
@@ -267,10 +321,63 @@ def _runner(
             output = Path(arguments[separator + 5])
             report = Path(arguments[separator + 6])
             _write_glb(reference, [], image=image)
-            _write_glb(output, ACTIONS, image=image, corrupt_skin=corrupt_output)
+            output_names = list(ACTIONS)
+            collisions = []
+            extension_entries = []
+            extension_durations = {}
+            if extension_mode is not None:
+                rest_signature = "e" * 64
+                for index, name in enumerate(MULTI_ACTIONS):
+                    excluded = name == LEGACY_UUID
+                    runtime_name = None
+                    if not excluded and name not in COLLISION_NAMES:
+                        runtime_name = f"target_character|{name}"
+                        output_names.append(runtime_name)
+                        extension_durations[runtime_name] = 2.0 + index / 30
+                    extension_entries.append(
+                        {
+                            "exact_export_name": name,
+                            "runtime_eligibility": (
+                                "provenance_only_legacy_outlier"
+                                if excluded
+                                else "identity_normalized"
+                            ),
+                            "rest_signature": (
+                                "f" * 64 if excluded else rest_signature
+                            ),
+                            "container_rotation_degrees": (
+                                90.0 if excluded else (1.0 if bad_container else 0.0)
+                            ),
+                            "runtime_action_name": runtime_name,
+                        }
+                    )
+                for name in sorted(COLLISION_NAMES):
+                    base = f"target_character|{name}"
+                    different = extension_mode == "different"
+                    alternative = (
+                        f"target_character|multi_fc7f5947|{name}" if different else None
+                    )
+                    if alternative is not None:
+                        output_names.append(alternative)
+                        extension_durations[alternative] = 3.0
+                    collisions.append(
+                        {
+                            "exact_export_name": name,
+                            "existing_runtime_action_name": base,
+                            "selected_runtime_action_name": base,
+                            "retained_alternative_action_name": alternative,
+                            "resolution": (
+                                "source_qualified_alternative"
+                                if different
+                                else "deduplicated_identical"
+                            ),
+                        }
+                    )
+            _write_glb(output, output_names, image=image, corrupt_skin=corrupt_output)
             if partial:
                 report.write_text("{}", encoding="utf-8")
                 return ProcessResult(0, "partial", "", False, False, 0.1)
+            output_durations = {**durations, **extension_durations}
             clips = [
                 {
                     "exact_name": name,
@@ -281,13 +388,17 @@ def _runner(
                     "ground_after_range_z": [0, 0],
                     "maximum_sampled_vertex_displacement": 1,
                 }
-                for name, duration in durations.items()
+                for name, duration in output_durations.items()
             ]
             signature = "a" * 64
             report.write_text(
                 json.dumps(
                     {
-                        "schema": "vandrel_foundry_meshy_native_character_assembly_adapter/3.0",
+                        "schema": (
+                            "vandrel_foundry_meshy_native_character_assembly_adapter/4.0"
+                            if extension_mode is not None
+                            else "vandrel_foundry_meshy_native_character_assembly_adapter/3.0"
+                        ),
                         "blender_version": "Blender-test",
                         "transformation_facts": {
                             "target_joint_count": 24,
@@ -332,10 +443,29 @@ def _runner(
                             "target_material_signature_after": signature,
                             "material_texture_preserved": True,
                             "preexport_unweighted_vertex_count": 0,
-                            "output_action_count": 10,
+                            "output_action_count": len(output_names),
                             "root_motion_policy": "test",
+                            **(
+                                {
+                                    "base_action_count": 10,
+                                    "extension_source_entry_count": 20,
+                                    "extension_compatible_entry_count": 19,
+                                    "extension_provenance_only_entry_count": 1,
+                                    "runtime_collision_count": 4,
+                                    "runtime_deduplicated_collision_count": (
+                                        4 if extension_mode == "identical" else 0
+                                    ),
+                                    "runtime_source_qualified_collision_count": (
+                                        4 if extension_mode == "different" else 0
+                                    ),
+                                }
+                                if extension_mode is not None
+                                else {}
+                            ),
                         },
                         "clips": clips,
+                        "extension_entries": extension_entries,
+                        "collisions": collisions,
                     }
                 ),
                 encoding="utf-8",
@@ -343,9 +473,12 @@ def _runner(
         else:
             frames = Path(arguments[separator + 2])
             report = Path(arguments[separator + 3])
+            playback_durations = json.loads(
+                Path(arguments[separator + 4]).read_text(encoding="utf-8")
+            )
             frames.mkdir()
             clips = []
-            for index, (name, duration) in enumerate(durations.items()):
+            for index, (name, duration) in enumerate(playback_durations.items()):
                 directory = frames / f"clip-{index}"
                 directory.mkdir()
                 Image.new("RGB", (4, 4), "white").save(directory / "000.png")
@@ -591,3 +724,139 @@ def test_assembly_preserves_exact_target_after_post_replace_ambiguity(
     assert live.revision == before.revision + 1
     assert any(item.artifact_id == result.report.artifact_id for item in live.artifacts)
     assert (root / result.model.path).is_file()
+
+
+def test_extended_assembly_retains_twenty_nine_sources_and_deduplicates_identical_names(
+    config, prompt, tmp_path
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    _extend_candidate(config, repository, tmp_path, durations)
+    result = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="identical"),
+    )
+    manifest = repository.load("native_motion_test_001")
+    roots = [
+        item for item in manifest.artifacts if item.stage == "source" and not item.derived_from
+    ]
+    assert len(roots) == 28
+    assert set(result.model.derived_from) == service.EXTENDED_ROOTS
+    report = json.loads((root / result.report.path).read_text(encoding="utf-8"))
+    facts = report["transformation_facts"]
+    assert facts["source_animation_entry_count"] == 30
+    assert facts["compatible_source_animation_entry_count"] == 29
+    assert facts["final_unique_runtime_action_count"] == 25
+    assert len(report["clips"]) == 25
+    assert len(result.playback) == 13
+    assert all(
+        item["resolution"] == "deduplicated_identical"
+        for item in report["comparison"]["collisions"]
+    )
+    assert report["comparison"]["eating"]["selected"].endswith(
+        "019fe8ca-a6c4-7968-822f-92efebbab5a4"
+    )
+    assert report["comparison"]["butchering"]["selected"].endswith(
+        "019fe8d7-ed16-7b82-a594-728d821ee711"
+    )
+    assert report["comparison"]["death"]["runtime_policy"] == (
+        "play_once_then_hold_final_frame"
+    )
+    assert report["comparison"]["lie_down_held_pose"]["classified_as_death"] is False
+
+
+def test_extended_assembly_retains_materially_different_collisions_under_stable_ids(
+    config, prompt, tmp_path
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    _extend_candidate(config, repository, tmp_path, durations)
+    result = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="different"),
+    )
+    report = json.loads((root / result.report.path).read_text(encoding="utf-8"))
+    assert report["transformation_facts"]["final_unique_runtime_action_count"] == 29
+    names = {item["exact_name"] for item in report["clips"]}
+    for name in COLLISION_NAMES:
+        assert f"target_character|{name}" in names
+        assert f"target_character|multi_fc7f5947|{name}" in names
+    for collision in report["comparison"]["collisions"]:
+        assert collision["selected_runtime_action_name"] == (
+            f"target_character|{collision['exact_export_name']}"
+        )
+
+
+def test_extended_assembly_rejects_nonidentity_compatible_container(
+    config, prompt, tmp_path
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    _extend_candidate(config, repository, tmp_path, durations)
+    before = repository.load("native_motion_test_001")
+    with pytest.raises(FoundryError, match="container is not identity-normalized"):
+        service.assemble_meshy_native_character_motion(
+            config,
+            "native_motion_test_001",
+            _runner(durations, extension_mode="identical", bad_container=True),
+        )
+    assert repository.load("native_motion_test_001").model_dump(mode="json") == (
+        before.model_dump(mode="json")
+    )
+    assert not (root / "processed/meshy-native-character-motion/model-002.glb").exists()
+
+
+def test_extended_assembly_rehashes_late_mutated_multi_root_and_rolls_back(
+    config, prompt, tmp_path, monkeypatch
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    _extend_candidate(config, repository, tmp_path, durations)
+    before = repository.load("native_motion_test_001")
+    victim = next(
+        item
+        for item in before.artifacts
+        if item.artifact_id == "meshy_native_multi_motion_fbx_root_010"
+    )
+    original = service._process_artifact
+    mutated = False
+
+    def mutate_after_promotion(*args, **kwargs):
+        nonlocal mutated
+        if not mutated:
+            mutated = True
+            (root / victim.path).write_bytes(b"late mutation")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(service, "_process_artifact", mutate_after_promotion)
+    with pytest.raises(FoundryError, match="input/output changed"):
+        service.assemble_meshy_native_character_motion(
+            config,
+            "native_motion_test_001",
+            _runner(durations, extension_mode="identical"),
+        )
+    assert repository.load("native_motion_test_001").model_dump(mode="json") == (
+        before.model_dump(mode="json")
+    )
+    assert not (root / "processed/meshy-native-character-motion/model-002.glb").exists()
+
+
+def test_extended_assembly_save_ambiguity_preserves_exact_target(
+    config, prompt, tmp_path, monkeypatch
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    _extend_candidate(config, repository, tmp_path, durations)
+    original = ManifestRepository.save
+
+    def save_then_fail(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        raise OSError("lock exit")
+
+    monkeypatch.setattr(ManifestRepository, "save", save_then_fail)
+    result = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="identical"),
+    )
+    live = repository.load("native_motion_test_001")
+    assert any(item.artifact_id == result.model.artifact_id for item in live.artifacts)
+    assert (root / result.model.path).is_file()
+    assert (root / result.report.path).is_file()

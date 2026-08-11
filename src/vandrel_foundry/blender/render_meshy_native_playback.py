@@ -20,7 +20,7 @@ def main() -> None:
     expected_durations = json.loads(durations_path.read_text(encoding="utf-8"))
     if (
         not isinstance(expected_durations, dict)
-        or len(expected_durations) != 10
+        or not expected_durations
         or any(
             not isinstance(name, str)
             or isinstance(duration, bool)
@@ -46,11 +46,14 @@ def main() -> None:
         if item.type == "MESH"
         and any(mod.type == "ARMATURE" and mod.object == armature for mod in item.modifiers)
     ]
-    actions = sorted(bpy.data.actions, key=lambda item: item.name.casefold())
-    if not meshes or len(actions) != 10:
-        raise RuntimeError("Meshy native playback requires skinned geometry and ten actions.")
-    if [action.name for action in actions] != list(expected_durations):
-        raise RuntimeError("Imported actions do not match the bound normalization report order.")
+    imported_actions = list(bpy.data.actions)
+    by_name = {action.name: action for action in imported_actions}
+    if not meshes or len(by_name) != len(imported_actions):
+        raise RuntimeError("Meshy native playback requires skinned geometry and unique actions.")
+    missing = [name for name in expected_durations if name not in by_name]
+    if missing:
+        raise RuntimeError(f"Imported model is missing bound playback actions: {missing}.")
+    actions = [by_name[name] for name in expected_durations]
 
     camera_data = bpy.data.cameras.new("MeshyNativePlaybackCamera")
     camera = bpy.data.objects.new("MeshyNativePlaybackCamera", camera_data)
@@ -144,7 +147,7 @@ def main() -> None:
                 "clip_count": len(clips),
                 "clips": clips,
                 "review_scope": [
-                    "all_exact_actions",
+                    "all_selected_exact_actions",
                     "deformation",
                     "root_motion",
                     "ground_contact",

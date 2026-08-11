@@ -12,10 +12,10 @@ from mathutils import Quaternion, Vector
 
 def main() -> None:
     values = sys.argv[sys.argv.index("--") + 1 :]
-    if len(values) != 6:
+    if len(values) not in {6, 7}:
         raise RuntimeError(
             "Expected character FBX, texture PNG, canary GLB, top-four reference GLB, "
-            "output GLB, and report JSON."
+            "output GLB, report JSON, and optional multi-motion entry manifest."
         )
     (
         character_path,
@@ -24,7 +24,8 @@ def main() -> None:
         reference_path,
         output_path,
         report_path,
-    ) = map(Path, values)
+    ) = map(Path, values[:6])
+    extension_manifest_path = Path(values[6]) if len(values) == 7 else None
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.render.fps = 30
@@ -85,6 +86,7 @@ def main() -> None:
             scale_ratio,
             armature_correction,
         )
+        action.use_fake_user = True
         transferred.append(action)
         clip_facts.append(facts)
 
@@ -95,6 +97,18 @@ def main() -> None:
             bpy.data.actions.remove(action)
     for action, facts in zip(transferred, clip_facts, strict=True):
         action.name = facts["exact_name"]
+    extension_facts = []
+    collision_facts = []
+    if extension_manifest_path is not None:
+        extension_facts, collision_facts = _add_extension_actions(
+            scene,
+            target,
+            target_meshes,
+            target_hierarchy,
+            transferred,
+            clip_facts,
+            extension_manifest_path,
+        )
     bind_after = _bind_matrix_signature(target_meshes, target)
     material_after = _material_signature(target_meshes)
     if bind_before != bind_after:
@@ -112,7 +126,11 @@ def main() -> None:
     report_path.write_text(
         json.dumps(
             {
-                "schema": "vandrel_foundry_meshy_native_character_assembly_adapter/3.0",
+                "schema": (
+                    "vandrel_foundry_meshy_native_character_assembly_adapter/4.0"
+                    if extension_manifest_path is not None
+                    else "vandrel_foundry_meshy_native_character_assembly_adapter/3.0"
+                ),
                 "blender_version": bpy.app.version_string,
                 "transformation_facts": {
                     "target_joint_count": len(target_hierarchy),
@@ -157,17 +175,321 @@ def main() -> None:
                     "material_texture_preserved": True,
                     "preexport_unweighted_vertex_count": 0,
                     "output_action_count": len(transferred),
+                    "base_action_count": 10,
+                    "extension_source_entry_count": len(extension_facts),
+                    "extension_compatible_entry_count": sum(
+                        item["runtime_eligibility"] == "identity_normalized"
+                        for item in extension_facts
+                    ),
+                    "extension_provenance_only_entry_count": sum(
+                        item["runtime_eligibility"]
+                        == "provenance_only_legacy_outlier"
+                        for item in extension_facts
+                    ),
+                    "runtime_collision_count": len(collision_facts),
+                    "runtime_deduplicated_collision_count": sum(
+                        item["resolution"] == "deduplicated_identical"
+                        for item in collision_facts
+                    ),
+                    "runtime_source_qualified_collision_count": sum(
+                        item["resolution"] == "source_qualified_alternative"
+                        for item in collision_facts
+                    ),
                     "root_motion_policy": (
                         "per_clip_xy_start_baseline_then_actual_target_mesh_ground_to_z_zero"
                     ),
                 },
                 "clips": clip_facts,
+                "extension_entries": extension_facts,
+                "collisions": collision_facts,
             },
             indent=2,
         )
         + "\n",
         encoding="utf-8",
     )
+
+
+def _add_extension_actions(
+    scene,
+    target,
+    target_meshes,
+    target_hierarchy,
+    transferred,
+    clip_facts,
+    manifest_path,
+):
+    value = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entries = value.get("entries") if isinstance(value, dict) else None
+    if not isinstance(entries, list) or len(entries) != 20:
+        raise RuntimeError("Meshy multi-motion adapter requires exactly twenty FBX entries.")
+    runtime_actions = {action.name: action for action in transferred}
+    entry_facts = []
+    collision_facts = []
+    identity_rest_signature = None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise TypeError("Meshy multi-motion entry descriptor is invalid.")
+        artifact_id = entry.get("artifact_id")
+        exact_name = entry.get("exact_export_name")
+        eligibility = entry.get("runtime_eligibility")
+        source_path = Path(entry.get("path", ""))
+        if (
+            not isinstance(artifact_id, str)
+            or not isinstance(exact_name, str)
+            or eligibility
+            not in {"identity_normalized", "provenance_only_legacy_outlier"}
+            or not source_path.is_file()
+        ):
+            raise RuntimeError("Meshy multi-motion entry descriptor is incomplete.")
+        existing_objects = set(scene.objects)
+        existing_actions = set(bpy.data.actions)
+        bpy.ops.import_scene.fbx(filepath=str(source_path), use_anim=True)
+        scene.render.fps = 30
+        scene.render.fps_base = 1.0
+        imported = [item for item in scene.objects if item not in existing_objects]
+        source_armatures = [item for item in imported if item.type == "ARMATURE"]
+        source_actions = [item for item in bpy.data.actions if item not in existing_actions]
+        if len(source_armatures) != 1 or len(source_actions) != 1:
+            raise RuntimeError(
+                f"Meshy multi-motion {artifact_id} requires one armature and one action."
+            )
+        source = source_armatures[0]
+        source_action = source_actions[0]
+        hierarchy = _hierarchy(source)
+        if hierarchy != target_hierarchy or len(hierarchy) != 24:
+            raise RuntimeError(f"Meshy multi-motion hierarchy mismatch: {artifact_id}.")
+        source_meshes = _skinned_meshes(scene, source)
+        if not source_meshes or _unweighted(source_meshes, source):
+            raise RuntimeError(f"Meshy multi-motion skin is invalid: {artifact_id}.")
+        rest_signature = _rest_signature(source)
+        container_angle = math.degrees(
+            source.matrix_world.to_quaternion().normalized().angle
+        )
+        if eligibility == "provenance_only_legacy_outlier":
+            if exact_name != "019fee70-fd9d-7b6e-914a-d6dad2a49eeb" or not (
+                89.0 <= container_angle <= 91.0
+            ):
+                raise RuntimeError("Known Meshy legacy UUID container proof failed.")
+            entry_facts.append(
+                {
+                    "artifact_id": artifact_id,
+                    "exact_export_name": exact_name,
+                    "embedded_action_name": source_action.name,
+                    "runtime_eligibility": eligibility,
+                    "joint_count": len(hierarchy),
+                    "rest_signature": rest_signature,
+                    "container_rotation_degrees": container_angle,
+                    "runtime_action_name": None,
+                    "exclusion_reason": "known_legacy_plus_90_x_container_outlier",
+                }
+            )
+            _remove_imported(imported, source_actions)
+            continue
+        if container_angle > 0.01:
+            raise RuntimeError(
+                f"Meshy multi-motion identity container mismatch: {artifact_id}={container_angle}."
+            )
+        if identity_rest_signature is None:
+            identity_rest_signature = rest_signature
+        elif rest_signature != identity_rest_signature:
+            raise RuntimeError(f"Meshy multi-motion rest signature mismatch: {artifact_id}.")
+        runtime_name = f"target_character|{exact_name}"
+        scale_ratio = _rig_scale(target) / _rig_scale(source)
+        armature_correction = (
+            target.matrix_world.to_quaternion().normalized().inverted()
+            @ source.matrix_world.to_quaternion().normalized()
+        ).normalized()
+        action, facts = _transfer_action(
+            scene,
+            source,
+            target,
+            target_meshes,
+            source_action,
+            scale_ratio,
+            armature_correction,
+        )
+        action.use_fake_user = True
+        collision = runtime_actions.get(runtime_name)
+        entry_fact = {
+            "artifact_id": artifact_id,
+            "exact_export_name": exact_name,
+            "embedded_action_name": entry.get("embedded_action_name", source_action.name),
+            "runtime_eligibility": eligibility,
+            "joint_count": len(hierarchy),
+            "rest_signature": rest_signature,
+            "container_rotation_degrees": container_angle,
+            "source_frame_range": [
+                float(source_action.frame_range[0]),
+                float(source_action.frame_range[1]),
+            ],
+            "source_duration_seconds": (
+                float(source_action.frame_range[1]) - float(source_action.frame_range[0])
+            )
+            / 30.0,
+        }
+        if collision is None:
+            action.name = runtime_name
+            facts["exact_name"] = runtime_name
+            facts["source_artifact_id"] = artifact_id
+            facts["source_exact_export_name"] = exact_name
+            runtime_actions[runtime_name] = action
+            transferred.append(action)
+            clip_facts.append(facts)
+            entry_fact["runtime_action_name"] = runtime_name
+            entry_fact["collision_resolution"] = "none"
+        else:
+            comparison = _compare_actions(collision, action)
+            if comparison["identical"]:
+                bpy.data.actions.remove(action)
+                entry_fact["runtime_action_name"] = runtime_name
+                entry_fact["collision_resolution"] = "deduplicated_identical"
+                collision_facts.append(
+                    {
+                        "exact_export_name": exact_name,
+                        "existing_runtime_action_name": runtime_name,
+                        "source_artifact_id": artifact_id,
+                        "resolution": "deduplicated_identical",
+                        "selected_runtime_action_name": runtime_name,
+                        "retained_alternative_action_name": None,
+                        "curve_comparison": comparison,
+                    }
+                )
+            else:
+                qualified = f"target_character|multi_fc7f5947|{exact_name}"
+                if qualified in runtime_actions:
+                    raise RuntimeError("Stable Meshy source-qualified action ID collides.")
+                action.name = qualified
+                facts["exact_name"] = qualified
+                facts["source_artifact_id"] = artifact_id
+                facts["source_exact_export_name"] = exact_name
+                runtime_actions[qualified] = action
+                transferred.append(action)
+                clip_facts.append(facts)
+                entry_fact["runtime_action_name"] = qualified
+                entry_fact["collision_resolution"] = "source_qualified_alternative"
+                collision_facts.append(
+                    {
+                        "exact_export_name": exact_name,
+                        "existing_runtime_action_name": runtime_name,
+                        "source_artifact_id": artifact_id,
+                        "resolution": "source_qualified_alternative",
+                        "selected_runtime_action_name": runtime_name,
+                        "retained_alternative_action_name": qualified,
+                        "curve_comparison": comparison,
+                    }
+                )
+        entry_facts.append(entry_fact)
+        _remove_imported(imported, source_actions)
+    if identity_rest_signature is None:
+        raise RuntimeError("Meshy multi-motion archive has no identity-compatible action.")
+    return entry_facts, collision_facts
+
+
+def _action_fcurves(action):
+    if hasattr(action, "fcurves"):
+        return list(action.fcurves)
+    values = []
+    for layer in getattr(action, "layers", []):
+        for strip in getattr(layer, "strips", []):
+            for channelbag in getattr(strip, "channelbags", []):
+                values.extend(channelbag.fcurves)
+    return values
+
+
+def _compare_actions(first, second):
+    first_range = tuple(float(value) for value in first.frame_range)
+    second_range = tuple(float(value) for value in second.frame_range)
+    range_delta = max(
+        abs(left - right) for left, right in zip(first_range, second_range, strict=True)
+    )
+    if range_delta > 1e-6:
+        return {
+            "identical": False,
+            "reason": "duration_mismatch",
+            "maximum_key_value_delta": range_delta,
+        }
+    first_curves = sorted(
+        _action_fcurves(first), key=lambda item: (item.data_path, item.array_index)
+    )
+    second_curves = sorted(
+        _action_fcurves(second), key=lambda item: (item.data_path, item.array_index)
+    )
+    if len(first_curves) != len(second_curves):
+        return {
+            "identical": False,
+            "reason": "curve_count_mismatch",
+            "maximum_key_value_delta": None,
+        }
+    maximum = 0.0
+    for left, right in zip(first_curves, second_curves, strict=True):
+        if (left.data_path, left.array_index) != (right.data_path, right.array_index):
+            return {
+                "identical": False,
+                "reason": "curve_identity_mismatch",
+                "maximum_key_value_delta": None,
+            }
+        left_points = list(left.keyframe_points)
+        right_points = list(right.keyframe_points)
+        if len(left_points) != len(right_points):
+            return {
+                "identical": False,
+                "reason": "key_count_mismatch",
+                "maximum_key_value_delta": None,
+            }
+        for left_point, right_point in zip(left_points, right_points, strict=True):
+            frame_delta = abs(float(left_point.co.x) - float(right_point.co.x))
+            value_delta = abs(float(left_point.co.y) - float(right_point.co.y))
+            maximum = max(maximum, frame_delta, value_delta)
+            if (
+                left_point.interpolation != right_point.interpolation
+                or left_point.easing != right_point.easing
+                or left_point.handle_left_type != right_point.handle_left_type
+                or left_point.handle_right_type != right_point.handle_right_type
+            ):
+                return {
+                    "identical": False,
+                    "reason": "curve_interpolation_mismatch",
+                    "maximum_key_value_delta": maximum,
+                }
+            for left_handle, right_handle in (
+                (left_point.handle_left, right_point.handle_left),
+                (left_point.handle_right, right_point.handle_right),
+            ):
+                maximum = max(
+                    maximum,
+                    abs(float(left_handle.x) - float(right_handle.x)),
+                    abs(float(left_handle.y) - float(right_handle.y)),
+                )
+    return {
+        "identical": maximum <= 1e-6,
+        "reason": "exact_within_1e-6" if maximum <= 1e-6 else "material_value_delta",
+        "maximum_key_value_delta": maximum,
+    }
+
+
+def _rest_signature(armature):
+    value = [
+        {
+            "name": bone.name,
+            "parent": bone.parent.name if bone.parent else None,
+            "matrix_local": [float(item) for row in bone.matrix_local for item in row],
+        }
+        for bone in armature.data.bones
+    ]
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def _remove_imported(objects, actions):
+    for item in objects:
+        if item.name in bpy.data.objects:
+            bpy.data.objects.remove(item, do_unlink=True)
+    for action in actions:
+        if action.name in bpy.data.actions:
+            bpy.data.actions.remove(action)
+    bpy.data.orphans_purge(do_recursive=True)
 
 
 def _transfer_action(

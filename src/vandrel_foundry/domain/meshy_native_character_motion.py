@@ -30,9 +30,10 @@ class MeshyNativeMotionSemanticEvidence(StrictModel):
 
 
 class MeshyNativeCharacterMotionReport(StrictModel):
-    schema_name: Literal["vandrel_foundry_meshy_native_character_motion/1.1"] = Field(
-        alias="schema"
-    )
+    schema_name: Literal[
+        "vandrel_foundry_meshy_native_character_motion/1.1",
+        "vandrel_foundry_meshy_native_character_motion/1.2",
+    ] = Field(alias="schema")
     asset_id: str
     processor: dict[str, object]
     source_union: list[str]
@@ -48,10 +49,18 @@ class MeshyNativeCharacterMotionReport(StrictModel):
 
     @model_validator(mode="after")
     def require_bounded_shape(self) -> "MeshyNativeCharacterMotionReport":
-        if len(self.source_union) != 6 or len(set(self.source_union)) != 6:
-            raise ValueError("Character motion report requires the exact six-root union")
-        if len(self.clips) != 10 or len(self.playback) != 10:
-            raise ValueError("Character motion report requires all ten canary actions")
+        expected_roots = 28 if self.schema_name.endswith("/1.2") else 6
+        if len(self.source_union) != expected_roots or len(set(self.source_union)) != expected_roots:
+            raise ValueError(
+                f"Character motion report requires the exact {expected_roots}-root union"
+            )
+        if self.schema_name.endswith("/1.1"):
+            if len(self.clips) != 10 or len(self.playback) != 10:
+                raise ValueError("Character motion report requires all ten canary actions")
+        elif not 25 <= len(self.clips) <= 29 or not 1 <= len(self.playback) <= len(self.clips):
+            raise ValueError(
+                "Extended character motion report requires 25-29 unique actions and bounded playback"
+            )
         if self.runtime_readiness.get("vandrel_ready") is not False:
             raise ValueError("This package must remain explicitly not Vandrel-ready")
         return self
