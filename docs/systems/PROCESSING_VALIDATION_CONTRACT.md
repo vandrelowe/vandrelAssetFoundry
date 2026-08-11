@@ -277,7 +277,13 @@ normalization report into the character candidate as two immutable source
 contributions; together with the exact four character roots they form the
 complete six-root union. Blender preserves the real character mesh, 24-joint
 hierarchy and inverse-bind relationship, material, and exact texture while
-applying canary pose deltas by native joint identity in rest space. Because the
+mapping each canary bone's posed global orientation through one constant
+source-to-target armature-space correction. It traverses the target hierarchy
+and reconstructs each target local pose basis through the already-posed parent
+and target local rest basis. The rotational result never receives an
+incompatible per-bone target-global-rest postfactor, target rest translations
+and bone lengths remain authoritative, and only Hips receives the declared
+skeleton-extent translation scale and root/ground reconciliation. Because the
 Godot-facing glTF corridor uses one four-influence set, the processor does not
 claim byte-exact native skin-weight preservation. It deterministically orders
 positive bone influences by descending weight with a bone-name tie-break,

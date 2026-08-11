@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Vector
+from mathutils import Quaternion, Vector
 
 
 def main() -> None:
@@ -65,6 +65,10 @@ def main() -> None:
     if source_hierarchy != target_hierarchy:
         raise RuntimeError("Canary and real-character native joint hierarchies do not match.")
     rest_rotation_delta = _maximum_rest_rotation_delta(source, target)
+    armature_correction = (
+        target.matrix_world.to_quaternion().normalized().inverted()
+        @ source.matrix_world.to_quaternion().normalized()
+    ).normalized()
     source_actions = sorted(bpy.data.actions, key=lambda item: item.name.casefold())
     if len(source_actions) != 10 or len({item.name for item in source_actions}) != 10:
         raise RuntimeError("Canary motion model must contain exactly ten unique actions.")
@@ -73,7 +77,13 @@ def main() -> None:
     clip_facts = []
     for source_action in source_actions:
         action, facts = _transfer_action(
-            scene, source, target, target_meshes, source_action, scale_ratio
+            scene,
+            source,
+            target,
+            target_meshes,
+            source_action,
+            scale_ratio,
+            armature_correction,
         )
         transferred.append(action)
         clip_facts.append(facts)
@@ -102,15 +112,37 @@ def main() -> None:
     report_path.write_text(
         json.dumps(
             {
-                "schema": "vandrel_foundry_meshy_native_character_assembly_adapter/2.0",
+                "schema": "vandrel_foundry_meshy_native_character_assembly_adapter/3.0",
                 "blender_version": bpy.app.version_string,
                 "transformation_facts": {
                     "target_joint_count": len(target_hierarchy),
                     "source_joint_count": len(source_hierarchy),
                     "exact_native_joint_hierarchy_match": True,
-                    "semantic_transfer_policy": "native_joint_identity_rest_space_delta",
+                    "semantic_transfer_policy": (
+                        "native_joint_identity_global_pose_reconstruction"
+                    ),
                     "index_or_mixamo_graft": False,
                     "rest_rotation_max_delta_radians": rest_rotation_delta,
+                    "armature_space_correction_quaternion_wxyz": [
+                        float(item) for item in armature_correction
+                    ],
+                    "armature_space_correction_angle_degrees": math.degrees(
+                        armature_correction.angle
+                    ),
+                    "target_rest_translation_policy": (
+                        "preserve_target_rest_translations_and_bone_lengths"
+                    ),
+                    "target_pose_scale_policy": "identity_preserves_target_bone_lengths",
+                    "old_target_global_rest_postfactor_applied": False,
+                    "direct_matrix_basis_copy_applied": False,
+                    "maximum_sampled_global_orientation_delta_degrees": max(
+                        facts["maximum_sampled_global_orientation_delta_degrees"]
+                        for facts in clip_facts
+                    ),
+                    "maximum_sampled_parent_local_orientation_delta_degrees": max(
+                        facts["maximum_sampled_parent_local_orientation_delta_degrees"]
+                        for facts in clip_facts
+                    ),
                     "translation_scale_ratio": scale_ratio,
                     "target_bind_matrix_signature_before": bind_before,
                     "target_bind_matrix_signature_after": bind_after,
@@ -138,37 +170,60 @@ def main() -> None:
     )
 
 
-def _transfer_action(scene, source, target, meshes, source_action, scale_ratio):
+def _transfer_action(
+    scene,
+    source,
+    target,
+    meshes,
+    source_action,
+    scale_ratio,
+    armature_correction,
+):
     source.animation_data_create()
     target.animation_data_create()
     source.animation_data.action = source_action
     start = math.floor(source_action.frame_range[0])
     end = max(start + 1, math.ceil(source_action.frame_range[1]))
     output = bpy.data.actions.new(f"__target__{source_action.name}")
+    ordered_target_bones = sorted(target.pose.bones, key=_bone_depth)
+    source_root_rest = source.data.bones["Hips"].matrix_local
+    target_root_rest_rotation = (
+        target.data.bones["Hips"].matrix_local.to_quaternion().normalized()
+    )
     for frame in range(start, end + 1):
         source.animation_data.action = source_action
         scene.frame_set(frame)
         bpy.context.view_layer.update()
-        deltas = {
-            bone.name: _retarget_basis(
-                source.data.bones[bone.name],
-                target.data.bones[bone.name],
-                bone.matrix_basis,
-                scale_ratio,
-            )
-            for bone in source.pose.bones
-        }
         target.animation_data.action = output
-        for bone in target.pose.bones:
+        for bone in ordered_target_bones:
+            source_pose = source.pose.bones[bone.name]
+            desired_global_rotation = (
+                armature_correction @ source_pose.matrix.to_quaternion().normalized()
+            ).normalized()
+            parent_rotation = (
+                bone.parent.matrix.to_quaternion().normalized()
+                if bone.parent is not None
+                else Quaternion((1.0, 0.0, 0.0, 0.0))
+            )
+            target_local_rest = _local_rest_rotation(target.data.bones[bone.name])
+            basis_rotation = (
+                (parent_rotation @ target_local_rest).inverted()
+                @ desired_global_rotation
+            ).normalized()
             bone.rotation_mode = "QUATERNION"
-            location, rotation, scale = deltas[bone.name]
-            bone.location = location
-            bone.rotation_quaternion = rotation
-            bone.scale = scale
+            bone.rotation_quaternion = basis_rotation
+            if bone.name == "Hips":
+                source_delta = source_pose.matrix.translation - source_root_rest.translation
+                mapped_delta = (armature_correction @ source_delta) * scale_ratio
+                bone.location = target_root_rest_rotation.inverted() @ mapped_delta
+            else:
+                bone.location = Vector((0.0, 0.0, 0.0))
+            bone.scale = Vector((1.0, 1.0, 1.0))
             _finite([*bone.location, *bone.rotation_quaternion, *bone.scale], bone.name)
             bone.keyframe_insert("location", frame=frame, group=bone.name)
             bone.keyframe_insert("rotation_quaternion", frame=frame, group=bone.name)
             bone.keyframe_insert("scale", frame=frame, group=bone.name)
+            bpy.context.view_layer.update()
     target.animation_data.action = output
     root = target.pose.bones["Hips"]
     scene.frame_set(start)
@@ -210,6 +265,16 @@ def _transfer_action(scene, source, target, meshes, source_action, scale_ratio):
                         for index, point in enumerate(points)
                     ),
                 )
+    angular_deltas = _sample_angular_deltas(
+        scene,
+        source,
+        target,
+        source_action,
+        output,
+        armature_correction,
+        start,
+        end,
+    )
     return output, {
         "exact_name": source_action.name,
         "frame_range": [start, end],
@@ -218,7 +283,93 @@ def _transfer_action(scene, source, target, meshes, source_action, scale_ratio):
         "ground_before_correction_z": ground_before,
         "ground_after_range_z": [min(ground_after), max(ground_after)],
         "maximum_sampled_vertex_displacement": deformation,
+        "sampled_orientation_deltas": angular_deltas,
+        "maximum_sampled_global_orientation_delta_degrees": max(
+            sample["maximum_global_delta_degrees"] for sample in angular_deltas.values()
+        ),
+        "maximum_sampled_parent_local_orientation_delta_degrees": max(
+            sample["maximum_parent_local_delta_degrees"]
+            for sample in angular_deltas.values()
+        ),
     }
+
+
+def _sample_angular_deltas(
+    scene,
+    source,
+    target,
+    source_action,
+    target_action,
+    armature_correction,
+    start,
+    end,
+):
+    result = {}
+    for label, frame in (
+        ("frame_start", start),
+        ("frame_mid", (start + end) // 2),
+        ("frame_end", end),
+    ):
+        source.animation_data.action = source_action
+        target.animation_data.action = target_action
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        joints = []
+        for source_pose in source.pose.bones:
+            target_pose = target.pose.bones[source_pose.name]
+            desired_global = (
+                armature_correction @ source_pose.matrix.to_quaternion().normalized()
+            ).normalized()
+            source_local = (
+                source_pose.parent.matrix.to_quaternion().normalized().inverted()
+                @ source_pose.matrix.to_quaternion().normalized()
+                if source_pose.parent is not None
+                else armature_correction @ source_pose.matrix.to_quaternion().normalized()
+            )
+            target_local = (
+                target_pose.parent.matrix.to_quaternion().normalized().inverted()
+                @ target_pose.matrix.to_quaternion().normalized()
+                if target_pose.parent is not None
+                else target_pose.matrix.to_quaternion().normalized()
+            )
+            joints.append(
+                {
+                    "joint": source_pose.name,
+                    "global_delta_degrees": _quaternion_angle_degrees(
+                        desired_global, target_pose.matrix.to_quaternion()
+                    ),
+                    "parent_local_delta_degrees": _quaternion_angle_degrees(
+                        source_local, target_local
+                    ),
+                }
+            )
+        result[label] = {
+            "frame": frame,
+            "maximum_global_delta_degrees": max(
+                item["global_delta_degrees"] for item in joints
+            ),
+            "maximum_parent_local_delta_degrees": max(
+                item["parent_local_delta_degrees"] for item in joints
+            ),
+            "largest_global_joints": sorted(
+                joints, key=lambda item: item["global_delta_degrees"], reverse=True
+            )[:5],
+        }
+    return result
+
+
+def _quaternion_angle_degrees(first, second):
+    angle = float(first.normalized().rotation_difference(second.normalized()).angle)
+    return math.degrees(min(angle, abs((2 * math.pi) - angle)))
+
+
+def _bone_depth(pose_bone):
+    value = 0
+    parent = pose_bone.parent
+    while parent is not None:
+        value += 1
+        parent = parent.parent
+    return value
 
 
 def _bind_exact_texture(meshes, texture_path):
@@ -274,18 +425,6 @@ def _maximum_rest_rotation_delta(source, target):
     if not values:
         raise RuntimeError("Meshy native rig has no parent-relative rest rotations.")
     return max(values)
-
-
-def _retarget_basis(source_bone, target_bone, matrix_basis, scale_ratio):
-    location, rotation, scale = matrix_basis.decompose()
-    source_rest = _local_rest_rotation(source_bone)
-    target_rest = _local_rest_rotation(target_bone)
-    parent_space_rotation = source_rest @ rotation @ source_rest.inverted()
-    mapped_rotation = target_rest.inverted() @ parent_space_rotation @ target_rest
-    parent_space_location = source_rest @ location
-    mapped_location = (target_rest.inverted() @ parent_space_location) * scale_ratio
-    _finite([*mapped_location, *mapped_rotation, *scale], source_bone.name)
-    return mapped_location, mapped_rotation, scale
 
 
 def _local_rest_rotation(bone):

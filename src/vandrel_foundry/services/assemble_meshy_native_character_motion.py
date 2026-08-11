@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -31,7 +32,7 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "blender_meshy_native_character_motion_assembly"
-PROCESSOR_VERSION = "2"
+PROCESSOR_VERSION = "3"
 CHARACTER_ROOTS = {
     "meshy_native_character_archive_root_001",
     "meshy_native_character_fbx_root_001",
@@ -222,7 +223,7 @@ def assemble_meshy_native_character_motion(
             assembly_script,
         )
         adapter = _load_json(adapter_report, "Meshy-native assembly adapter")
-        if adapter.get("schema") != "vandrel_foundry_meshy_native_character_assembly_adapter/2.0":
+        if adapter.get("schema") != "vandrel_foundry_meshy_native_character_assembly_adapter/3.0":
             raise FoundryError("Meshy-native assembly adapter report is invalid.")
         facts = adapter.get("transformation_facts")
         clips = adapter.get("clips")
@@ -613,8 +614,14 @@ def _require_facts(facts):
         "target_joint_count": 24,
         "source_joint_count": 24,
         "exact_native_joint_hierarchy_match": True,
-        "semantic_transfer_policy": "native_joint_identity_rest_space_delta",
+        "semantic_transfer_policy": "native_joint_identity_global_pose_reconstruction",
         "index_or_mixamo_graft": False,
+        "target_rest_translation_policy": (
+            "preserve_target_rest_translations_and_bone_lengths"
+        ),
+        "target_pose_scale_policy": "identity_preserves_target_bone_lengths",
+        "old_target_global_rest_postfactor_applied": False,
+        "direct_matrix_basis_copy_applied": False,
         "bind_matrices_preserved": True,
         "material_texture_preserved": True,
         "skin_weight_policy": "deterministic_top4_normalized",
@@ -631,6 +638,18 @@ def _require_facts(facts):
         "target_material_signature_after"
     ):
         raise FoundryError("Meshy-native bind or material signature changed.")
+    for key in (
+        "maximum_sampled_global_orientation_delta_degrees",
+        "maximum_sampled_parent_local_orientation_delta_degrees",
+    ):
+        value = facts.get(key)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) > 0.001
+        ):
+            raise FoundryError("Meshy-native H4 orientation reconstruction did not close.")
 
 
 def _comparison():

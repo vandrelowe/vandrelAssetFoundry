@@ -251,6 +251,10 @@ def _runner(
     image=True,
     partial=False,
     corrupt_output=False,
+    transfer_policy="native_joint_identity_global_pose_reconstruction",
+    direct_basis=False,
+    old_postfactor=False,
+    orientation_delta=0.0,
 ):
     calls = 0
 
@@ -283,15 +287,31 @@ def _runner(
             report.write_text(
                 json.dumps(
                     {
-                        "schema": "vandrel_foundry_meshy_native_character_assembly_adapter/2.0",
+                        "schema": "vandrel_foundry_meshy_native_character_assembly_adapter/3.0",
                         "blender_version": "Blender-test",
                         "transformation_facts": {
                             "target_joint_count": 24,
                             "source_joint_count": 24,
                             "exact_native_joint_hierarchy_match": True,
-                            "semantic_transfer_policy": "native_joint_identity_rest_space_delta",
+                            "semantic_transfer_policy": transfer_policy,
                             "index_or_mixamo_graft": False,
                             "rest_rotation_max_delta_radians": 0,
+                            "armature_space_correction_quaternion_wxyz": [1, 0, 0, 0],
+                            "armature_space_correction_angle_degrees": 0,
+                            "target_rest_translation_policy": (
+                                "preserve_target_rest_translations_and_bone_lengths"
+                            ),
+                            "target_pose_scale_policy": (
+                                "identity_preserves_target_bone_lengths"
+                            ),
+                            "old_target_global_rest_postfactor_applied": old_postfactor,
+                            "direct_matrix_basis_copy_applied": direct_basis,
+                            "maximum_sampled_global_orientation_delta_degrees": (
+                                orientation_delta
+                            ),
+                            "maximum_sampled_parent_local_orientation_delta_degrees": (
+                                orientation_delta
+                            ),
                             "translation_scale_ratio": 1,
                             "target_bind_matrix_signature_before": signature,
                             "target_bind_matrix_signature_after": (
@@ -380,6 +400,51 @@ def test_assembly_registers_six_root_lineage_without_generic_semantics(config, p
     ]
     assert facts["independent_final_top4_skin"]["maximum_influences"] == 4
     assert facts["independent_final_top4_skin"]["unweighted_vertex_count"] == 0
+    assert facts["semantic_transfer_policy"] == (
+        "native_joint_identity_global_pose_reconstruction"
+    )
+    assert facts["old_target_global_rest_postfactor_applied"] is False
+    assert facts["direct_matrix_basis_copy_applied"] is False
+    assert facts["maximum_sampled_global_orientation_delta_degrees"] == 0
+    assert facts["maximum_sampled_parent_local_orientation_delta_degrees"] == 0
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"transfer_policy": "native_joint_identity_rest_space_delta"},
+        {"direct_basis": True},
+        {"old_postfactor": True},
+    ],
+)
+def test_assembly_rejects_direct_copy_and_old_rest_postfactor(
+    config, prompt, tmp_path, options
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    before = repository.load("native_motion_test_001")
+    with pytest.raises(FoundryError, match="violate the contract"):
+        service.assemble_meshy_native_character_motion(
+            config, "native_motion_test_001", _runner(durations, **options)
+        )
+    assert repository.load("native_motion_test_001").model_dump(mode="json") == before.model_dump(
+        mode="json"
+    )
+    assert not (root / "processed/meshy-native-character-motion").exists()
+
+
+def test_assembly_rejects_nonzero_h4_orientation_delta(config, prompt, tmp_path):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    before = repository.load("native_motion_test_001")
+    with pytest.raises(FoundryError, match="orientation reconstruction did not close"):
+        service.assemble_meshy_native_character_motion(
+            config,
+            "native_motion_test_001",
+            _runner(durations, orientation_delta=0.01),
+        )
+    assert repository.load("native_motion_test_001").model_dump(mode="json") == before.model_dump(
+        mode="json"
+    )
+    assert not (root / "processed/meshy-native-character-motion").exists()
 
 
 def test_assembly_creates_fresh_numbered_attempt_without_rewriting_first(
