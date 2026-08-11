@@ -127,7 +127,7 @@ def main() -> None:
         json.dumps(
             {
                 "schema": (
-                    "vandrel_foundry_meshy_native_character_assembly_adapter/4.0"
+                    "vandrel_foundry_meshy_native_character_assembly_adapter/5.0"
                     if extension_manifest_path is not None
                     else "vandrel_foundry_meshy_native_character_assembly_adapter/3.0"
                 ),
@@ -188,7 +188,8 @@ def main() -> None:
                     ),
                     "runtime_collision_count": len(collision_facts),
                     "runtime_deduplicated_collision_count": sum(
-                        item["resolution"] == "deduplicated_identical"
+                        item["resolution"]
+                        in {"deduplicated_identical", "deduplicated_identical_curve"}
                         for item in collision_facts
                     ),
                     "runtime_source_qualified_collision_count": sum(
@@ -221,24 +222,31 @@ def _add_extension_actions(
 ):
     value = json.loads(manifest_path.read_text(encoding="utf-8"))
     entries = value.get("entries") if isinstance(value, dict) else None
-    if not isinstance(entries, list) or len(entries) != 20:
-        raise RuntimeError("Meshy multi-motion adapter requires exactly twenty FBX entries.")
+    if not isinstance(entries, list) or not entries:
+        raise RuntimeError("Meshy multi-motion adapter requires at least one FBX entry.")
     runtime_actions = {action.name: action for action in transferred}
     entry_facts = []
     collision_facts = []
-    identity_rest_signature = None
+    package_rest_signatures = {}
     for entry in entries:
         if not isinstance(entry, dict):
             raise TypeError("Meshy multi-motion entry descriptor is invalid.")
         artifact_id = entry.get("artifact_id")
         exact_name = entry.get("exact_export_name")
         eligibility = entry.get("runtime_eligibility")
+        package_number = entry.get("source_package_number")
+        source_qualifier = entry.get("source_qualifier")
         source_path = Path(entry.get("path", ""))
         if (
             not isinstance(artifact_id, str)
             or not isinstance(exact_name, str)
             or eligibility
             not in {"identity_normalized", "provenance_only_legacy_outlier"}
+            or not isinstance(package_number, int)
+            or package_number < 1
+            or not isinstance(source_qualifier, str)
+            or len(source_qualifier) != 8
+            or any(character not in "0123456789abcdef" for character in source_qualifier)
             or not source_path.is_file()
         ):
             raise RuntimeError("Meshy multi-motion entry descriptor is incomplete.")
@@ -277,6 +285,8 @@ def _add_extension_actions(
                     "exact_export_name": exact_name,
                     "embedded_action_name": source_action.name,
                     "runtime_eligibility": eligibility,
+                    "source_package_number": package_number,
+                    "source_qualifier": source_qualifier,
                     "joint_count": len(hierarchy),
                     "rest_signature": rest_signature,
                     "container_rotation_degrees": container_angle,
@@ -290,10 +300,11 @@ def _add_extension_actions(
             raise RuntimeError(
                 f"Meshy multi-motion identity container mismatch: {artifact_id}={container_angle}."
             )
-        if identity_rest_signature is None:
-            identity_rest_signature = rest_signature
-        elif rest_signature != identity_rest_signature:
-            raise RuntimeError(f"Meshy multi-motion rest signature mismatch: {artifact_id}.")
+        established_rest = package_rest_signatures.setdefault(package_number, rest_signature)
+        if rest_signature != established_rest:
+            raise RuntimeError(
+                f"Meshy multi-motion package rest signature mismatch: {artifact_id}."
+            )
         runtime_name = f"target_character|{exact_name}"
         scale_ratio = _rig_scale(target) / _rig_scale(source)
         armature_correction = (
@@ -311,11 +322,14 @@ def _add_extension_actions(
         )
         action.use_fake_user = True
         collision = runtime_actions.get(runtime_name)
+        source_curve_signature = _action_curve_signature(source_action)
         entry_fact = {
             "artifact_id": artifact_id,
             "exact_export_name": exact_name,
             "embedded_action_name": entry.get("embedded_action_name", source_action.name),
             "runtime_eligibility": eligibility,
+            "source_package_number": package_number,
+            "source_qualifier": source_qualifier,
             "joint_count": len(hierarchy),
             "rest_signature": rest_signature,
             "container_rotation_degrees": container_angle,
@@ -327,17 +341,40 @@ def _add_extension_actions(
                 float(source_action.frame_range[1]) - float(source_action.frame_range[0])
             )
             / 30.0,
+            "source_curve_sha256": source_curve_signature,
+            "transferred_curve_sha256": _action_curve_signature(action),
         }
         if collision is None:
-            action.name = runtime_name
-            facts["exact_name"] = runtime_name
-            facts["source_artifact_id"] = artifact_id
-            facts["source_exact_export_name"] = exact_name
-            runtime_actions[runtime_name] = action
-            transferred.append(action)
-            clip_facts.append(facts)
-            entry_fact["runtime_action_name"] = runtime_name
-            entry_fact["collision_resolution"] = "none"
+            identical = _find_identical_action(runtime_actions, action)
+            if identical is None:
+                action.name = runtime_name
+                facts["exact_name"] = runtime_name
+                facts["source_artifact_id"] = artifact_id
+                facts["source_exact_export_name"] = exact_name
+                facts["source_package_number"] = package_number
+                facts["source_qualifier"] = source_qualifier
+                runtime_actions[runtime_name] = action
+                transferred.append(action)
+                clip_facts.append(facts)
+                entry_fact["runtime_action_name"] = runtime_name
+                entry_fact["collision_resolution"] = "none"
+            else:
+                existing_name, comparison = identical
+                bpy.data.actions.remove(action)
+                entry_fact["runtime_action_name"] = existing_name
+                entry_fact["collision_resolution"] = "deduplicated_identical_curve"
+                collision_facts.append(
+                    {
+                        "exact_export_name": exact_name,
+                        "existing_runtime_action_name": existing_name,
+                        "source_artifact_id": artifact_id,
+                        "source_qualifier": source_qualifier,
+                        "resolution": "deduplicated_identical_curve",
+                        "selected_runtime_action_name": existing_name,
+                        "retained_alternative_action_name": None,
+                        "curve_comparison": comparison,
+                    }
+                )
         else:
             comparison = _compare_actions(collision, action)
             if comparison["identical"]:
@@ -349,6 +386,7 @@ def _add_extension_actions(
                         "exact_export_name": exact_name,
                         "existing_runtime_action_name": runtime_name,
                         "source_artifact_id": artifact_id,
+                        "source_qualifier": source_qualifier,
                         "resolution": "deduplicated_identical",
                         "selected_runtime_action_name": runtime_name,
                         "retained_alternative_action_name": None,
@@ -356,32 +394,61 @@ def _add_extension_actions(
                     }
                 )
             else:
-                qualified = f"target_character|multi_fc7f5947|{exact_name}"
-                if qualified in runtime_actions:
-                    raise RuntimeError("Stable Meshy source-qualified action ID collides.")
-                action.name = qualified
-                facts["exact_name"] = qualified
-                facts["source_artifact_id"] = artifact_id
-                facts["source_exact_export_name"] = exact_name
-                runtime_actions[qualified] = action
-                transferred.append(action)
-                clip_facts.append(facts)
-                entry_fact["runtime_action_name"] = qualified
-                entry_fact["collision_resolution"] = "source_qualified_alternative"
-                collision_facts.append(
+                identical = _find_identical_action(
                     {
-                        "exact_export_name": exact_name,
-                        "existing_runtime_action_name": runtime_name,
-                        "source_artifact_id": artifact_id,
-                        "resolution": "source_qualified_alternative",
-                        "selected_runtime_action_name": runtime_name,
-                        "retained_alternative_action_name": qualified,
-                        "curve_comparison": comparison,
-                    }
+                        name: existing
+                        for name, existing in runtime_actions.items()
+                        if name != runtime_name
+                    },
+                    action,
                 )
+                if identical is not None:
+                    existing_name, identical_comparison = identical
+                    bpy.data.actions.remove(action)
+                    entry_fact["runtime_action_name"] = existing_name
+                    entry_fact["collision_resolution"] = "deduplicated_identical_curve"
+                    collision_facts.append(
+                        {
+                            "exact_export_name": exact_name,
+                            "existing_runtime_action_name": runtime_name,
+                            "source_artifact_id": artifact_id,
+                            "source_qualifier": source_qualifier,
+                            "resolution": "deduplicated_identical_curve",
+                            "selected_runtime_action_name": existing_name,
+                            "retained_alternative_action_name": None,
+                            "curve_comparison": identical_comparison,
+                        }
+                    )
+                else:
+                    qualified = f"target_character|multi_{source_qualifier}|{exact_name}"
+                    if qualified in runtime_actions:
+                        raise RuntimeError("Stable Meshy source-qualified action ID collides.")
+                    action.name = qualified
+                    facts["exact_name"] = qualified
+                    facts["source_artifact_id"] = artifact_id
+                    facts["source_exact_export_name"] = exact_name
+                    facts["source_package_number"] = package_number
+                    facts["source_qualifier"] = source_qualifier
+                    runtime_actions[qualified] = action
+                    transferred.append(action)
+                    clip_facts.append(facts)
+                    entry_fact["runtime_action_name"] = qualified
+                    entry_fact["collision_resolution"] = "source_qualified_alternative"
+                    collision_facts.append(
+                        {
+                            "exact_export_name": exact_name,
+                            "existing_runtime_action_name": runtime_name,
+                            "source_artifact_id": artifact_id,
+                            "source_qualifier": source_qualifier,
+                            "resolution": "source_qualified_alternative",
+                            "selected_runtime_action_name": runtime_name,
+                            "retained_alternative_action_name": qualified,
+                            "curve_comparison": comparison,
+                        }
+                    )
         entry_facts.append(entry_fact)
         _remove_imported(imported, source_actions)
-    if identity_rest_signature is None:
+    if not package_rest_signatures:
         raise RuntimeError("Meshy multi-motion archive has no identity-compatible action.")
     return entry_facts, collision_facts
 
@@ -395,6 +462,51 @@ def _action_fcurves(action):
             for channelbag in getattr(strip, "channelbags", []):
                 values.extend(channelbag.fcurves)
     return values
+
+
+def _action_curve_signature(action):
+    value = {
+        "frame_range": [float(item) for item in action.frame_range],
+        "curves": [],
+    }
+    for curve in sorted(
+        _action_fcurves(action), key=lambda item: (item.data_path, item.array_index)
+    ):
+        value["curves"].append(
+            {
+                "data_path": curve.data_path,
+                "array_index": curve.array_index,
+                "points": [
+                    {
+                        "co": [float(point.co.x), float(point.co.y)],
+                        "handle_left": [
+                            float(point.handle_left.x),
+                            float(point.handle_left.y),
+                        ],
+                        "handle_right": [
+                            float(point.handle_right.x),
+                            float(point.handle_right.y),
+                        ],
+                        "interpolation": point.interpolation,
+                        "easing": point.easing,
+                        "handle_left_type": point.handle_left_type,
+                        "handle_right_type": point.handle_right_type,
+                    }
+                    for point in curve.keyframe_points
+                ],
+            }
+        )
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def _find_identical_action(runtime_actions, candidate):
+    for name, existing in sorted(runtime_actions.items()):
+        comparison = _compare_actions(existing, candidate)
+        if comparison["identical"]:
+            return name, comparison
+    return None
 
 
 def _compare_actions(first, second):

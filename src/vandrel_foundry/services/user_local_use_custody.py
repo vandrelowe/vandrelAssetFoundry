@@ -97,12 +97,19 @@ def _bind_user_local_use_custody(
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
     if manifest.custody is not None and manifest.custody.assessment_status == "evaluated":
-        return _verify_committed_retry_specs(
-            repository.asset_directory(asset_id),
-            manifest,
-            declaration_path,
-            contribution_specs,
-        )
+        prior_ids = {
+            item.artifact_id
+            for contribution in manifest.custody.source_contributions
+            for item in contribution.source_inputs
+        }
+        current_ids = {item.artifact_id for item in current_source_inputs(manifest)}
+        if prior_ids == current_ids:
+            return _verify_committed_retry_specs(
+                repository.asset_directory(asset_id),
+                manifest,
+                declaration_path,
+                contribution_specs,
+            )
     current = current_source_inputs(manifest)
     expected_ids = {item.artifact_id for item in current}
     declared = [item for spec in contribution_specs for item in spec.artifact_ids]
@@ -130,14 +137,22 @@ def _bind_user_local_use_custody(
         os.link(temporary, destination)
     finally:
         temporary.unlink(missing_ok=True)
-    evidence_id = "custody_license_evidence_001"
+    evidence_number = sum(
+        item.role == "custody_license_evidence" for item in manifest.artifacts
+    ) + 1
+    evidence_id = f"custody_license_evidence_{evidence_number:03d}"
+    effective_binding_id = (
+        binding_id
+        if evidence_number == 1
+        else f"{binding_id}_superseding_{evidence_number:03d}"
+    )
     evidence_artifact = Artifact(
         artifact_id=evidence_id, role="custody_license_evidence", stage="custody", format="txt",
         path=relative, sha256=declaration_hash, size_bytes=len(content), derived_from=[],
     )
     by_id = {item.artifact_id: item for item in current}
     evidence = CustodyLicenseEvidence(
-        binding_id=binding_id,
+        binding_id=effective_binding_id,
         original_evidence_path=PortableCustodyPath(logical_root="foundry_workspace", path=str(relative)),
         evidence_sha256=declaration_hash, size_bytes=len(content),
         scope_root=PortableCustodyPath(

@@ -15,7 +15,11 @@ from vandrel_foundry.services.add_compound_creature_sources import (
 )
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.render_creature_playback import render_creature_playback
-from vandrel_foundry.services.user_local_use_custody import bind_user_local_use_custody
+from vandrel_foundry.services.user_local_use_custody import (
+    UserLocalUseContributionSpec,
+    bind_user_local_use_custody,
+    bind_user_local_use_custody_contributions,
+)
 from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.locks import AssetLock
 from vandrel_foundry.storage.manifests import ManifestRepository
@@ -167,6 +171,78 @@ def test_local_use_custody_direct_and_retry_are_exact(config, prompt, tmp_path):
     second = bind_user_local_use_custody(config, "doe_service_001", declaration, meshy, donor)
     assert second.model_dump() == first.model_dump()
     assert repository.load("doe_service_001").custody == first
+
+
+def test_local_use_custody_supersedes_exact_expanded_root_union(
+    config, prompt, tmp_path
+):
+    repository, declaration, meshy, donor = _bind(config, prompt, tmp_path)
+    first = bind_user_local_use_custody(
+        config, "doe_service_001", declaration, meshy, donor
+    )
+    root = repository.asset_directory("doe_service_001")
+    extra_path = root / "source" / "additional-motion.fbx"
+    extra_path.write_bytes(b"additional-motion")
+    manifest = repository.load("doe_service_001")
+    extra = Artifact(
+        artifact_id="additional_motion_root_001",
+        role="meshy_native_multi_motion_fbx",
+        stage="source",
+        format="fbx",
+        path="source/additional-motion.fbx",
+        sha256=hashlib.sha256(extra_path.read_bytes()).hexdigest(),
+        size_bytes=extra_path.stat().st_size,
+        derived_from=[],
+    )
+    manifest.artifacts.append(extra)
+    revision = manifest.revision
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=revision)
+    expanded_declaration = tmp_path / "expanded-declaration.txt"
+    expanded_declaration.write_text(
+        "user-directed exact expanded local use", encoding="utf-8"
+    )
+
+    second = bind_user_local_use_custody_contributions(
+        config,
+        "doe_service_001",
+        expanded_declaration,
+        [
+            UserLocalUseContributionSpec(
+                "meshy_mesh_material",
+                "meshy_user_directed_local",
+                "meshy_silent_grey_doe_exact_roots",
+                "source/compound_roots_001",
+                tuple(meshy),
+            ),
+            UserLocalUseContributionSpec(
+                "quaternius_rig_animation",
+                "quaternius_user_directed_local",
+                "quaternius_deer_exact_root",
+                "source/compound_roots_001",
+                tuple(donor),
+            ),
+            UserLocalUseContributionSpec(
+                "additional_motion_package",
+                "meshy_user_directed_local",
+                "additional_motion_exact_root",
+                "source",
+                (extra.artifact_id,),
+            ),
+        ],
+    )
+
+    live = repository.load("doe_service_001")
+    assert second != first
+    assert live.custody == second
+    assert {
+        item.artifact_id
+        for contribution in second.source_contributions
+        for item in contribution.source_inputs
+    } == {*meshy, *donor, extra.artifact_id}
+    assert len(
+        [item for item in live.artifacts if item.role == "custody_license_evidence"]
+    ) == 2
 
 
 @pytest.mark.parametrize("mutation", ["missing", "corrupt"])

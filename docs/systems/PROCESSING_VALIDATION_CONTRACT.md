@@ -305,28 +305,31 @@ replacement and with every registered output after success or exact-target
 save reconciliation. A retry creates a new numbered model/report/playback
 attempt and never rewrites an earlier attempt.
 
-The multi-entry extension of this corridor adds one immutable archive root,
-all twenty exact `withSkin` FBX entry roots, and the exact texture root. The
-intake report is derived from that complete 22-root contribution set; it never
-collapses the archive into a fictitious merged-FBX lineage. Every manifest-owned
-root is verified before processing, immediately before manifest replacement,
-and after success or exact-target reconciliation. Nineteen entries must share
-the identity-normalized 24-joint hierarchy/rest container. The exact legacy
-UUID `019fee70-fd9d-7b6e-914a-d6dad2a49eeb` remains in provenance but is
-excluded from assembly because it carries the known positive-90-degree legacy
-container normalization. No other entry may be silently excluded.
+The multi-entry extension of this corridor adds numbered immutable packages.
+Each package retains one exact archive root, every exact `withSkin` FBX entry
+root, and the exact texture root. Its intake report derives from that complete
+package contribution set; it never collapses an archive into a fictitious
+merged-FBX lineage. Historical package 001 remains the exact twenty-FBX,
+one-texture export. Later packages accept a bounded nonempty set of safe
+`withSkin` entries plus exactly one texture and record their archive-hash
+source qualifier. Every manifest-owned root is verified before processing,
+immediately before manifest replacement, and after success or exact-target
+reconciliation. Compatibility is established from the actual 24-joint
+hierarchy, rest/container basis, and action payload rather than filename or
+carrier label. The exact legacy UUID
+`019fee70-fd9d-7b6e-914a-d6dad2a49eeb` remains in package-001 provenance but
+is excluded from assembly because it carries the known positive-90-degree
+legacy container normalization. No other entry may be silently excluded.
 
-Extended assembly retains the ten accepted canary actions plus all nineteen
-compatible multi-entry contributions: 29 compatible source actions before
-runtime-name collision resolution. `Walking`, `Running`,
-`Female_Crouch_Pick_Fruit_Basket_Stand`, and
-`Female_Stand_Pick_Fruit_Basket` are exact collision candidates. Curve and
-duration identity deduplicates only the runtime action while retaining both
-source contributions in lineage. A material difference receives the stable
-source-qualified `target_character|multi_fc7f5947|...` internal ID; the
-existing accepted action remains the explicit runtime selection. Duplicate
-runtime names are forbidden. Reports state the source-entry count and final
-unique runtime-action count separately.
+Extended assembly retains the accepted canary actions plus every compatible
+entry from every numbered package. Runtime collision handling compares
+normalized motion curves and durations across the complete source set, not
+carrier bytes or filenames. Exact curve identity deduplicates only the runtime
+action while retaining every source contribution in lineage. A material
+difference receives a stable archive-hash-qualified internal ID and remains
+available beside the existing action. Duplicate runtime names are forbidden.
+Reports state source-entry, excluded-entry, duplicate-curve, and final unique
+runtime-action counts separately and bind the complete current source union.
 
 Provider UI labels for the four UUID actions live only in a fresh immutable
 semantic evidence artifact as `user_observed_provider_metadata`; they do not

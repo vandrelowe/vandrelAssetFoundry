@@ -128,6 +128,69 @@ def test_intake_retains_exact_twenty_two_root_union_and_report(
     assert manifest.approval.approved is False
 
 
+def test_intake_appends_numbered_variable_package_and_retries_exactly(
+    config, prompt, tmp_path
+):
+    repository, root, archive, digest = _candidate(config, prompt, tmp_path)
+    first = service.add_meshy_native_multi_motion_package(
+        config, "multi_motion_test_001", archive, digest
+    )
+    released = repository.load("multi_motion_test_001")
+    released.workflow.state = WorkflowState.APPROVED
+    released.approval.approved = True
+    released.release.released = True
+    released.release.release_revision = 1
+    released_revision = released.revision
+    released.revision += 1
+    repository.save(released, expected_revision=released_revision)
+    second_archive = tmp_path / "dark-sorceress.zip"
+    second_digest = _archive(
+        second_archive,
+        ["Attack", "Sleep_Normally", "Walking"],
+    )
+
+    second = service.add_meshy_native_multi_motion_package(
+        config,
+        "multi_motion_test_001",
+        second_archive,
+        second_digest,
+    )
+    revision = repository.load("multi_motion_test_001").revision
+    retry = service.add_meshy_native_multi_motion_package(
+        config,
+        "multi_motion_test_001",
+        second_archive,
+        second_digest,
+    )
+
+    identity = service.package_identity(2, 3)
+    assert {item.artifact_id for item in second} == {
+        identity.report_id,
+        *identity.root_ids,
+    }
+    assert {
+        item.artifact_id: item.model_dump() for item in retry
+    } == {
+        item.artifact_id: item.model_dump() for item in second
+    }
+    assert repository.load("multi_motion_test_001").revision == revision
+    assert all((root / item.path).is_file() for item in [*first, *second])
+    report = next(item for item in second if item.artifact_id == identity.report_id)
+    payload = json.loads((root / report.path).read_text(encoding="utf-8"))
+    assert payload["schema"] == "vandrel_foundry_meshy_native_multi_motion_intake/1.1"
+    assert payload["package_number"] == 2
+    assert payload["source_qualifier"] == second_digest[:8]
+    assert payload["animation_entry_count"] == 3
+    assert payload["license_metadata"] == "not_inspected"
+    assert {item["exact_export_name"] for item in payload["entries"][:-1]} == {
+        "Attack",
+        "Sleep_Normally",
+        "Walking",
+    }
+    assert repository.load("multi_motion_test_001").workflow.state is WorkflowState.PROCESSED
+    assert repository.load("multi_motion_test_001").approval.approved is False
+
+
 def test_intake_rejects_wrong_preexisting_root_union_before_copy(
     config, prompt, tmp_path
 ):

@@ -32,7 +32,7 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "godot_meshy_native_character_release_validation"
-PROCESSOR_VERSION = "1"
+PROCESSOR_VERSION = "2"
 ASSEMBLY_PROCESSOR = "blender_meshy_native_character_motion_assembly"
 REPORT_ROLE = "meshy_native_character_release_report"
 CHECK_NAME = "meshy_native_character_release_playback"
@@ -228,18 +228,30 @@ def validate_meshy_native_character_release(
     assembly_data = MeshyNativeCharacterMotionReport.model_validate(
         json.loads(assembly_path.read_text(encoding="utf-8"))
     )
+    if assembly_data.schema_name not in {
+        "vandrel_foundry_meshy_native_character_motion/1.2",
+        "vandrel_foundry_meshy_native_character_motion/1.3",
+    }:
+        raise FoundryError("Current Meshy-native assembly evidence schema is unsupported.")
+    clip_count = len(assembly_data.clips)
+    playback_count = len(assembly_data.playback)
     if (
-        assembly_data.schema_name != "vandrel_foundry_meshy_native_character_motion/1.2"
-        or assembly_data.output.get("sha256") != model.sha256
-        or len(assembly_data.clips) != 29
-        or len(assembly_data.playback) != 13
+        assembly_data.output.get("sha256") != model.sha256
+        or clip_count < 29
+        or playback_count < 13
+        or playback_count > clip_count
     ):
         raise FoundryError("Current Meshy-native assembly evidence is incomplete.")
     roots = [
         item for item in manifest.artifacts if item.stage == "source" and not item.derived_from
     ]
-    if len(roots) != 28 or set(model.derived_from) != {item.artifact_id for item in roots}:
-        raise FoundryError("Current Meshy-native model does not bind the exact 28-root union.")
+    root_ids = {item.artifact_id for item in roots}
+    if (
+        len(roots) < 28
+        or set(model.derived_from) != root_ids
+        or set(assembly_data.source_union) != root_ids
+    ):
+        raise FoundryError("Current Meshy-native model does not bind its exact source root union.")
     playback_artifacts = _playback_artifacts(manifest, assembly_data.playback)
     inputs = [model, assembly, *roots, *playback_artifacts]
     for artifact in inputs:
@@ -313,7 +325,7 @@ def validate_meshy_native_character_release(
             config.tools.maximum_output_bytes,
         )
         _require_success(playback_result, "Godot Meshy-native playback")
-        godot = _load_godot_report(temporary / "result.json")
+        godot = _load_godot_report(temporary / "result.json", clip_count)
         inspection = inspect_glb(model_path)
         skin = inspect_top4_glb_skin(model_path)
         facts = assembly_data.transformation_facts
@@ -331,7 +343,7 @@ def validate_meshy_native_character_release(
             "maximum_influences": skin.maximum_influences,
         }
         if (
-            inspection.animation_count != 29
+            inspection.animation_count != clip_count
             or inspection.skin_count != 1
             or inspection.joint_count != 24
             or inspection.material_count < 1
@@ -355,7 +367,7 @@ def validate_meshy_native_character_release(
         )
         if h4_global > 0.001 or h4_local > 0.001:
             raise FoundryError("H4 orientation reconstruction exceeds release tolerance.")
-        selected = [
+        baseline_selected = [
             "target_character|019fe8ca-a6c4-7968-822f-92efebbab5a4",
             "target_character|019fe8d7-ed16-7b82-a594-728d821ee711",
             "target_character|Idle_6",
@@ -370,8 +382,14 @@ def validate_meshy_native_character_release(
             "target_character|Female_Crouch_Pick_Fruit_Basket_Stand",
             "target_character|Female_Stand_Pick_Fruit_Basket",
         ]
+        playback_names = [str(item["exact_name"]) for item in assembly_data.playback]
+        selected = list(dict.fromkeys([*baseline_selected, *playback_names]))
         report_value = MeshyNativeReleaseReport(
-            schema="vandrel_foundry_meshy_native_character_release/1.0",
+            schema=(
+                "vandrel_foundry_meshy_native_character_release/1.1"
+                if assembly_data.schema_name.endswith("/1.3")
+                else "vandrel_foundry_meshy_native_character_release/1.0"
+            ),
             asset_id=asset_id,
             processed_model={
                 "artifact_id": model.artifact_id,
@@ -504,8 +522,9 @@ def validate_meshy_native_character_release(
             "report_sha256": report_artifact.sha256,
             "processed_model_sha256": model.sha256,
             "assembly_report_sha256": assembly.sha256,
-            "clip_count": 29,
-            "playback_evidence_count": 13,
+            "clip_count": clip_count,
+            "source_root_count": len(roots),
+            "playback_evidence_count": playback_count,
             "godot_playback_passed": True,
             "skin_binding_passed": True,
             "zero_unweighted_vertices": skin.unweighted_vertex_count == 0,
@@ -570,7 +589,7 @@ def _playback_artifacts(manifest, descriptors):
         if artifact is None or artifact.role != "meshy_native_character_motion_playback":
             raise FoundryError("Meshy-native playback evidence binding is invalid.")
         values.append(artifact)
-    if len({item.artifact_id for item in values}) != 13:
+    if len({item.artifact_id for item in values}) != len(descriptors):
         raise FoundryError("Meshy-native playback evidence union is incomplete.")
     return values
 
@@ -582,7 +601,7 @@ def _latest(manifest, role):
     return values[-1]
 
 
-def _load_godot_report(path):
+def _load_godot_report(path, expected_animation_count):
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -590,7 +609,7 @@ def _load_godot_report(path):
     if (
         value.get("schema") != "vandrel_foundry_godot_meshy_native_release/1.0"
         or value.get("passed") is not True
-        or value.get("animation_count") != 29
+        or value.get("animation_count") != expected_animation_count
         or value.get("bone_count") != 24
         or value.get("visible_skinned_mesh_count", 0) < 1
         or value.get("textured_material_count", 0) < 1

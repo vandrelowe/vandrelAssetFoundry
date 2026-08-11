@@ -20,9 +20,12 @@ class MeshyNativeMultiMotionEntry(StrictModel):
 
 
 class MeshyNativeMultiMotionIntakeReport(StrictModel):
-    schema_name: Literal["vandrel_foundry_meshy_native_multi_motion_intake/1.0"] = Field(
-        alias="schema"
-    )
+    schema_name: Literal[
+        "vandrel_foundry_meshy_native_multi_motion_intake/1.0",
+        "vandrel_foundry_meshy_native_multi_motion_intake/1.1",
+    ] = Field(alias="schema")
+    package_number: int = Field(default=1, ge=1)
+    source_qualifier: str = Field(default="fc7f5947", pattern=r"^[a-f0-9]{8}$")
     authority_basis: Literal["user_selected_local_source"]
     archive_original_name: str = Field(min_length=1)
     archive_artifact_id: str = Field(min_length=1)
@@ -46,15 +49,24 @@ class MeshyNativeMultiMotionIntakeReport(StrictModel):
 
     @model_validator(mode="after")
     def require_exact_package(self) -> "MeshyNativeMultiMotionIntakeReport":
-        if (
-            self.source_entry_count != 21
-            or self.animation_entry_count != 20
+        if self.schema_name.endswith("/1.0"):
+            if (
+                self.package_number != 1
+                or self.source_entry_count != 21
+                or self.animation_entry_count != 20
+                or self.texture_entry_count != 1
+                or len(self.entries) != 21
+            ):
+                raise ValueError("Meshy multi-motion 1.0 requires twenty FBXs and one texture")
+        elif (
+            self.source_entry_count != self.animation_entry_count + 1
             or self.texture_entry_count != 1
-            or len(self.entries) != 21
+            or self.animation_entry_count < 1
+            or len(self.entries) != self.source_entry_count
         ):
-            raise ValueError("Meshy multi-motion intake requires twenty FBXs and one texture")
+            raise ValueError("Meshy multi-motion 1.1 requires FBXs plus exactly one texture")
         artifact_ids = [entry.artifact_id for entry in self.entries]
-        if len(set(artifact_ids)) != 21:
+        if len(set(artifact_ids)) != len(artifact_ids):
             raise ValueError("Meshy multi-motion entry artifact IDs must be unique")
         animation_entries = [
             entry
@@ -64,15 +76,21 @@ class MeshyNativeMultiMotionIntakeReport(StrictModel):
         texture_entries = [
             entry for entry in self.entries if entry.role == "meshy_native_multi_texture"
         ]
-        if len(animation_entries) != 20 or len(texture_entries) != 1:
+        if len(animation_entries) != self.animation_entry_count or len(texture_entries) != 1:
             raise ValueError("Meshy multi-motion entry roles do not match the exact package")
         legacy = [
             entry
             for entry in animation_entries
             if entry.runtime_eligibility == "provenance_only_legacy_outlier"
         ]
-        if len(legacy) != 1 or legacy[0].exact_export_name != (
-            "019fee70-fd9d-7b6e-914a-d6dad2a49eeb"
+        if self.schema_name.endswith("/1.0") and (
+            len(legacy) != 1
+            or legacy[0].exact_export_name != "019fee70-fd9d-7b6e-914a-d6dad2a49eeb"
         ):
-            raise ValueError("Meshy multi-motion intake requires the exact known legacy outlier")
+            raise ValueError("Meshy multi-motion 1.0 requires the exact known legacy outlier")
+        if self.schema_name.endswith("/1.1") and any(
+            entry.exact_export_name != "019fee70-fd9d-7b6e-914a-d6dad2a49eeb"
+            for entry in legacy
+        ):
+            raise ValueError("Only the known legacy UUID may be provenance-only")
         return self

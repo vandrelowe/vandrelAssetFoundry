@@ -356,12 +356,27 @@ def _humanoid_release_evidence(
         approved_report_hash = manifest.approval.approved_artifact_hashes.get(
             "meshy_native_character_release_report"
         )
+        clip_count = check.get("clip_count")
+        playback_count = check.get("playback_evidence_count")
+        source_root_count = check.get("source_root_count")
         if (
             not check.get("passed")
             or check.get("processed_model_sha256") != approved_model_hash
             or check.get("report_sha256") != approved_report_hash
-            or check.get("clip_count") != 29
-            or check.get("playback_evidence_count") != 13
+            or not isinstance(clip_count, int)
+            or isinstance(clip_count, bool)
+            or clip_count < 29
+            or not isinstance(playback_count, int)
+            or isinstance(playback_count, bool)
+            or playback_count < 13
+            or (
+                clip_count > 29
+                and (
+                    not isinstance(source_root_count, int)
+                    or isinstance(source_root_count, bool)
+                    or source_root_count < 28
+                )
+            )
             or check.get("godot_playback_passed") is not True
             or check.get("skin_binding_passed") is not True
             or check.get("zero_unweighted_vertices") is not True
@@ -383,7 +398,7 @@ def _humanoid_release_evidence(
             "vandrel_runtime_accepted": False,
             "provider_native_rig": True,
             "shared_animation_pool_compatible": False,
-            "clip_count": 29,
+            "clip_count": clip_count,
             "embedded_texture_sha256s": embedded_hashes,
             "known_hand_visual_debt": "accepted_bounded_debt",
             "h4_additional_hand_corruption": False,

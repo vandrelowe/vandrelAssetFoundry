@@ -216,7 +216,18 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
                 check.get("name") == MESHY_NATIVE_RELEASE_CHECK
                 and check.get("passed")
                 and check.get("processed_model_sha256") == processed[-1].sha256
-                and check.get("clip_count") == 29
+                and isinstance(check.get("clip_count"), int)
+                and not isinstance(check.get("clip_count"), bool)
+                and check["clip_count"] >= 29
+                and (
+                    check["clip_count"] == 29
+                    or (
+                        isinstance(check.get("source_root_count"), int)
+                        and check["source_root_count"] >= 28
+                        and isinstance(check.get("playback_evidence_count"), int)
+                        and check["playback_evidence_count"] >= 13
+                    )
+                )
                 and check.get("accepted_hand_visual_debt") is True
                 and check.get("h4_additional_hand_corruption") is False
                 for check in manifest.validation.checks

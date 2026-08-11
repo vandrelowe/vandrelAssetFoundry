@@ -1748,7 +1748,7 @@ def add_meshy_native_multi_motion(
     archive_sha256: Annotated[str, typer.Option("--archive-sha256")],
     config: Annotated[Path | None, typer.Option("--config")] = None,
 ) -> None:
-    """Intake one exact local Meshy 20-action native ZIP without provider access."""
+    """Intake one exact local Meshy withSkin multi-action ZIP without provider access."""
     try:
         settings = load_config(config)
         artifacts = add_meshy_native_multi_motion_package(

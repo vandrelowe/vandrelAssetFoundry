@@ -112,8 +112,9 @@ runtime acceptance.
 The Meshy-native assembly route applies only when the current approved model
 was produced by `blender_meshy_native_character_motion_assembly`. It requires
 `meshy_native_character_release_playback` for that exact model hash, a packaged
-`meshy_native_character_release_report`, the exact 28-root assembly lineage,
-29 unique runtime clip names, 13 retained continuous playback artifacts,
+`meshy_native_character_release_report`, the complete exact current source-root
+assembly lineage, at least the accepted 29-clip baseline, and the report-bound
+current continuous playback artifact set,
 bounded Godot import/playback with each imported duration reconciled to the
 source duration within at most one 30 FPS frame of engine import quantization,
 independently decoded top-four-normalized skin
@@ -123,6 +124,13 @@ bounded provider-native hand orientation/weighting debt and proves the H4
 transfer introduced no additional hand corruption. The descriptor retains the
 complete technical clip inventory in the packaged report, does not assign
 gameplay action IDs, and remains `vandrel_runtime_accepted: false`.
+
+After an immutable release, a user-authorized numbered motion package may
+supersede the candidate's prior source union without altering that release.
+Processing invalidates approval, exact current-union custody and evidence are
+re-established, and publication allocates the next unused release revision.
+Neither planning nor publication rewrites an earlier revision or its catalog
+entry.
 
 A Workspace-relative humanoid report string is never a portable release
 reference. Planning verifies the manifest-owned report bytes and includes the

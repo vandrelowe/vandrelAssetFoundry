@@ -237,7 +237,7 @@ class MeshyNativeAssemblyCompatibilityV2(ReleaseModel):
     vandrel_runtime_accepted: Literal[False]
     provider_native_rig: Literal[True]
     shared_animation_pool_compatible: Literal[False]
-    clip_count: Literal[29]
+    clip_count: int = Field(ge=29)
     embedded_texture_sha256s: list[Sha256] = Field(min_length=1)
     known_hand_visual_debt: Literal["accepted_bounded_debt"]
     h4_additional_hand_corruption: Literal[False]

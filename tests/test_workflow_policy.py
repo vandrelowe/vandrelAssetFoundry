@@ -229,6 +229,19 @@ def test_meshy_native_assembly_requires_exact_current_release_evidence() -> None
     )
     assert approval_checks_pass(manifest)
 
+    manifest.validation.checks[-1].update(
+        {
+            "clip_count": 61,
+            "source_root_count": 68,
+            "playback_evidence_count": 45,
+        }
+    )
+    assert approval_checks_pass(manifest)
+
+    manifest.validation.checks[-1].pop("source_root_count")
+    assert not approval_checks_pass(manifest)
+    manifest.validation.checks[-1]["source_root_count"] = 68
+
     manifest.validation.checks[-1]["processed_model_sha256"] = "3" * 64
     assert not approval_checks_pass(manifest)
 

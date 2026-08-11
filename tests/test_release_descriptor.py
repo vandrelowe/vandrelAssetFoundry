@@ -122,6 +122,11 @@ def test_v2_accepts_bounded_meshy_native_assembly_evidence() -> None:
     assert descriptor.humanoid_compatibility is not None
     assert descriptor.humanoid_compatibility.evidence_route == "meshy_native_motion_assembly"
 
+    value["humanoid_compatibility"]["clip_count"] = 61
+    expanded = ReleaseDescriptorV2.model_validate(value)
+    assert expanded.humanoid_compatibility is not None
+    assert expanded.humanoid_compatibility.clip_count == 61
+
 
 def test_historical_v2_scale_fixture_without_bounds_is_model_and_schema_compatible() -> None:
     value = _historical_v2_scale_fixture()

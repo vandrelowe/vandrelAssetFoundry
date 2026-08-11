@@ -29,7 +29,7 @@
           "type": "boolean"
         },
         "clip_count": {
-          "const": 29,
+          "minimum": 29,
           "title": "Clip Count",
           "type": "integer"
         },
