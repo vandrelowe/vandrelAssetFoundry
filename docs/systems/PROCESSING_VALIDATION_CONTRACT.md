@@ -311,11 +311,17 @@ assembly. In that case the one assembly transaction imports the accepted canary
 roots and every complete motion-package root union together; it does not create
 a redundant ten-action intermediate model. The default `release_review`
 evidence profile retains the established release-facing playback selection.
-The `representative_batch` profile is candidate-only and keeps the complete
-runtime action inventory while rendering exactly default Idle, Walking, and one
-available work action (`Pull_Radish`, with `Collect_Object` only as the bounded
-historical-package fallback). The profile is hash-bound in report schema 1.4
-and does not confer visual acceptance, approval, release, or publication.
+The `representative_batch` profile keeps the complete runtime action inventory
+while rendering exactly default Idle, Walking, and one available work action
+(`Pull_Radish`, with `Collect_Object` only as the bounded historical-package
+fallback). The profile is hash-bound in report schema 1.4. It may enter the
+Meshy-native technical release validator only when the current model contains
+the exact complete 61-action inventory, all three registered playback artifacts
+resolve and rehash, the complete source-root lineage remains exact, and the
+independent H4, skin, bind, material, texture, and Godot gates pass. Schema 1.2
+and 1.3 reports retain the established release-review policy of at least thirteen
+registered playback clips. Neither profile alone confers visual acceptance,
+approval, release, publication, or Vandrel runtime acceptance.
 
 Before adding actions, Blender exports a temporary policy-bound reference GLB.
 After the animated export, the service independently decodes both GLBs. It

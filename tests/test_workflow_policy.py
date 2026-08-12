@@ -223,11 +223,35 @@ def test_meshy_native_assembly_requires_exact_current_release_evidence() -> None
             "passed": True,
             "processed_model_sha256": processed.sha256,
             "clip_count": 29,
+            "playback_evidence_count": 13,
             "accepted_hand_visual_debt": True,
             "h4_additional_hand_corruption": False,
         }
     )
     assert approval_checks_pass(manifest)
+
+    manifest.validation.checks[-1].update(
+        {
+            "clip_count": 61,
+            "source_root_count": 68,
+            "playback_evidence_count": 3,
+            "playback_clip_names": [
+                "target_character|Idle_6",
+                "target_character|Walking",
+                "target_character|Pull_Radish",
+            ],
+            "assembly_evidence_schema": (
+                "vandrel_foundry_meshy_native_character_motion/1.4"
+            ),
+            "playback_evidence_profile": "representative_batch",
+        }
+    )
+    assert approval_checks_pass(manifest)
+
+    manifest.validation.checks[-1]["playback_clip_names"][-1] = (
+        "target_character|Unrelated"
+    )
+    assert not approval_checks_pass(manifest)
 
     manifest.validation.checks[-1].update(
         {

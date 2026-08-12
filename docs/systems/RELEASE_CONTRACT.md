@@ -114,7 +114,13 @@ was produced by `blender_meshy_native_character_motion_assembly`. It requires
 `meshy_native_character_release_playback` for that exact model hash, a packaged
 `meshy_native_character_release_report`, the complete exact current source-root
 assembly lineage, at least the accepted 29-clip baseline, and the report-bound
-current continuous playback artifact set,
+current continuous playback artifact set. Assembly report schemas 1.2 and 1.3
+retain at least thirteen playback artifacts. Schema 1.4 is accepted only for an
+exact 61-action model with exactly the registered representative set: `Idle_6`,
+`Walking`, and `Pull_Radish`, using `Collect_Object` only when `Pull_Radish` is
+absent. Missing, reordered, duplicated, additional, or substituted
+representative clips fail closed. Both policies retain the same exact-root,
+hash, H4, skin, bind, material, texture, current-validation, and
 bounded Godot import/playback with each imported duration reconciled to the
 source duration within at most one 30 FPS frame of engine import quantization,
 independently decoded top-four-normalized skin
@@ -124,6 +130,11 @@ bounded provider-native hand orientation/weighting debt and proves the H4
 transfer introduced no additional hand corruption. The descriptor retains the
 complete technical clip inventory in the packaged report, does not assign
 gameplay action IDs, and remains `vandrel_runtime_accepted: false`.
+
+Independent cross-character visual review, including the accepted nine-body-
+class close-up hand review, is DevMaster release-decision evidence. It is not a
+portable candidate-manifest dependency, is not synthesized as a Foundry
+artifact, and is not projected into a release descriptor.
 
 After an immutable release, a user-authorized numbered motion package may
 supersede the candidate's prior source union without altering that release.

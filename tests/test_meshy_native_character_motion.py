@@ -85,6 +85,11 @@ RELEASE_REVIEW_ACTIONS = [
     "target_character|Female_Crouch_Pick_Fruit_Basket_Stand",
     "target_character|Female_Stand_Pick_Fruit_Basket",
 ]
+REPRESENTATIVE_ACTIONS = [
+    "target_character|Idle_6",
+    "target_character|Walking",
+    "target_character|Pull_Radish",
+]
 
 
 def _lanes():
@@ -545,8 +550,14 @@ def test_release_review_selector_is_exactly_the_established_thirteen_clips():
     assert len(selected) == 13
 
 
-def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
-    config, prompt, tmp_path
+def _release_validation_candidate(
+    config,
+    prompt: Path,
+    tmp_path: Path,
+    *,
+    schema: str,
+    clip_names: list[str],
+    playback_names: list[str],
 ):
     asset_id = "native_release_validation_test_001"
     config.tools.godot_executable = prompt
@@ -590,10 +601,6 @@ def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
             artifact_for(artifact_id, "source_contribution", "source", "fbx", relative)
         )
 
-    clip_names = [
-        *RELEASE_REVIEW_ACTIONS,
-        *(f"target_character|Package_Action_{index:02d}" for index in range(48)),
-    ]
     model_path = root / "processed/release-validation/model.glb"
     model_path.parent.mkdir(parents=True, exist_ok=True)
     _write_glb(model_path, clip_names)
@@ -623,7 +630,7 @@ def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
 
     playback_artifacts = []
     playback = []
-    for index, name in enumerate(RELEASE_REVIEW_ACTIONS):
+    for index, name in enumerate(playback_names):
         artifact_id = f"release_review_playback_{index:03d}"
         relative = f"preview/release-validation/{index:02d}.webp"
         path = root / relative
@@ -649,7 +656,7 @@ def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
         )
 
     report_value = {
-        "schema": "vandrel_foundry_meshy_native_character_motion/1.3",
+        "schema": schema,
         "asset_id": asset_id,
         "processor": {"name": processor.name, "version": processor.version},
         "source_union": source_ids,
@@ -663,6 +670,9 @@ def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
             "independent_final_top4_skin": skin_facts,
             "maximum_sampled_global_orientation_delta_degrees": 0.0,
             "maximum_sampled_parent_local_orientation_delta_degrees": 0.0,
+            "playback_evidence_profile": (
+                "representative_batch" if schema.endswith("/1.4") else "release_review"
+            ),
         },
         "clips": [
             {"exact_name": name, "duration_seconds": 1.0} for name in clip_names
@@ -701,12 +711,11 @@ def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
     manifest.revision += 1
     repository.save(manifest, expected_revision=source_revision)
 
-    calls = 0
+    calls = {"count": 0}
 
     def runner(_arguments, operation_root, *_unused):
-        nonlocal calls
-        calls += 1
-        if calls == 2:
+        calls["count"] += 1
+        if calls["count"] == 2:
             (Path(operation_root) / "result.json").write_text(
                 json.dumps(
                     {
@@ -728,6 +737,25 @@ def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
             )
         return ProcessResult(0, "ok", "", False, False, 0.1)
 
+    return asset_id, root, runner, calls
+
+
+def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
+    config, prompt, tmp_path
+):
+    clip_names = [
+        *RELEASE_REVIEW_ACTIONS,
+        *(f"target_character|Package_Action_{index:02d}" for index in range(48)),
+    ]
+    asset_id, root, runner, calls = _release_validation_candidate(
+        config,
+        prompt,
+        tmp_path,
+        schema="vandrel_foundry_meshy_native_character_motion/1.3",
+        clip_names=clip_names,
+        playback_names=RELEASE_REVIEW_ACTIONS,
+    )
+
     result = release_service.validate_meshy_native_character_release(
         config,
         asset_id,
@@ -736,10 +764,138 @@ def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
     )
 
     validated = json.loads((root / result.report.path).read_text(encoding="utf-8"))
-    assert calls == 2
+    assert calls["count"] == 2
     assert validated["schema"] == "vandrel_foundry_meshy_native_character_release/1.1"
     assert validated["selected_review_clips"] == RELEASE_REVIEW_ACTIONS
     assert len(validated["playback_evidence"]) == 13
+
+
+@pytest.mark.parametrize(
+    "work_action",
+    ["target_character|Pull_Radish", "target_character|Collect_Object"],
+)
+def test_schema_1_4_release_validation_accepts_exact_representative_batch(
+    config, prompt, tmp_path, work_action
+):
+    additional = (
+        ["target_character|Pull_Radish"]
+        if work_action.endswith("Pull_Radish")
+        else []
+    )
+    package_count = 61 - len(RELEASE_REVIEW_ACTIONS) - len(additional)
+    clip_names = [
+        *RELEASE_REVIEW_ACTIONS,
+        *additional,
+        *(f"target_character|Package_Action_{index:02d}" for index in range(package_count)),
+    ]
+    representative_actions = [*REPRESENTATIVE_ACTIONS[:2], work_action]
+    asset_id, root, runner, calls = _release_validation_candidate(
+        config,
+        prompt,
+        tmp_path,
+        schema="vandrel_foundry_meshy_native_character_motion/1.4",
+        clip_names=clip_names,
+        playback_names=representative_actions,
+    )
+
+    result = release_service.validate_meshy_native_character_release(
+        config,
+        asset_id,
+        runner=runner,
+        environment={},
+    )
+
+    validated = json.loads((root / result.report.path).read_text(encoding="utf-8"))
+    live = ManifestRepository(config.foundry.workspace_root).load(asset_id)
+    check = next(
+        item
+        for item in live.validation.checks
+        if item.get("name") == "meshy_native_character_release_playback"
+    )
+    assert calls["count"] == 2
+    assert validated["schema"] == "vandrel_foundry_meshy_native_character_release/1.2"
+    assert validated["selected_review_clips"] == representative_actions
+    assert len(validated["clip_inventory"]) == 61
+    assert len(validated["playback_evidence"]) == 3
+    assert check["playback_clip_names"] == representative_actions
+    assert check["assembly_evidence_schema"].endswith("/1.4")
+    assert check["playback_evidence_profile"] == "representative_batch"
+
+
+@pytest.mark.parametrize(
+    ("case", "clip_count", "playback_names"),
+    [
+        (
+            "missing",
+            61,
+            [
+                "target_character|Idle_6",
+                "target_character|Walking",
+                "target_character|Package_Action_00",
+            ],
+        ),
+        (
+            "wrong",
+            61,
+            [
+                "target_character|Walking",
+                "target_character|Idle_6",
+                "target_character|Pull_Radish",
+            ],
+        ),
+        (
+            "duplicate",
+            61,
+            [
+                "target_character|Idle_6",
+                "target_character|Walking",
+                "target_character|Walking",
+            ],
+        ),
+        (
+            "additional",
+            61,
+            [
+                *REPRESENTATIVE_ACTIONS,
+                "target_character|Package_Action_00",
+            ],
+        ),
+        ("incomplete_inventory", 60, REPRESENTATIVE_ACTIONS),
+    ],
+)
+def test_schema_1_4_release_validation_rejects_invalid_representative_evidence(
+    config, prompt, tmp_path, case, clip_count, playback_names
+):
+    core = [*RELEASE_REVIEW_ACTIONS, "target_character|Pull_Radish"]
+    clip_names = [
+        *core,
+        *(
+            f"target_character|Package_Action_{index:02d}"
+            for index in range(clip_count - len(core))
+        ),
+    ]
+    if case == "missing":
+        clip_names[RELEASE_REVIEW_ACTIONS.index("target_character|Collect_Object")] = (
+            "target_character|Package_Action_Missing_Fallback"
+        )
+        clip_names[13] = "target_character|Package_Action_Missing_Work"
+    asset_id, _root, runner, calls = _release_validation_candidate(
+        config,
+        prompt,
+        tmp_path,
+        schema="vandrel_foundry_meshy_native_character_motion/1.4",
+        clip_names=clip_names,
+        playback_names=playback_names,
+    )
+
+    with pytest.raises(FoundryError, match="representative|61-action"):
+        release_service.validate_meshy_native_character_release(
+            config,
+            asset_id,
+            runner=runner,
+            environment={},
+        )
+    assert calls["count"] == 0
 
 
 def test_assembly_registers_six_root_lineage_without_generic_semantics(config, prompt, tmp_path):

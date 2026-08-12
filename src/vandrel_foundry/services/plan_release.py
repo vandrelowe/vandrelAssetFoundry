@@ -12,6 +12,7 @@ from vandrel_foundry.domain.custody_assertion import approval_custody_freshness
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest
+from vandrel_foundry.domain.meshy_native_release import release_check_playback_policy_passes
 from vandrel_foundry.domain.release_descriptor import (
     ReleaseDescriptorV2,
     format_release_revision,
@@ -357,26 +358,11 @@ def _humanoid_release_evidence(
             "meshy_native_character_release_report"
         )
         clip_count = check.get("clip_count")
-        playback_count = check.get("playback_evidence_count")
-        source_root_count = check.get("source_root_count")
         if (
             not check.get("passed")
             or check.get("processed_model_sha256") != approved_model_hash
             or check.get("report_sha256") != approved_report_hash
-            or not isinstance(clip_count, int)
-            or isinstance(clip_count, bool)
-            or clip_count < 29
-            or not isinstance(playback_count, int)
-            or isinstance(playback_count, bool)
-            or playback_count < 13
-            or (
-                clip_count > 29
-                and (
-                    not isinstance(source_root_count, int)
-                    or isinstance(source_root_count, bool)
-                    or source_root_count < 28
-                )
-            )
+            or not release_check_playback_policy_passes(check)
             or check.get("godot_playback_passed") is not True
             or check.get("skin_binding_passed") is not True
             or check.get("zero_unweighted_vertices") is not True

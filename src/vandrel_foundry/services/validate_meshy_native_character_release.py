@@ -15,7 +15,13 @@ from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.meshy_native_character_motion import (
     MeshyNativeCharacterMotionReport,
 )
-from vandrel_foundry.domain.meshy_native_release import MeshyNativeReleaseReport
+from vandrel_foundry.domain.meshy_native_release import (
+    RELEASE_REVIEW_CLIPS,
+    REPRESENTATIVE_ASSEMBLY_SCHEMA,
+    REPRESENTATIVE_PROFILE,
+    MeshyNativeReleaseReport,
+    representative_review_clips,
+)
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import invalidate_approval
 from vandrel_foundry.services.inspect_glb import inspect_glb
@@ -32,7 +38,7 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "godot_meshy_native_character_release_validation"
-PROCESSOR_VERSION = "2"
+PROCESSOR_VERSION = "3"
 ASSEMBLY_PROCESSOR = "blender_meshy_native_character_motion_assembly"
 REPORT_ROLE = "meshy_native_character_release_report"
 CHECK_NAME = "meshy_native_character_release_playback"
@@ -231,14 +237,14 @@ def validate_meshy_native_character_release(
     if assembly_data.schema_name not in {
         "vandrel_foundry_meshy_native_character_motion/1.2",
         "vandrel_foundry_meshy_native_character_motion/1.3",
+        REPRESENTATIVE_ASSEMBLY_SCHEMA,
     }:
         raise FoundryError("Current Meshy-native assembly evidence schema is unsupported.")
     clip_count = len(assembly_data.clips)
     playback_count = len(assembly_data.playback)
+    selected = _release_review_selection(assembly_data)
     if (
         assembly_data.output.get("sha256") != model.sha256
-        or clip_count < 29
-        or playback_count < 13
         or playback_count > clip_count
     ):
         raise FoundryError("Current Meshy-native assembly evidence is incomplete.")
@@ -367,25 +373,12 @@ def validate_meshy_native_character_release(
         )
         if h4_global > 0.001 or h4_local > 0.001:
             raise FoundryError("H4 orientation reconstruction exceeds release tolerance.")
-        baseline_selected = [
-            "target_character|019fe8ca-a6c4-7968-822f-92efebbab5a4",
-            "target_character|019fe8d7-ed16-7b82-a594-728d821ee711",
-            "target_character|Idle_6",
-            "target_character|Dead",
-            "target_character|Stand_To_Side_Lying",
-            "target_character|Walking",
-            "target_character|Running",
-            "target_character|Angry_Ground_Stomp",
-            "target_character|Hit_Reaction_1",
-            "target_character|Carry_Heavy_Object_Walk",
-            "target_character|Collect_Object",
-            "target_character|Female_Crouch_Pick_Fruit_Basket_Stand",
-            "target_character|Female_Stand_Pick_Fruit_Basket",
-        ]
         playback_names = [str(item["exact_name"]) for item in assembly_data.playback]
-        selected = list(dict.fromkeys([*baseline_selected, *playback_names]))
         report_value = MeshyNativeReleaseReport(
             schema=(
+                "vandrel_foundry_meshy_native_character_release/1.2"
+                if assembly_data.schema_name.endswith("/1.4")
+                else
                 "vandrel_foundry_meshy_native_character_release/1.1"
                 if assembly_data.schema_name.endswith("/1.3")
                 else "vandrel_foundry_meshy_native_character_release/1.0"
@@ -525,6 +518,11 @@ def validate_meshy_native_character_release(
             "clip_count": clip_count,
             "source_root_count": len(roots),
             "playback_evidence_count": playback_count,
+            "playback_clip_names": playback_names,
+            "assembly_evidence_schema": assembly_data.schema_name,
+            "playback_evidence_profile": assembly_data.transformation_facts.get(
+                "playback_evidence_profile", "release_review"
+            ),
             "godot_playback_passed": True,
             "skin_binding_passed": True,
             "zero_unweighted_vertices": skin.unweighted_vertex_count == 0,
@@ -592,6 +590,35 @@ def _playback_artifacts(manifest, descriptors):
     if len({item.artifact_id for item in values}) != len(descriptors):
         raise FoundryError("Meshy-native playback evidence union is incomplete.")
     return values
+
+
+def _release_review_selection(assembly_data: MeshyNativeCharacterMotionReport) -> list[str]:
+    clip_names = [str(item.get("exact_name")) for item in assembly_data.clips]
+    playback_names = [str(item.get("exact_name")) for item in assembly_data.playback]
+    if assembly_data.schema_name == REPRESENTATIVE_ASSEMBLY_SCHEMA:
+        try:
+            expected = list(representative_review_clips(clip_names))
+        except ValueError as exc:
+            raise FoundryError(str(exc)) from exc
+        if (
+            len(clip_names) != 61
+            or len(set(clip_names)) != 61
+            or playback_names != expected
+            or assembly_data.transformation_facts.get("playback_evidence_profile")
+            != REPRESENTATIVE_PROFILE
+        ):
+            raise FoundryError(
+                "Schema 1.4 Meshy-native release evidence requires the complete "
+                "61-action inventory and exact representative playback clips."
+            )
+        return expected
+    if (
+        len(clip_names) < 29
+        or len(playback_names) < 13
+        or len(playback_names) > len(clip_names)
+    ):
+        raise FoundryError("Current Meshy-native assembly evidence is incomplete.")
+    return list(dict.fromkeys([*RELEASE_REVIEW_CLIPS, *playback_names]))
 
 
 def _latest(manifest, role):
