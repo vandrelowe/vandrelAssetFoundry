@@ -934,19 +934,7 @@ def _playback_names(names, extended, entries=None, profile="release_review"):
     missing = [name for name in selected if name not in names]
     if missing:
         raise FoundryError(f"Meshy multi-motion proportional playback is missing: {missing}.")
-    additions = []
-    for item in entries or []:
-        if item.get("source_package_number", 1) < 2:
-            continue
-        if item.get("collision_resolution") in {
-            "deduplicated_identical",
-            "deduplicated_identical_curve",
-        }:
-            continue
-        name = item.get("runtime_action_name")
-        if isinstance(name, str) and name in names and name not in selected and name not in additions:
-            additions.append(name)
-    return [*selected, *additions]
+    return selected
 
 
 def _comparison(collisions=None):

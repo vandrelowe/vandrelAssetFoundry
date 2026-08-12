@@ -8,6 +8,7 @@ import pytest
 from PIL import Image
 
 import vandrel_foundry.services.assemble_meshy_native_character_motion as service
+import vandrel_foundry.services.validate_meshy_native_character_release as release_service
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import Artifact, Processor
@@ -69,6 +70,21 @@ COLLISION_NAMES = {
     "Female_Crouch_Pick_Fruit_Basket_Stand",
     "Female_Stand_Pick_Fruit_Basket",
 }
+RELEASE_REVIEW_ACTIONS = [
+    "target_character|019fe8ca-a6c4-7968-822f-92efebbab5a4",
+    "target_character|019fe8d7-ed16-7b82-a594-728d821ee711",
+    "target_character|Idle_6",
+    "target_character|Dead",
+    "target_character|Stand_To_Side_Lying",
+    "target_character|Walking",
+    "target_character|Running",
+    "target_character|Angry_Ground_Stomp",
+    "target_character|Hit_Reaction_1",
+    "target_character|Carry_Heavy_Object_Walk",
+    "target_character|Collect_Object",
+    "target_character|Female_Crouch_Pick_Fruit_Basket_Stand",
+    "target_character|Female_Stand_Pick_Fruit_Basket",
+]
 
 
 def _lanes():
@@ -503,6 +519,227 @@ def _runner(
         return ProcessResult(0, "ok", "", False, False, 0.1)
 
     return run
+
+
+def test_release_review_selector_is_exactly_the_established_thirteen_clips():
+    additional = [f"target_character|Package_Action_{index:02d}" for index in range(48)]
+    names = [*RELEASE_REVIEW_ACTIONS, *additional]
+    entries = [
+        {
+            "source_package_number": 2,
+            "runtime_action_name": name,
+            "collision_resolution": "source_qualified_unique",
+        }
+        for name in additional
+    ]
+
+    selected = service._playback_names(
+        names,
+        True,
+        entries,
+        profile="release_review",
+    )
+
+    assert len(names) == 61
+    assert selected == RELEASE_REVIEW_ACTIONS
+    assert len(selected) == 13
+
+
+def test_schema_1_3_release_validation_accepts_exact_thirteen_clip_review(
+    config, prompt, tmp_path
+):
+    asset_id = "native_release_validation_test_001"
+    config.tools.godot_executable = prompt
+    create_asset(config, _lanes(), asset_id, "humanoid", "Native release", prompt)
+    repository = ManifestRepository(config.foundry.workspace_root)
+    root = repository.asset_directory(asset_id)
+    manifest = repository.load(asset_id)
+
+    def artifact_for(
+        artifact_id: str,
+        role: str,
+        stage: str,
+        format_name: str,
+        relative: str,
+        *,
+        derived_from: list[str] | None = None,
+        processor: Processor | None = None,
+    ) -> Artifact:
+        path = root / relative
+        payload = path.read_bytes()
+        return Artifact(
+            artifact_id=artifact_id,
+            role=role,
+            stage=stage,
+            format=format_name,
+            path=relative,
+            sha256=hashlib.sha256(payload).hexdigest(),
+            size_bytes=len(payload),
+            derived_from=derived_from or [],
+            processor=processor,
+        )
+
+    source_ids = [f"source_root_{index:03d}" for index in range(28)]
+    source_artifacts = []
+    for index, artifact_id in enumerate(source_ids):
+        relative = f"source/release-validation/root-{index:03d}.fbx"
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(f"root-{index}".encode())
+        source_artifacts.append(
+            artifact_for(artifact_id, "source_contribution", "source", "fbx", relative)
+        )
+
+    clip_names = [
+        *RELEASE_REVIEW_ACTIONS,
+        *(f"target_character|Package_Action_{index:02d}" for index in range(48)),
+    ]
+    model_path = root / "processed/release-validation/model.glb"
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_glb(model_path, clip_names)
+    processor = Processor(
+        name="blender_meshy_native_character_motion_assembly",
+        version="test",
+    )
+    model_artifact = artifact_for(
+        "processed_model_release_validation",
+        "processed_model",
+        "processed",
+        "glb",
+        "processed/release-validation/model.glb",
+        derived_from=source_ids,
+        processor=processor,
+    )
+    skin = release_service.inspect_top4_glb_skin(model_path)
+    skin_facts = {
+        "policy": skin.policy,
+        "skin_payload_sha256": skin.skin_payload_sha256,
+        "inverse_bind_matrices_sha256": skin.inverse_bind_matrices_sha256,
+        "material_binding_sha256": skin.material_binding_sha256,
+        "embedded_image_sha256s": list(skin.embedded_image_sha256s),
+        "unweighted_vertex_count": skin.unweighted_vertex_count,
+        "maximum_influences": skin.maximum_influences,
+    }
+
+    playback_artifacts = []
+    playback = []
+    for index, name in enumerate(RELEASE_REVIEW_ACTIONS):
+        artifact_id = f"release_review_playback_{index:03d}"
+        relative = f"preview/release-validation/{index:02d}.webp"
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(f"playback-{index}".encode())
+        playback_artifacts.append(
+            artifact_for(
+                artifact_id,
+                "meshy_native_character_motion_playback",
+                "review",
+                "webp",
+                relative,
+                derived_from=[model_artifact.artifact_id],
+                processor=processor,
+            )
+        )
+        playback.append(
+            {
+                "artifact_id": artifact_id,
+                "exact_name": name,
+                "duration_seconds": 1.0,
+            }
+        )
+
+    report_value = {
+        "schema": "vandrel_foundry_meshy_native_character_motion/1.3",
+        "asset_id": asset_id,
+        "processor": {"name": processor.name, "version": processor.version},
+        "source_union": source_ids,
+        "source_bindings": [],
+        "semantic_evidence": {},
+        "transformation_facts": {
+            "semantic_transfer_policy": "native_joint_identity_global_pose_reconstruction",
+            "bind_matrices_preserved": True,
+            "material_texture_preserved": True,
+            "independent_top4_reference_match": True,
+            "independent_final_top4_skin": skin_facts,
+            "maximum_sampled_global_orientation_delta_degrees": 0.0,
+            "maximum_sampled_parent_local_orientation_delta_degrees": 0.0,
+        },
+        "clips": [
+            {"exact_name": name, "duration_seconds": 1.0} for name in clip_names
+        ],
+        "playback": playback,
+        "comparison": {},
+        "runtime_readiness": {"vandrel_ready": False},
+        "output": {
+            "sha256": model_artifact.sha256,
+            "size_bytes": model_artifact.size_bytes,
+        },
+        "process_logs": [],
+    }
+    report_path = root / "reports/release-validation/assembly.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(report_value), encoding="utf-8")
+    report_artifact = artifact_for(
+        "motion_report_release_validation",
+        "meshy_native_character_motion_report",
+        "processing",
+        "json",
+        "reports/release-validation/assembly.json",
+        derived_from=[model_artifact.artifact_id, *source_ids],
+        processor=processor,
+    )
+
+    manifest.artifacts.extend(
+        [*source_artifacts, model_artifact, report_artifact, *playback_artifacts]
+    )
+    transition_workflow(manifest, WorkflowState.DOWNLOADED)
+    transition_workflow(manifest, WorkflowState.PROCESSED)
+    transition_workflow(manifest, WorkflowState.REVIEW)
+    manifest.validation.result = "passed"
+    manifest.validation.checks = [{"name": "godot_sandbox_import", "passed": True}]
+    source_revision = manifest.revision
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=source_revision)
+
+    calls = 0
+
+    def runner(_arguments, operation_root, *_unused):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            (Path(operation_root) / "result.json").write_text(
+                json.dumps(
+                    {
+                        "schema": "vandrel_foundry_godot_meshy_native_release/1.0",
+                        "passed": True,
+                        "animation_count": len(clip_names),
+                        "bone_count": 24,
+                        "visible_skinned_mesh_count": 1,
+                        "textured_material_count": 1,
+                        "finite_sampled_bone_transforms": True,
+                        "maximum_duration_delta_seconds": 0.0,
+                        "duration_tolerance_policy": (
+                            "godot_import_may_quantize_by_at_most_one_30fps_frame"
+                        ),
+                        "dead_final_hold_root_delta": 0.0,
+                    }
+                ),
+                encoding="utf-8",
+            )
+        return ProcessResult(0, "ok", "", False, False, 0.1)
+
+    result = release_service.validate_meshy_native_character_release(
+        config,
+        asset_id,
+        runner=runner,
+        environment={},
+    )
+
+    validated = json.loads((root / result.report.path).read_text(encoding="utf-8"))
+    assert calls == 2
+    assert validated["schema"] == "vandrel_foundry_meshy_native_character_release/1.1"
+    assert validated["selected_review_clips"] == RELEASE_REVIEW_ACTIONS
+    assert len(validated["playback_evidence"]) == 13
 
 
 def test_assembly_registers_six_root_lineage_without_generic_semantics(config, prompt, tmp_path):
