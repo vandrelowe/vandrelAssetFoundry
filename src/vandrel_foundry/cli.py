@@ -15,6 +15,7 @@ from vandrel_foundry.services.add_meshy_native_animation_package import (
     add_meshy_native_animation_package,
 )
 from vandrel_foundry.services.add_meshy_native_character_package import (
+    add_meshy_native_character_api_package,
     add_meshy_native_character_package,
 )
 from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
@@ -1741,6 +1742,79 @@ def inspect_meshy_native_character_command(
         fail(exc)
 
 
+@app.command("add-meshy-native-character-api-package")
+def add_meshy_native_character_api(
+    asset_id: str,
+    character_fbx: Annotated[Path, typer.Option("--character-fbx")],
+    character_fbx_sha256: Annotated[str, typer.Option("--character-fbx-sha256")],
+    character_glb: Annotated[Path, typer.Option("--character-glb")],
+    character_glb_sha256: Annotated[str, typer.Option("--character-glb-sha256")],
+    walking_fbx: Annotated[Path, typer.Option("--walking-fbx")],
+    walking_fbx_sha256: Annotated[str, typer.Option("--walking-fbx-sha256")],
+    running_fbx: Annotated[Path, typer.Option("--running-fbx")],
+    running_fbx_sha256: Annotated[str, typer.Option("--running-fbx-sha256")],
+    source_task_id: Annotated[str, typer.Option("--source-task-id")],
+    source_display_name: Annotated[str, typer.Option("--source-display-name")],
+    remesh_task_id: Annotated[str, typer.Option("--remesh-task-id")],
+    remesh_face_count: Annotated[int, typer.Option("--remesh-face-count")],
+    remesh_vertex_count: Annotated[int, typer.Option("--remesh-vertex-count")],
+    rig_task_id: Annotated[str, typer.Option("--rig-task-id")],
+    stable_vandrel_character_id: Annotated[
+        str, typer.Option("--stable-vandrel-character-id")
+    ],
+    rig_status: Annotated[str, typer.Option("--rig-status")],
+    rig_progress: Annotated[int, typer.Option("--rig-progress")],
+    consumed_credits: Annotated[int, typer.Option("--consumed-credits")],
+    provider_balance_before: Annotated[int, typer.Option("--provider-balance-before")],
+    provider_balance_after: Annotated[int, typer.Option("--provider-balance-after")],
+    created_at_epoch_ms: Annotated[int, typer.Option("--created-at-epoch-ms")],
+    started_at_epoch_ms: Annotated[int, typer.Option("--started-at-epoch-ms")],
+    finished_at_epoch_ms: Annotated[int, typer.Option("--finished-at-epoch-ms")],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Intake exact completed zero-credit Meshy rigging API output files."""
+    try:
+        settings = load_config(config)
+        artifacts = add_meshy_native_character_api_package(
+            settings,
+            asset_id,
+            {
+                "character_fbx": character_fbx,
+                "character_glb": character_glb,
+                "walking_fbx": walking_fbx,
+                "running_fbx": running_fbx,
+            },
+            {
+                "character_fbx": character_fbx_sha256,
+                "character_glb": character_glb_sha256,
+                "walking_fbx": walking_fbx_sha256,
+                "running_fbx": running_fbx_sha256,
+            },
+            {
+                "source_task_id": source_task_id,
+                "source_display_name": source_display_name,
+                "remesh_task_id": remesh_task_id,
+                "remesh_face_count": remesh_face_count,
+                "remesh_vertex_count": remesh_vertex_count,
+                "rig_task_id": rig_task_id,
+                "stable_vandrel_character_id": stable_vandrel_character_id,
+                "rig_status": rig_status,
+                "rig_progress": rig_progress,
+                "consumed_credits": consumed_credits,
+                "provider_balance_before": provider_balance_before,
+                "provider_balance_after": provider_balance_after,
+                "created_at_epoch_ms": created_at_epoch_ms,
+                "started_at_epoch_ms": started_at_epoch_ms,
+                "finished_at_epoch_ms": finished_at_epoch_ms,
+            },
+        )
+        console.print(
+            f"[green]Intaken Meshy native API character[/green] {len(artifacts)} artifacts"
+        )
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
 @app.command("add-meshy-native-multi-motion-package")
 def add_meshy_native_multi_motion(
     asset_id: str,
@@ -1765,12 +1839,21 @@ def add_meshy_native_multi_motion(
 @app.command("assemble-meshy-native-character-motion")
 def assemble_meshy_native_character_motion_command(
     asset_id: str,
+    playback_profile: Annotated[
+        str, typer.Option("--playback-profile")
+    ] = "release_review",
     config: Annotated[Path | None, typer.Option("--config")] = None,
 ) -> None:
     """Assemble accepted Meshy-native canary actions onto one real native character."""
     try:
         settings = load_config(config)
-        result = assemble_meshy_native_character_motion(settings, asset_id)
+        if playback_profile not in {"release_review", "representative_batch"}:
+            raise FoundryError("Meshy-native playback profile is invalid.")
+        result = assemble_meshy_native_character_motion(
+            settings,
+            asset_id,
+            playback_profile=playback_profile,
+        )
         console.print(f"[green]Assembled Meshy-native character motion[/green] {result.model.path}")
         console.print(f"Playback clips: {len(result.playback)}; report: {result.report.path}")
     except (FoundryError, OSError, ValueError) as exc:

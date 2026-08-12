@@ -34,6 +34,7 @@ class MeshyNativeCharacterMotionReport(StrictModel):
         "vandrel_foundry_meshy_native_character_motion/1.1",
         "vandrel_foundry_meshy_native_character_motion/1.2",
         "vandrel_foundry_meshy_native_character_motion/1.3",
+        "vandrel_foundry_meshy_native_character_motion/1.4",
     ] = Field(alias="schema")
     asset_id: str
     processor: dict[str, object]
@@ -51,7 +52,7 @@ class MeshyNativeCharacterMotionReport(StrictModel):
     @model_validator(mode="after")
     def require_bounded_shape(self) -> "MeshyNativeCharacterMotionReport":
         expected_roots = 28 if self.schema_name.endswith("/1.2") else 6
-        if self.schema_name.endswith("/1.3"):
+        if self.schema_name.endswith(("/1.3", "/1.4")):
             expected_roots = len(self.source_union)
             if expected_roots < 28:
                 raise ValueError("Expanded character motion report requires at least 28 roots")
@@ -73,6 +74,13 @@ class MeshyNativeCharacterMotionReport(StrictModel):
         ):
             raise ValueError(
                 "Expanded character motion report requires at least 29 unique actions and bounded playback"
+            )
+        elif self.schema_name.endswith("/1.4") and not (
+            len(self.clips) >= 25 and 3 <= len(self.playback) <= 4
+        ):
+            raise ValueError(
+                "Representative batch character motion report requires at least 25 unique "
+                "actions and three or four bounded playback clips"
             )
         if self.runtime_readiness.get("vandrel_ready") is not False:
             raise ValueError("This package must remain explicitly not Vandrel-ready")

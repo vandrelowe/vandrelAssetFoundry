@@ -669,6 +669,53 @@ def test_assembly_rehashes_six_roots_immediately_before_save(
     assert not (root / "reports/meshy-native-character-motion-001.json").exists()
 
 
+def test_first_extended_assembly_binds_canary_and_multi_roots_in_one_transaction(
+    config, prompt, tmp_path
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    archive = tmp_path / "multi-motion-first.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as value:
+        for index, name in enumerate(MULTI_ACTIONS):
+            value.writestr(
+                f"Meshy_AI_Primal_Female_Caveman_biped_Animation_{name}_withSkin.fbx",
+                f"entry-{index}-{name}".encode(),
+            )
+        value.writestr(
+            "Meshy_AI_Primal_Female_Caveman_biped_texture_0.png", b"texture"
+        )
+    add_meshy_native_multi_motion_package(
+        config,
+        "native_motion_test_001",
+        archive,
+        hashlib.sha256(archive.read_bytes()).hexdigest(),
+    )
+    before = repository.load("native_motion_test_001")
+    assert not service.MOTION_ROOTS <= {
+        item.artifact_id for item in before.artifacts if not item.derived_from
+    }
+    result = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="identical"),
+        playback_profile="representative_batch",
+    )
+    live = repository.load("native_motion_test_001")
+    root_ids = {
+        item.artifact_id
+        for item in live.artifacts
+        if item.stage == "source" and not item.derived_from
+    }
+    assert service.BASE_ROOTS | service.MULTI_ROOT_IDS == root_ids
+    report = json.loads((root / result.report.path).read_text(encoding="utf-8"))
+    assert report["schema"] == "vandrel_foundry_meshy_native_character_motion/1.4"
+    assert [item["exact_name"] for item in report["playback"]] == [
+        "target_character|Idle_6",
+        "target_character|Walking",
+        "target_character|Collect_Object",
+    ]
+    assert (root / result.model.path).is_file()
+
+
 @pytest.mark.parametrize(
     ("options", "message"),
     [

@@ -14,6 +14,10 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import invalidate_approval, transition_workflow
+from vandrel_foundry.services.add_meshy_native_character_package import (
+    API_CHARACTER_SOURCE,
+    resolve_meshy_native_character_source,
+)
 from vandrel_foundry.services.inspect_glb import load_glb_document
 from vandrel_foundry.services.validate_godot import ProcessRunner, run_bounded_process
 from vandrel_foundry.services.windows_acl_policy import apply_candidate_acl
@@ -23,14 +27,6 @@ from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "blender_meshy_native_character_inspection"
 PROCESSOR_VERSION = "1"
-ROOT_IDS = {
-    "meshy_native_character_archive_root_001",
-    "meshy_native_character_fbx_root_001",
-    "meshy_native_walking_fbx_root_001",
-    "meshy_native_character_texture_root_001",
-}
-
-
 def inspect_meshy_native_character(
     config: FoundryConfig,
     asset_id: str,
@@ -44,18 +40,11 @@ def inspect_meshy_native_character(
         WorkflowState.PROCESSED,
     }:
         raise FoundryError("Meshy native character inspection requires a downloaded or processed humanoid candidate.")
+    profile, root_by_id, texture = resolve_meshy_native_character_source(manifest.artifacts)
     roots = [item for item in manifest.artifacts if item.stage == "source" and not item.derived_from]
-    if len(roots) != len(ROOT_IDS) or {item.artifact_id for item in roots} != ROOT_IDS:
+    if len(roots) != len(profile.root_ids) or {item.artifact_id for item in roots} != profile.root_ids:
         raise FoundryError("Meshy native character inspection requires the exact four-root union.")
-    by_id = {item.artifact_id: item for item in roots}
-    required = {
-        "meshy_native_character_archive_root_001": ("meshy_native_character_archive", "zip"),
-        "meshy_native_character_fbx_root_001": ("meshy_native_character_fbx", "fbx"),
-        "meshy_native_walking_fbx_root_001": ("meshy_native_walking_fbx", "fbx"),
-        "meshy_native_character_texture_root_001": ("meshy_native_character_texture", "png"),
-    }
-    if any((by_id[key].role, by_id[key].format) != expected for key, expected in required.items()):
-        raise FoundryError("Meshy native character root roles or formats are invalid.")
+    by_id = {**root_by_id, texture.artifact_id: texture}
     executable = config.tools.blender_executable
     if executable is None or not executable.is_absolute() or not executable.is_file():
         raise FoundryError("Configure tools.blender_executable as an existing absolute file.")
@@ -84,11 +73,16 @@ def inspect_meshy_native_character(
         temp_preview = temporary / "walking.webp"
         temp_report = temporary / "report.json"
         script = Path(__file__).parents[1] / "blender" / "inspect_meshy_native_character.py"
+        adapter_values = [
+            str(paths["meshy_native_character_fbx_root_001"]),
+            str(paths["meshy_native_walking_fbx_root_001"]),
+        ]
+        if profile is API_CHARACTER_SOURCE:
+            adapter_values.append(str(paths["meshy_native_running_fbx_root_001"]))
         arguments = [
             str(executable), "--background", "--factory-startup", "--disable-autoexec",
             "--python-exit-code", "1", "--python", str(script), "--",
-            str(paths["meshy_native_character_fbx_root_001"]),
-            str(paths["meshy_native_walking_fbx_root_001"]), str(frames), str(adapter_report),
+            *adapter_values, str(frames), str(adapter_report),
         ]
         logical = [
             "--background", "--factory-startup", "--disable-autoexec", "--python-exit-code=1",
@@ -98,6 +92,8 @@ def inspect_meshy_native_character(
             f"--report-role=meshy_native_character_inspection_report:{report_relative}",
             f"--process-log-role=meshy_native_character_process_log:{process_relative}",
         ]
+        if profile is API_CHARACTER_SOURCE:
+            logical.insert(6, "--running-artifact=meshy_native_running_fbx_root_001")
         started = utc_now().isoformat()
         result = (runner or run_bounded_process)(arguments, asset_root, _safe_environment(), config.tools.blender_timeout_seconds, config.tools.maximum_output_bytes)
         ended = utc_now().isoformat()
@@ -115,6 +111,12 @@ def inspect_meshy_native_character(
         _require_rigged(character, "character")
         _require_rigged(walking, "walking")
         duration = _require_matching_walking(character, walking)
+        running = data.get("running")
+        if profile is API_CHARACTER_SOURCE:
+            if not isinstance(running, dict):
+                raise FoundryError("Meshy native API inspection report is missing Running facts.")
+            _require_rigged(running, "running")
+            _require_matching_animation(character, running, "Running")
         frame_files = data.get("frame_files")
         if not isinstance(frame_files, list) or len(frame_files) < 2:
             raise FoundryError("Meshy native character playback frames are incomplete.")
@@ -147,7 +149,8 @@ def inspect_meshy_native_character(
         process_hash, process_size = _hash(temp_process)
         compatibility = _canary_compatibility(repository, asset_root, character, walking)
         data.pop("frame_files", None)
-        data["source_union"] = sorted(ROOT_IDS)
+        data["source_profile"] = profile.name
+        data["source_union"] = sorted(profile.root_ids)
         data["provider_observation"] = {
             "observation_basis": "user_observed_provider_metadata",
             "observed_credit_balance_before_after": (
@@ -182,7 +185,7 @@ def inspect_meshy_native_character(
             path=preview_relative,
             sha256=preview_hash,
             size_bytes=preview_size,
-            derived_from=sorted(ROOT_IDS),
+            derived_from=sorted(profile.root_ids),
             processor=processor,
         )
         log = Artifact(
@@ -193,7 +196,7 @@ def inspect_meshy_native_character(
             path=process_relative,
             sha256=process_hash,
             size_bytes=process_size,
-            derived_from=sorted(ROOT_IDS),
+            derived_from=sorted(profile.root_ids),
             processor=processor,
         )
         report = Artifact(
@@ -204,7 +207,7 @@ def inspect_meshy_native_character(
             path=report_relative,
             sha256=report_hash,
             size_bytes=report_size,
-            derived_from=[*sorted(ROOT_IDS), video.artifact_id, log.artifact_id],
+            derived_from=[*sorted(profile.root_ids), video.artifact_id, log.artifact_id],
             processor=processor,
         )
         targets = [video, log, report]
@@ -297,27 +300,31 @@ def _require_rigged(value, label):
 
 
 def _require_matching_walking(character, walking):
-    if character.get("joint_hierarchy") != walking.get("joint_hierarchy"):
-        raise FoundryError("Meshy native character and Walking hierarchies do not match.")
+    return _require_matching_animation(character, walking, "Walking")
+
+
+def _require_matching_animation(character, animated, label):
+    if character.get("joint_hierarchy") != animated.get("joint_hierarchy"):
+        raise FoundryError(f"Meshy native character and {label} hierarchies do not match.")
     character_bind = character.get("bind_signature")
-    walking_bind = walking.get("bind_signature")
+    animated_bind = animated.get("bind_signature")
     if (
         not isinstance(character_bind, str)
-        or not isinstance(walking_bind, str)
+        or not isinstance(animated_bind, str)
         or len(character_bind) != 64
-        or len(walking_bind) != 64
-        or character_bind != walking_bind
+        or len(animated_bind) != 64
+        or character_bind != animated_bind
     ):
-        raise FoundryError("Meshy native character and Walking bind signatures do not match.")
-    actions = walking.get("actions")
+        raise FoundryError(f"Meshy native character and {label} bind signatures do not match.")
+    actions = animated.get("actions")
     if not isinstance(actions, list) or not actions:
-        raise FoundryError("Meshy native walking FBX has no animation action.")
+        raise FoundryError(f"Meshy native {label} FBX has no animation action.")
     try:
         duration = float(actions[0]["duration_seconds"])
     except (KeyError, TypeError, ValueError) as exc:
-        raise FoundryError("Meshy native Walking duration is invalid.") from exc
+        raise FoundryError(f"Meshy native {label} duration is invalid.") from exc
     if not math.isfinite(duration) or duration <= 0:
-        raise FoundryError("Meshy native Walking duration is invalid.")
+        raise FoundryError(f"Meshy native {label} duration is invalid.")
     return duration
 
 

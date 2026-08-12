@@ -17,6 +17,9 @@ from vandrel_foundry.domain.meshy_native_multi_motion import (
 )
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import invalidate_approval, transition_workflow
+from vandrel_foundry.services.add_meshy_native_character_package import (
+    resolve_meshy_native_character_source,
+)
 from vandrel_foundry.services.windows_acl_policy import apply_candidate_acl
 from vandrel_foundry.storage.atomic import json_bytes
 from vandrel_foundry.storage.manifests import ManifestRepository
@@ -36,6 +39,12 @@ ACCEPTED_PREEXISTING_ROOT_IDS = frozenset(
         "meshy_native_character_fbx_root_001",
         "meshy_native_walking_fbx_root_001",
         "meshy_native_character_texture_root_001",
+        "meshy_native_motion_model_root_001",
+        "meshy_native_motion_report_root_001",
+    }
+)
+MOTION_ROOT_IDS = frozenset(
+    {
         "meshy_native_motion_model_root_001",
         "meshy_native_motion_report_root_001",
     }
@@ -116,10 +125,18 @@ def add_meshy_native_multi_motion_package(
     established_root_ids = set().union(
         *(identity.root_ids for identity, _report, _artifacts in existing_packages)
     )
-    if current_root_ids != ACCEPTED_PREEXISTING_ROOT_IDS | established_root_ids:
+    profile, _character_roots, _texture = resolve_meshy_native_character_source(
+        manifest.artifacts
+    )
+    character_roots = set(profile.root_ids)
+    allowed_preexisting = {
+        frozenset(character_roots | established_root_ids),
+        frozenset(character_roots | set(MOTION_ROOT_IDS) | established_root_ids),
+    }
+    if frozenset(current_root_ids) not in allowed_preexisting:
         raise FoundryError(
-            "Meshy multi-motion intake requires the exact six accepted character/canary "
-            "roots plus every complete prior package root union."
+            "Meshy multi-motion intake requires the exact accepted character roots, optional "
+            "established canary roots, and every complete prior package root union."
         )
     if not archive_path.is_file() or archive_path.suffix.lower() != ".zip":
         raise FoundryError("Meshy multi-motion intake requires one ZIP archive.")

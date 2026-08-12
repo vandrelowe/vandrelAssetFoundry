@@ -271,6 +271,19 @@ registered output. A changed source root fails before promotion; ambiguous
 save recovery preserves outputs only when the live manifest is proven to be
 the exact intended target.
 
+An authorized authenticated API retrieval uses the same intake authority with
+a distinct, truthful four-root profile: exact provider `Character_output.fbx`,
+`Character_output.glb`, `Animation_Walking_withSkin.fbx`, and
+`Animation_Running_withSkin.fbx`. The service never fabricates a provider ZIP.
+It extracts the single embedded PNG from the exact GLB, records that PNG as a
+derived artifact whose sole parent is the GLB root, retains only a sanitized
+zero-credit task receipt and user-observed identity crosswalk, and stores no
+signed URL or secret. Intake requires `SUCCEEDED`, progress 100, consumed
+credits zero, and an unchanged observed account balance. Inspection binds
+Running hierarchy, bind signature, skin, duration, and zero-unweighted facts in
+addition to the historical Character/Walking checks. Both profiles remain
+unreleased technical candidates and use the same exact-target save recovery.
+
 `assemble-meshy-native-character-motion` extends that same native corridor for
 an inspected real character. It copies the accepted current canary model and
 normalization report into the character candidate as two immutable source
@@ -292,6 +305,17 @@ source maximum, affected-vertex count, and discarded source-weight total.
 Index grafting, Mixamo retargeting, and provider-native character migration are
 forbidden. Clip timing remains bound to the canary normalization report, and
 each clip receives target-mesh XY root baseline and ground reconciliation.
+
+Complete numbered multi-motion packages may be added before the first character
+assembly. In that case the one assembly transaction imports the accepted canary
+roots and every complete motion-package root union together; it does not create
+a redundant ten-action intermediate model. The default `release_review`
+evidence profile retains the established release-facing playback selection.
+The `representative_batch` profile is candidate-only and keeps the complete
+runtime action inventory while rendering exactly default Idle, Walking, and one
+available work action (`Pull_Radish`, with `Collect_Object` only as the bounded
+historical-package fallback). The profile is hash-bound in report schema 1.4
+and does not confer visual acceptance, approval, release, or publication.
 
 Before adding actions, Blender exports a temporary policy-bound reference GLB.
 After the animated export, the service independently decodes both GLBs. It

@@ -1,4 +1,4 @@
-"""Inspect and render one provider-native Meshy character/walking FBX pair."""
+"""Inspect one provider-native Meshy character and its native locomotion FBXs."""
 
 import hashlib
 import json
@@ -12,24 +12,34 @@ from mathutils import Vector
 
 def main() -> None:
     values = sys.argv[sys.argv.index("--") + 1 :]
-    if len(values) != 4:
-        raise RuntimeError("Expected character FBX, walking FBX, frame directory, and report.")
-    character_path, walking_path, frames_root, report_path = map(Path, values)
+    if len(values) not in {4, 5}:
+        raise RuntimeError(
+            "Expected character FBX, walking FBX, optional running FBX, frame directory, and report."
+        )
+    paths = list(map(Path, values))
+    character_path, walking_path = paths[:2]
+    running_path = paths[2] if len(paths) == 5 else None
+    frames_root, report_path = paths[-2:]
     frames_root.mkdir(parents=True, exist_ok=False)
     character = _inspect_fbx(character_path, render=False, frames_root=None)
     walking = _inspect_fbx(walking_path, render=True, frames_root=frames_root)
+    running = (
+        _inspect_fbx(running_path, render=False, frames_root=None)
+        if running_path is not None
+        else None
+    )
+    payload = {
+        "schema": "vandrel_foundry_meshy_native_character_adapter/1.0",
+        "blender_version": bpy.app.version_string,
+        "neutral_gray": True,
+        "character": character,
+        "walking": walking,
+        "frame_files": walking.pop("frame_files"),
+    }
+    if running is not None:
+        payload["running"] = running
     report_path.write_text(
-        json.dumps(
-            {
-                "schema": "vandrel_foundry_meshy_native_character_adapter/1.0",
-                "blender_version": bpy.app.version_string,
-                "neutral_gray": True,
-                "character": character,
-                "walking": walking,
-                "frame_files": walking.pop("frame_files"),
-            },
-            indent=2,
-        )
+        json.dumps(payload, indent=2)
         + "\n",
         encoding="utf-8",
     )

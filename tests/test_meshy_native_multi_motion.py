@@ -204,7 +204,7 @@ def test_intake_rejects_wrong_preexisting_root_union_before_copy(
     revision = manifest.revision
     manifest.revision += 1
     repository.save(manifest, expected_revision=revision)
-    with pytest.raises(FoundryError, match="exact six accepted"):
+    with pytest.raises(FoundryError, match="exact accepted character roots"):
         service.add_meshy_native_multi_motion_package(
             config, "multi_motion_test_001", archive, digest
         )

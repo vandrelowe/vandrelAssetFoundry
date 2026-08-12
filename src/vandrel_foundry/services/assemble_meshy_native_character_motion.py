@@ -7,6 +7,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from PIL import Image
 
@@ -23,6 +24,11 @@ from vandrel_foundry.domain.meshy_native_multi_motion import (
 )
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import invalidate_approval
+from vandrel_foundry.services.add_meshy_native_character_package import (
+    API_CHARACTER_SOURCE,
+    LEGACY_CHARACTER_SOURCE,
+    resolve_meshy_native_character_source,
+)
 from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
     ROOT_IDS as MULTI_ROOT_IDS,
 )
@@ -40,12 +46,8 @@ from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "blender_meshy_native_character_motion_assembly"
 PROCESSOR_VERSION = "5"
-CHARACTER_ROOTS = {
-    "meshy_native_character_archive_root_001",
-    "meshy_native_character_fbx_root_001",
-    "meshy_native_walking_fbx_root_001",
-    "meshy_native_character_texture_root_001",
-}
+CHARACTER_ROOTS = set(LEGACY_CHARACTER_SOURCE.root_ids)
+API_CHARACTER_ROOTS = set(API_CHARACTER_SOURCE.root_ids)
 MOTION_ROOTS = {
     "meshy_native_motion_model_root_001",
     "meshy_native_motion_report_root_001",
@@ -66,6 +68,7 @@ def assemble_meshy_native_character_motion(
     config: FoundryConfig,
     asset_id: str,
     runner: ProcessRunner | None = None,
+    playback_profile: Literal["release_review", "representative_batch"] = "release_review",
 ) -> MeshyNativeCharacterMotionResult:
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
@@ -74,6 +77,10 @@ def assemble_meshy_native_character_motion(
     current_roots = [
         item for item in manifest.artifacts if item.stage == "source" and not item.derived_from
     ]
+    profile, character_root_by_id, texture_artifact = resolve_meshy_native_character_source(
+        manifest.artifacts
+    )
+    character_root_ids = set(profile.root_ids)
     asset_root = repository.asset_directory(asset_id)
     current_root_ids = {item.artifact_id for item in current_roots}
     multi_packages = _load_multi_packages(asset_root, manifest)
@@ -81,30 +88,22 @@ def assemble_meshy_native_character_motion(
         *(identity.root_ids for identity, _report, _artifacts in multi_packages)
     )
     allowed_root_unions = {
-        frozenset(CHARACTER_ROOTS),
-        frozenset(BASE_ROOTS),
-        frozenset(BASE_ROOTS | multi_root_ids),
+        frozenset(character_root_ids),
+        frozenset(character_root_ids | MOTION_ROOTS),
+        frozenset(character_root_ids | multi_root_ids),
+        frozenset(character_root_ids | MOTION_ROOTS | multi_root_ids),
     }
     if frozenset(current_root_ids) not in allowed_root_unions:
         raise FoundryError(
             "Meshy-native character motion assembly requires the exact four character roots "
             "the established six-root union, or that union plus complete numbered motion packages."
         )
-    by_id = {
-        item.artifact_id: item
-        for item in current_roots
-        if item.artifact_id in CHARACTER_ROOTS
-    }
-    required = {
-        "meshy_native_character_archive_root_001": ("meshy_native_character_archive", "zip"),
-        "meshy_native_character_fbx_root_001": ("meshy_native_character_fbx", "fbx"),
-        "meshy_native_walking_fbx_root_001": ("meshy_native_walking_fbx", "fbx"),
-        "meshy_native_character_texture_root_001": ("meshy_native_character_texture", "png"),
-    }
-    if any((by_id[key].role, by_id[key].format) != value for key, value in required.items()):
-        raise FoundryError("Meshy-native character root roles or formats are invalid.")
+    by_id = {**character_root_by_id, texture_artifact.artifact_id: texture_artifact}
     paths = {key: contained_path(asset_root, item.path) for key, item in by_id.items()}
-    adding_motion_roots = current_root_ids == CHARACTER_ROOTS
+    motion_root_presence = current_root_ids & MOTION_ROOTS
+    if motion_root_presence and motion_root_presence != MOTION_ROOTS:
+        raise FoundryError("Meshy-native character motion roots are incomplete.")
+    adding_motion_roots = not motion_root_presence
     extended_motion = bool(multi_packages)
     if adding_motion_roots:
         canary = repository.load("meshy_native_brukk_canary_001")
@@ -264,7 +263,7 @@ def assemble_meshy_native_character_motion(
             str(assembly_script),
             "--",
             str(paths["meshy_native_character_fbx_root_001"]),
-            str(paths["meshy_native_character_texture_root_001"]),
+            str(paths[texture_artifact.artifact_id]),
             str(temp_motion_model),
             str(temp_reference),
             str(temp_model),
@@ -371,10 +370,15 @@ def assemble_meshy_native_character_motion(
         require_matching_top4_skin(
             reference_skin,
             output_skin,
-            by_id["meshy_native_character_texture_root_001"].sha256,
+            texture_artifact.sha256,
         )
 
-        playback_names = _playback_names(names, extended_motion, extension_entries)
+        playback_names = _playback_names(
+            names,
+            extended_motion,
+            extension_entries,
+            playback_profile,
+        )
         durations = {name: clip_durations[name] for name in playback_names}
         durations_path = temporary / "durations.json"
         _write_new(durations_path, json_bytes(durations))
@@ -418,7 +422,7 @@ def assemble_meshy_native_character_motion(
         require_matching_top4_skin(
             reference_skin,
             output_skin,
-            by_id["meshy_native_character_texture_root_001"].sha256,
+            texture_artifact.sha256,
         )
         temp_videos = temporary / "videos"
         temp_videos.mkdir()
@@ -459,9 +463,13 @@ def assemble_meshy_native_character_motion(
             temporary / "playback-process.json", playback_log, playback_result
         )
         model_hash, model_size = _hash(temp_model)
-        root_ids = sorted(BASE_ROOTS | multi_root_ids if extended_motion else BASE_ROOTS)
+        base_root_ids = character_root_ids | MOTION_ROOTS
+        root_ids = sorted(base_root_ids | multi_root_ids if extended_motion else base_root_ids)
         report = MeshyNativeCharacterMotionReport(
             schema=(
+                "vandrel_foundry_meshy_native_character_motion/1.4"
+                if playback_profile == "representative_batch"
+                else
                 "vandrel_foundry_meshy_native_character_motion/1.3"
                 if extended_motion and len(multi_report_data) > 1
                 else "vandrel_foundry_meshy_native_character_motion/1.2"
@@ -476,7 +484,9 @@ def assemble_meshy_native_character_motion(
             },
             source_union=root_ids,
             source_bindings=_source_bindings(
-                [*by_id.values(), *multi_by_id.values()], motion_model, motion_report
+                [*character_root_by_id.values(), *multi_by_id.values()],
+                motion_model,
+                motion_report,
             ),
             semantic_evidence={
                 "artifact_id": f"meshy_native_motion_semantic_evidence_{suffix}",
@@ -485,6 +495,7 @@ def assemble_meshy_native_character_motion(
             },
             transformation_facts={
                 **facts,
+                "playback_evidence_profile": playback_profile,
                 "independent_glb_inspection": inspection.__dict__,
                 "independent_top4_reference_skin": reference_skin.__dict__,
                 "independent_final_top4_skin": output_skin.__dict__,
@@ -636,7 +647,7 @@ def assemble_meshy_native_character_motion(
         ]
         _verify_local(asset_root, targets)
         root_artifacts = [
-            *by_id.values(),
+            *character_root_by_id.values(),
             *multi_by_id.values(),
             *(
                 source_artifacts
@@ -655,6 +666,7 @@ def assemble_meshy_native_character_motion(
         manifest.asset.updated_at = utc_now()
         try:
             _verify_exact_root_union(asset_root, root_artifacts, set(root_ids))
+            _verify_local(asset_root, [texture_artifact])
             rollback = False
             repository.save(
                 manifest,
@@ -673,6 +685,7 @@ def assemble_meshy_native_character_motion(
             else:
                 raise
         _verify_exact_root_union(asset_root, root_artifacts, set(root_ids))
+        _verify_local(asset_root, [texture_artifact])
         _verify_local(asset_root, targets)
         return MeshyNativeCharacterMotionResult(
             model_artifact, report_artifact, semantic_artifact, playback_artifacts
@@ -875,9 +888,34 @@ def _require_multi_extension(entries, collisions, facts, names, packages):
         raise FoundryError("Meshy multi-motion final unique action count is invalid.")
 
 
-def _playback_names(names, extended, entries=None):
+def _playback_names(names, extended, entries=None, profile="release_review"):
     if not extended:
         return names
+    if profile == "representative_batch":
+        work_name = next(
+            (
+                name
+                for name in (
+                    "target_character|Pull_Radish",
+                    "target_character|Collect_Object",
+                )
+                if name in names
+            ),
+            None,
+        )
+        selected = [
+            "target_character|Idle_6",
+            "target_character|Walking",
+            work_name,
+        ]
+        missing = [name for name in selected if not isinstance(name, str) or name not in names]
+        if missing:
+            raise FoundryError(
+                f"Meshy representative batch playback is missing: {missing}."
+            )
+        return [name for name in selected if isinstance(name, str)]
+    if profile != "release_review":
+        raise FoundryError(f"Unsupported Meshy-native playback evidence profile: {profile}")
     selected = [
         "target_character|019fe8ca-a6c4-7968-822f-92efebbab5a4",
         "target_character|019fe8d7-ed16-7b82-a594-728d821ee711",
@@ -1185,7 +1223,11 @@ def _verify_local(root, artifacts):
 
 def _verify_exact_root_union(root, artifacts, expected):
     ids = [artifact.artifact_id for artifact in artifacts]
-    if set(ids) != expected or not BASE_ROOTS.issubset(expected):
+    authorized_bases = {
+        frozenset(CHARACTER_ROOTS | MOTION_ROOTS),
+        frozenset(API_CHARACTER_ROOTS | MOTION_ROOTS),
+    }
+    if set(ids) != expected or sum(base <= expected for base in authorized_bases) != 1:
         raise FoundryError("Meshy-native motion save requires an exact authorized root union.")
     if len(ids) != len(set(ids)):
         raise FoundryError("Meshy-native motion save root union contains duplicates.")
