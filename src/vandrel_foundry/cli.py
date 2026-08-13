@@ -1842,17 +1842,27 @@ def assemble_meshy_native_character_motion_command(
     playback_profile: Annotated[
         str, typer.Option("--playback-profile")
     ] = "release_review",
+    processing_profile: Annotated[
+        str, typer.Option("--processing-profile")
+    ] = "legacy_top4",
     config: Annotated[Path | None, typer.Option("--config")] = None,
 ) -> None:
     """Assemble accepted Meshy-native canary actions onto one real native character."""
     try:
         settings = load_config(config)
-        if playback_profile not in {"release_review", "representative_batch"}:
+        if playback_profile not in {
+            "release_review",
+            "representative_batch",
+            "repair_canary",
+        }:
             raise FoundryError("Meshy-native playback profile is invalid.")
+        if processing_profile not in {"legacy_top4", "provider_top8_pbr_v1"}:
+            raise FoundryError("Meshy-native processing profile is invalid.")
         result = assemble_meshy_native_character_motion(
             settings,
             asset_id,
             playback_profile=playback_profile,
+            processing_profile=processing_profile,
         )
         console.print(f"[green]Assembled Meshy-native character motion[/green] {result.model.path}")
         console.print(f"Playback clips: {len(result.playback)}; report: {result.report.path}")

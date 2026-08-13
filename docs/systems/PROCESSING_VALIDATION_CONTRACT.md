@@ -296,12 +296,43 @@ and reconstructs each target local pose basis through the already-posed parent
 and target local rest basis. The rotational result never receives an
 incompatible per-bone target-global-rest postfactor, target rest translations
 and bone lengths remain authoritative, and only Hips receives the declared
-skeleton-extent translation scale and root/ground reconciliation. Because the
-Godot-facing glTF corridor uses one four-influence set, the processor does not
-claim byte-exact native skin-weight preservation. It deterministically orders
-positive bone influences by descending weight with a bone-name tie-break,
-retains four, and renormalizes them before export. The report records the
-source maximum, affected-vertex count, and discarded source-weight total.
+skeleton-extent translation scale and root/ground reconciliation. Historical
+schema 1.1-1.4 outputs use the reviewed deterministic top-four policy: positive
+bone influences are ordered by descending weight with a bone-name tie-break,
+four are retained and renormalized, and the report records the source maximum,
+affected-vertex count, and discarded source-weight total. Those immutable
+outputs do not claim exact native skin-weight preservation.
+
+Schema 1.5 is the bounded provider-skin/material repair profile. It is allowed
+to create a fresh attempt from a released-approved Meshy-native candidate, but
+never rewrites the prior release. Success invalidates candidate approval and
+returns the candidate to `processed`; prior release history remains immutable.
+The processor explicitly limits provider influences to eight using the same
+deterministic ordering. It exports all retained influences as
+`JOINTS_0`/`WEIGHTS_0` and `JOINTS_1`/`WEIGHTS_1`. It may claim no positive
+influence identity was dropped only when the FBX has no positive
+ninth-or-later influence. Numeric exact preservation is a separate signature
+comparison and remains false when required normalization changes weight values.
+When the FBX exceeds eight, the report must state the exact affected-vertex
+count and discarded weight above eight and keep both no-drop and exact
+preservation false. It cannot hide that loss through exporter-side truncation.
+
+The repair material policy binds the exact source image to base color only,
+removes full-strength base/emissive reuse when no distinct authored emissive
+mask exists, requires zero emission, opaque alpha, metallic factor zero, and
+roughness factor 0.8, and preserves the exported normal/tangent geometry
+payload. Overbright specular factors and forced `BLEND` fail inspection. The
+repair produces six synchronized 768-pixel-per-panel continuous comparisons:
+original provider FBX weights with the exact target H4 action, immutable r001,
+and the repaired output for Idle, Walking, selected Eat, selected Butcher, one
+hammer control, and one bow control. This evidence is diagnostic and cannot set
+`vandrel_runtime_accepted`. The neutral-gray comparison proves only pose and
+skin continuity; it does not exercise or visually accept the repaired texture
+or PBR material appearance. The actual Vandrel lightweight F12 composition
+remains the decisive consumer gate. A schema-1.5 report always retains
+`vandrel_ready: false`. If the provider source exceeds eight influences, it
+also records a failed top-eight source gate and the explicit consumer blocker
+`greater_than_eight_source_influences`.
 Index grafting, Mixamo retargeting, and provider-native character migration are
 forbidden. Clip timing remains bound to the canary normalization report, and
 each clip receives target-mesh XY root baseline and ground reconciliation.
@@ -324,12 +355,21 @@ registered playback clips. Neither profile alone confers visual acceptance,
 approval, release, publication, or Vandrel runtime acceptance.
 
 Before adding actions, Blender exports a temporary policy-bound reference GLB.
-After the animated export, the service independently decodes both GLBs. It
-requires exactly `JOINTS_0` and `WEIGHTS_0`, at most four positive influences,
+After the animated export, the service independently decodes both GLBs. Legacy
+profiles require exactly `JOINTS_0` and `WEIGHTS_0` and at most four positive
+influences. The schema-1.5 repair profile instead requires both numbered joint
+and weight sets and at most eight positive influences. Both profiles require
 normalized nonzero weights for every exported vertex, matching skin payload,
-matching inverse bind matrices, matching primitive/material bindings, and the
-exact embedded source-texture bytes. The service also checks geometry, joints,
-action count/names, continuous playback duration, and every input/output hash.
+matching inverse bind matrices, matching geometry attributes, matching
+primitive/material bindings, and the exact embedded source-texture bytes. The
+schema-1.5 material decoder additionally rejects identical full-strength
+base/emissive use, non-opaque alpha, nonzero emission or metallic, roughness
+other than 0.8, and overbright specular color. Godot 4.6 consumer support is
+demonstrated only when the exact repaired outputs import with
+`ARRAY_FLAG_USE_8_BONE_WEIGHTS` and eight bone/weight array values per vertex;
+the presence of glTF attributes alone is insufficient. The service also checks
+geometry, joints, action count/names, continuous playback duration, and every
+input/output hash.
 All six manifest-owned roots are rehashed again immediately before manifest
 replacement and with every registered output after success or exact-target
 save reconciliation. A retry creates a new numbered model/report/playback

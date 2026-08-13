@@ -11,7 +11,7 @@ import vandrel_foundry.services.assemble_meshy_native_character_motion as servic
 import vandrel_foundry.services.validate_meshy_native_character_release as release_service
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
-from vandrel_foundry.domain.manifest import Artifact, Processor
+from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.services.add_meshy_native_character_package import (
@@ -22,6 +22,10 @@ from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
     add_meshy_native_multi_motion_package,
 )
 from vandrel_foundry.services.create_asset import create_asset
+from vandrel_foundry.services.inspect_glb_skin import (
+    inspect_top8_repaired_glb_skin,
+    require_matching_top8_repaired_skin,
+)
 from vandrel_foundry.services.validate_godot import ProcessResult
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.save_journal import SaveDiagnosis
@@ -114,6 +118,8 @@ def _write_glb(
     *,
     image: bool = True,
     corrupt_skin: bool = False,
+    top8: bool = False,
+    bad_material: bool = False,
 ):
     binary = bytearray()
     views = []
@@ -142,11 +148,27 @@ def _write_glb(
     positions = add_accessor(
         struct.pack("<9f", 0, 0, 0, 1, 0, 0, 0, 1, 0), 5126, "VEC3", 3
     )
+    normals = add_accessor(
+        struct.pack("<9f", 0, 0, 1, 0, 0, 1, 0, 0, 1), 5126, "VEC3", 3
+    )
     joints = add_accessor(bytes([0, 1, 2, 3] * 3), 5121, "VEC4", 3)
-    weights_value = [0.4, 0.3, 0.2, 0.1] * 3
+    weights_value = ([0.4, 0.25, 0.15, 0.1] if top8 else [0.4, 0.3, 0.2, 0.1]) * 3
     if corrupt_skin:
         weights_value[-1] = 0.0
     weights = add_accessor(struct.pack("<12f", *weights_value), 5126, "VEC4", 3)
+    joints_1 = (
+        add_accessor(bytes([4, 5, 6, 7] * 3), 5121, "VEC4", 3) if top8 else None
+    )
+    weights_1 = (
+        add_accessor(
+            struct.pack("<12f", *([0.04, 0.03, 0.02, 0.01] * 3)),
+            5126,
+            "VEC4",
+            3,
+        )
+        if top8
+        else None
+    )
     matrices = []
     for index in range(24):
         matrix = [1.0 if row % 5 == 0 else 0.0 for row in range(16)]
@@ -166,15 +188,46 @@ def _write_glb(
                     {
                         "attributes": {
                             "POSITION": positions,
+                            "NORMAL": normals,
                             "JOINTS_0": joints,
                             "WEIGHTS_0": weights,
+                            **(
+                                {"JOINTS_1": joints_1, "WEIGHTS_1": weights_1}
+                                if top8
+                                else {}
+                            ),
                         },
                         "material": 0,
                     }
                 ]
             }
         ],
-        "materials": [{"pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}],
+        "materials": [
+            {
+                **(
+                    {
+                        "alphaMode": "BLEND",
+                        "emissiveFactor": [1.0, 1.0, 1.0],
+                        "emissiveTexture": {"index": 0},
+                        "extensions": {
+                            "KHR_materials_specular": {
+                                "specularColorFactor": [2.0, 2.0, 2.0]
+                            }
+                        },
+                    }
+                    if bad_material
+                    else {}
+                ),
+                "pbrMetallicRoughness": {
+                    "baseColorTexture": {"index": 0},
+                    **(
+                        {"metallicFactor": 0.0, "roughnessFactor": 0.8}
+                        if top8
+                        else {}
+                    ),
+                }
+            }
+        ],
         "textures": [{"source": 0}] if image else [],
         "images": (
             [{"bufferView": image_view, "mimeType": "image/png"}] if image else []
@@ -205,6 +258,51 @@ def _write_glb(
         + struct.pack("<II", len(binary), 0x004E4942)
         + binary
     )
+
+
+def test_top8_repaired_glb_proves_skin_geometry_texture_and_material(tmp_path):
+    reference = tmp_path / "reference.glb"
+    output = tmp_path / "output.glb"
+    _write_glb(reference, [], top8=True)
+    _write_glb(output, ["Idle"], top8=True)
+
+    reference_proof = inspect_top8_repaired_glb_skin(reference)
+    output_proof = inspect_top8_repaired_glb_skin(output)
+    require_matching_top8_repaired_skin(
+        reference_proof,
+        output_proof,
+        hashlib.sha256(b"texture").hexdigest(),
+    )
+
+    assert output_proof.joint_weight_sets == (
+        "JOINTS_0",
+        "JOINTS_1",
+        "WEIGHTS_0",
+        "WEIGHTS_1",
+    )
+    assert output_proof.maximum_influences == 8
+    assert output_proof.unweighted_vertex_count == 0
+    assert output_proof.normal_attribute_present is True
+    assert output_proof.alpha_modes == ("OPAQUE",)
+    assert output_proof.metallic_factors == (0.0,)
+    assert output_proof.roughness_factors == (0.8,)
+    assert output_proof.emissive_texture_count == 0
+
+
+def test_top8_repaired_glb_rejects_legacy_emissive_blend_material(tmp_path):
+    output = tmp_path / "bad-material.glb"
+    _write_glb(output, [], top8=True, bad_material=True)
+
+    with pytest.raises(FoundryError, match="opaque, nonmetallic"):
+        inspect_top8_repaired_glb_skin(output)
+
+
+def test_top8_repaired_glb_rejects_missing_second_influence_set(tmp_path):
+    output = tmp_path / "top4.glb"
+    _write_glb(output, [], top8=False)
+
+    with pytest.raises(FoundryError, match="JOINTS_1"):
+        inspect_top8_repaired_glb_skin(output)
 
 
 def _candidate(config, prompt: Path, tmp_path: Path):
@@ -316,6 +414,23 @@ def _extend_candidate(config, repository, tmp_path: Path, durations):
     return repository.load("native_motion_test_001")
 
 
+def _add_motion_archive(config, tmp_path: Path, number: int, names: list[str]):
+    archive = tmp_path / f"multi-motion-{number}.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as value:
+        for index, name in enumerate(names):
+            value.writestr(
+                f"Meshy_AI_Carrier_Animation_{name}_withSkin.fbx",
+                f"entry-{number}-{index}-{name}".encode(),
+            )
+        value.writestr(f"Meshy_AI_Carrier_texture_{number}.png", b"texture")
+    add_meshy_native_multi_motion_package(
+        config,
+        "native_motion_test_001",
+        archive,
+        hashlib.sha256(archive.read_bytes()).hexdigest(),
+    )
+
+
 def _runner(
     durations,
     *,
@@ -330,6 +445,10 @@ def _runner(
     orientation_delta=0.0,
     extension_mode=None,
     bad_container=False,
+    source_maximum_influences=8,
+    source_vertices_over_eight=0,
+    dropped_influence_count=0,
+    dropped_weight_above_eight=0.0,
 ):
     calls = 0
 
@@ -338,23 +457,61 @@ def _runner(
         calls += 1
         separator = arguments.index("--")
         if calls == 1:
+            top8 = arguments[-1] == "profile=provider_top8_pbr_v1"
             reference = Path(arguments[separator + 4])
             output = Path(arguments[separator + 5])
             report = Path(arguments[separator + 6])
-            _write_glb(reference, [], image=image)
+            _write_glb(reference, [], image=image, top8=top8)
             output_names = list(ACTIONS)
             collisions = []
             extension_entries = []
             extension_durations = {}
             if extension_mode is not None:
                 rest_signature = "e" * 64
-                for index, name in enumerate(MULTI_ACTIONS):
+                source_entries = (
+                    json.loads(Path(arguments[separator + 7]).read_text())["entries"]
+                    if extension_mode == "full61"
+                    else [
+                        {
+                            "exact_export_name": name,
+                            "runtime_eligibility": (
+                                "provenance_only_legacy_outlier"
+                                if name == LEGACY_UUID
+                                else "identity_normalized"
+                            ),
+                            "source_package_number": 1,
+                            "source_qualifier": "fc7f5947",
+                        }
+                        for name in MULTI_ACTIONS
+                    ]
+                )
+                seen_runtime_names = set(output_names)
+                for index, source_entry in enumerate(source_entries):
+                    name = source_entry["exact_export_name"]
                     excluded = name == LEGACY_UUID
                     runtime_name = None
-                    if not excluded and name not in COLLISION_NAMES:
-                        runtime_name = f"target_character|{name}"
+                    base = f"target_character|{name}"
+                    if not excluded and base not in seen_runtime_names:
+                        runtime_name = base
+                        seen_runtime_names.add(runtime_name)
                         output_names.append(runtime_name)
-                        extension_durations[runtime_name] = 2.0 + index / 30
+                        extension_durations[runtime_name] = 2.0 + index / 300
+                    elif not excluded:
+                        collisions.append(
+                            {
+                                "exact_export_name": name,
+                                "existing_runtime_action_name": base,
+                                "selected_runtime_action_name": base,
+                                "retained_alternative_action_name": None,
+                                "source_package_number": source_entry.get(
+                                    "source_package_number", 1
+                                ),
+                                "source_qualifier": source_entry.get(
+                                    "source_qualifier", "fc7f5947"
+                                ),
+                                "resolution": "deduplicated_identical_curve",
+                            }
+                        )
                     extension_entries.append(
                         {
                             "exact_export_name": name,
@@ -370,31 +527,42 @@ def _runner(
                                 90.0 if excluded else (1.0 if bad_container else 0.0)
                             ),
                             "runtime_action_name": runtime_name,
-                        }
-                    )
-                for name in sorted(COLLISION_NAMES):
-                    base = f"target_character|{name}"
-                    different = extension_mode == "different"
-                    alternative = (
-                        f"target_character|multi_fc7f5947|{name}" if different else None
-                    )
-                    if alternative is not None:
-                        output_names.append(alternative)
-                        extension_durations[alternative] = 3.0
-                    collisions.append(
-                        {
-                            "exact_export_name": name,
-                            "existing_runtime_action_name": base,
-                            "selected_runtime_action_name": base,
-                            "retained_alternative_action_name": alternative,
-                            "resolution": (
-                                "source_qualified_alternative"
-                                if different
-                                else "deduplicated_identical"
+                            "source_package_number": source_entry.get(
+                                "source_package_number", 1
                             ),
                         }
                     )
-            _write_glb(output, output_names, image=image, corrupt_skin=corrupt_output)
+                if extension_mode != "full61":
+                    collisions = []
+                    for name in sorted(COLLISION_NAMES):
+                        base = f"target_character|{name}"
+                        different = extension_mode == "different"
+                        alternative = (
+                            f"target_character|multi_fc7f5947|{name}" if different else None
+                        )
+                        if alternative is not None:
+                            output_names.append(alternative)
+                            extension_durations[alternative] = 3.0
+                        collisions.append(
+                            {
+                                "exact_export_name": name,
+                                "existing_runtime_action_name": base,
+                                "selected_runtime_action_name": base,
+                                "retained_alternative_action_name": alternative,
+                                "resolution": (
+                                    "source_qualified_alternative"
+                                    if different
+                                    else "deduplicated_identical"
+                                ),
+                            }
+                        )
+            _write_glb(
+                output,
+                output_names,
+                image=image,
+                corrupt_skin=corrupt_output,
+                top8=top8,
+            )
             if partial:
                 report.write_text("{}", encoding="utf-8")
                 return ProcessResult(0, "partial", "", False, False, 0.1)
@@ -416,9 +584,15 @@ def _runner(
                 json.dumps(
                     {
                         "schema": (
-                            "vandrel_foundry_meshy_native_character_assembly_adapter/4.0"
-                            if extension_mode is not None
-                            else "vandrel_foundry_meshy_native_character_assembly_adapter/3.0"
+                            "vandrel_foundry_meshy_native_character_assembly_adapter/6.0"
+                            if top8
+                            else (
+                                "vandrel_foundry_meshy_native_character_assembly_adapter/5.0"
+                                if extension_mode == "full61"
+                                else "vandrel_foundry_meshy_native_character_assembly_adapter/4.0"
+                                if extension_mode is not None
+                                else "vandrel_foundry_meshy_native_character_assembly_adapter/3.0"
+                            )
                         ),
                         "blender_version": "Blender-test",
                         "transformation_facts": {
@@ -451,30 +625,82 @@ def _runner(
                             ),
                             "bind_matrices_preserved": True,
                             "source_native_skin_weight_signature": "c" * 64,
+                            "target_processed_skin_weight_signature": "d" * 64,
                             "target_top4_skin_weight_signature": "d" * 64,
-                            "skin_weight_policy": "deterministic_top4_normalized",
+                            "target_top8_skin_weight_signature": "d" * 64 if top8 else None,
+                            "skin_weight_policy": (
+                                "deterministic_top8_normalized"
+                                if top8
+                                else "deterministic_top4_normalized"
+                            ),
                             "skin_weights_exactly_preserved": False,
                             "source_vertex_count": 3,
-                            "source_maximum_influences": 6,
+                            "source_maximum_influences": (
+                                source_maximum_influences if top8 else 6
+                            ),
                             "source_vertices_over_four_influences": 1,
                             "dropped_source_weight_total": 0.05,
                             "top4_maximum_influences": 4,
                             "top4_normalized": True,
+                            **(
+                                {
+                                    "source_vertices_over_8_influences": (
+                                        source_vertices_over_eight
+                                    ),
+                                    "dropped_source_weight_above_8_total": (
+                                        dropped_weight_above_eight
+                                    ),
+                                    "positive_source_influence_identities_preserved": (
+                                        source_maximum_influences <= 8
+                                    ),
+                                    "positive_source_influence_count_dropped": (
+                                        dropped_influence_count
+                                    ),
+                                    "retained_weight_normalization_adjustment_total": 0.01,
+                                    "top8_maximum_influences": 8,
+                                    "top8_normalized": True,
+                                }
+                                if top8
+                                else {}
+                            ),
+                            "provider_material_signature_before_normalization": "f" * 64,
                             "target_material_signature_before": signature,
                             "target_material_signature_after": signature,
                             "material_texture_preserved": True,
+                            **(
+                                {
+                                    "material_policy": (
+                                        "opaque_basecolor_only_nonmetal_roughness_0_8"
+                                    ),
+                                    "base_color_texture_only": True,
+                                    "authored_distinct_emissive_mask_present": False,
+                                    "emissive_factor_zero": True,
+                                    "opaque_body_material": True,
+                                    "metallic_factor": 0.0,
+                                    "roughness_factor": 0.8,
+                                    "normal_and_tangent_geometry_preservation_required": True,
+                                }
+                                if top8
+                                else {}
+                            ),
                             "preexport_unweighted_vertex_count": 0,
                             "output_action_count": len(output_names),
                             "root_motion_policy": "test",
                             **(
                                 {
                                     "base_action_count": 10,
-                                    "extension_source_entry_count": 20,
-                                    "extension_compatible_entry_count": 19,
+                                    "extension_source_entry_count": len(source_entries),
+                                    "extension_compatible_entry_count": sum(
+                                        item["runtime_eligibility"]
+                                        == "identity_normalized"
+                                        for item in source_entries
+                                    ),
                                     "extension_provenance_only_entry_count": 1,
-                                    "runtime_collision_count": 4,
+                                    "runtime_collision_count": len(collisions),
                                     "runtime_deduplicated_collision_count": (
-                                        4 if extension_mode == "identical" else 0
+                                        len(collisions)
+                                        if extension_mode in {"identical", "full61"}
+                                        else 0
                                     ),
                                     "runtime_source_qualified_collision_count": (
                                         4 if extension_mode == "different" else 0
@@ -933,6 +1159,162 @@ def test_assembly_registers_six_root_lineage_without_generic_semantics(config, p
     assert facts["direct_matrix_basis_copy_applied"] is False
     assert facts["maximum_sampled_global_orientation_delta_degrees"] == 0
     assert facts["maximum_sampled_parent_local_orientation_delta_degrees"] == 0
+
+
+def test_repair_profile_preserves_r001_and_registers_top8_material_comparison(
+    config, prompt, tmp_path
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    _extend_candidate(config, repository, tmp_path, durations)
+    second_names = [
+        "Heavy_Hammer_Swing",
+        "Pull_Radish",
+        "Walk_Forward_with_Bow_Aimed",
+        *[f"Second_Action_{index:02d}" for index in range(15)],
+        "Walking",
+    ]
+    third_names = [
+        *[f"Third_Action_{index:02d}" for index in range(18)],
+        "Running",
+    ]
+    _add_motion_archive(config, tmp_path, 2, second_names)
+    _add_motion_archive(config, tmp_path, 3, third_names)
+    baseline = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="full61"),
+        playback_profile="representative_batch",
+    )
+    baseline_bytes = (root / baseline.model.path).read_bytes()
+    manifest = repository.load("native_motion_test_001")
+    transition_workflow(manifest, WorkflowState.REVIEW)
+    transition_workflow(manifest, WorkflowState.APPROVED)
+    manifest.approval.approved = True
+    manifest.approval.approved_at = utc_now()
+    manifest.approval.approved_artifact_hashes = {
+        "processed_model": baseline.model.sha256
+    }
+    manifest.release.released = True
+    manifest.release.release_revision = 1
+    manifest.release.released_at = utc_now()
+    revision = manifest.revision
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=revision)
+
+    result = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="full61"),
+        playback_profile="repair_canary",
+        processing_profile="provider_top8_pbr_v1",
+    )
+
+    live = repository.load("native_motion_test_001")
+    report = json.loads((root / result.report.path).read_text(encoding="utf-8"))
+    facts = report["transformation_facts"]
+    assert live.workflow.state is WorkflowState.PROCESSED
+    assert live.approval.approved is False
+    assert live.release.released is True
+    assert (root / baseline.model.path).read_bytes() == baseline_bytes
+    assert report["schema"] == "vandrel_foundry_meshy_native_character_motion/1.5"
+    assert len(report["clips"]) == 61
+    assert len(report["playback"]) == 6
+    assert len(result.playback) == 6
+    assert len(report["process_logs"]) == 4
+    assert facts["skin_weight_policy"] == "deterministic_top8_normalized"
+    assert facts["material_policy"] == (
+        "opaque_basecolor_only_nonmetal_roughness_0_8"
+    )
+    assert report["runtime_readiness"]["vandrel_ready"] is False
+    assert report["runtime_readiness"]["top8_source_influence_gate_passes"] is True
+    assert report["runtime_readiness"]["consumer_blocking_reasons"] == [
+        "pending_vandrel_lightweight_f12_validation"
+    ]
+    assert facts["independent_final_skin"]["joint_weight_sets"] == [
+        "JOINTS_0",
+        "JOINTS_1",
+        "WEIGHTS_0",
+        "WEIGHTS_1",
+    ]
+    assert all(len(item["comparison_stages"]) == 3 for item in report["playback"])
+    assert all((root / item.path).is_file() for item in result.playback)
+
+
+def test_repair_profile_records_and_blocks_source_influences_above_eight(
+    config, prompt, tmp_path
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    _extend_candidate(config, repository, tmp_path, durations)
+    _add_motion_archive(
+        config,
+        tmp_path,
+        2,
+        [
+            "Heavy_Hammer_Swing",
+            "Pull_Radish",
+            "Walk_Forward_with_Bow_Aimed",
+            *[f"Second_Action_{index:02d}" for index in range(15)],
+            "Walking",
+        ],
+    )
+    _add_motion_archive(
+        config,
+        tmp_path,
+        3,
+        [*[f"Third_Action_{index:02d}" for index in range(18)], "Running"],
+    )
+    baseline = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="full61"),
+        playback_profile="representative_batch",
+    )
+    manifest = repository.load("native_motion_test_001")
+    transition_workflow(manifest, WorkflowState.REVIEW)
+    transition_workflow(manifest, WorkflowState.APPROVED)
+    manifest.approval.approved = True
+    manifest.approval.approved_at = utc_now()
+    manifest.approval.approved_artifact_hashes = {
+        "processed_model": baseline.model.sha256
+    }
+    manifest.release.released = True
+    manifest.release.release_revision = 1
+    manifest.release.released_at = utc_now()
+    revision = manifest.revision
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=revision)
+
+    result = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(
+            durations,
+            extension_mode="full61",
+            source_maximum_influences=10,
+            source_vertices_over_eight=15,
+            dropped_influence_count=18,
+            dropped_weight_above_eight=0.0370816984504927,
+        ),
+        playback_profile="repair_canary",
+        processing_profile="provider_top8_pbr_v1",
+    )
+
+    report = json.loads((root / result.report.path).read_text(encoding="utf-8"))
+    facts = report["transformation_facts"]
+    assert facts["source_maximum_influences"] == 10
+    assert facts["source_vertices_over_8_influences"] == 15
+    assert facts["positive_source_influence_count_dropped"] == 18
+    assert facts["dropped_source_weight_above_8_total"] == pytest.approx(
+        0.0370816984504927
+    )
+    assert facts["positive_source_influence_identities_preserved"] is False
+    assert facts["skin_weights_exactly_preserved"] is False
+    assert report["runtime_readiness"]["vandrel_ready"] is False
+    assert report["runtime_readiness"]["top8_source_influence_gate_passes"] is False
+    assert report["runtime_readiness"]["consumer_blocking_reasons"] == [
+        "greater_than_eight_source_influences",
+        "pending_vandrel_lightweight_f12_validation",
+    ]
 
 
 @pytest.mark.parametrize(

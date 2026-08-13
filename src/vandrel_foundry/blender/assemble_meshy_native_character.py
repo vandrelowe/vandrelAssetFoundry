@@ -12,6 +12,11 @@ from mathutils import Quaternion, Vector
 
 def main() -> None:
     values = sys.argv[sys.argv.index("--") + 1 :]
+    processing_profile = "legacy_top4"
+    if values and values[-1].startswith("profile="):
+        processing_profile = values.pop().split("=", 1)[1]
+    if processing_profile not in {"legacy_top4", "provider_top8_pbr_v1"}:
+        raise RuntimeError("Unsupported Meshy-native character processing profile.")
     if len(values) not in {6, 7}:
         raise RuntimeError(
             "Expected character FBX, texture PNG, canary GLB, top-four reference GLB, "
@@ -39,21 +44,45 @@ def main() -> None:
     target_meshes = _skinned_meshes(scene, target)
     if not target_meshes:
         raise RuntimeError("Real Meshy character has no native skinned mesh.")
-    _bind_exact_texture(target_meshes, texture_path)
+    provider_material_signature = _material_signature(target_meshes)
+    if processing_profile == "provider_top8_pbr_v1":
+        material_policy = _normalize_body_materials(target_meshes, texture_path)
+    else:
+        _bind_exact_texture(target_meshes, texture_path)
+        material_policy = {
+            "material_policy": "legacy_passthrough",
+            "base_color_texture_only": False,
+            "emissive_factor_zero": False,
+            "opaque_body_material": False,
+            "metallic_factor": None,
+            "roughness_factor": None,
+        }
     target_hierarchy = _hierarchy(target)
     if len(target_hierarchy) != 24:
         raise RuntimeError("Real Meshy character does not contain the fixed 24-joint profile.")
     if _unweighted(target_meshes, target):
         raise RuntimeError("Real Meshy character contains unweighted vertices.")
     native_skin_signature = _skin_weight_signature(target_meshes, target)
-    top4_policy = _apply_top4_policy(target_meshes, target)
-    top4_skin_signature = _skin_weight_signature(target_meshes, target)
+    if processing_profile == "provider_top8_pbr_v1":
+        skin_policy = _apply_influence_limit(target_meshes, target, 8)
+    else:
+        skin_policy = _apply_influence_limit(target_meshes, target, 4)
+    processed_skin_signature = _skin_weight_signature(target_meshes, target)
+    skin_policy["skin_weights_exactly_preserved"] = (
+        native_skin_signature == processed_skin_signature
+    )
     bind_before = _bind_matrix_signature(target_meshes, target)
     material_before = _material_signature(target_meshes)
     target_actions = list(bpy.data.actions)
     for action in target_actions:
         bpy.data.actions.remove(action)
-    _export(target, target_meshes, reference_path, animations=False)
+    _export(
+        target,
+        target_meshes,
+        reference_path,
+        animations=False,
+        influence_limit=8 if processing_profile == "provider_top8_pbr_v1" else 4,
+    )
 
     existing_objects = set(scene.objects)
     bpy.ops.import_scene.gltf(filepath=str(canary_path))
@@ -117,19 +146,29 @@ def main() -> None:
         raise RuntimeError("Real-character material/texture relationship changed during assembly.")
     if _unweighted(target_meshes, target):
         raise RuntimeError("Assembled character contains unweighted vertices.")
-    if _skin_weight_signature(target_meshes, target) != top4_skin_signature:
-        raise RuntimeError("Deterministic top-four skin changed during motion assembly.")
+    if _skin_weight_signature(target_meshes, target) != processed_skin_signature:
+        raise RuntimeError("Deterministic bounded skin changed during motion assembly.")
 
-    _export(target, target_meshes, output_path, animations=True)
+    _export(
+        target,
+        target_meshes,
+        output_path,
+        animations=True,
+        influence_limit=8 if processing_profile == "provider_top8_pbr_v1" else 4,
+    )
     if not output_path.is_file():
         raise RuntimeError("Meshy-native character exporter did not create the GLB.")
     report_path.write_text(
         json.dumps(
             {
                 "schema": (
-                    "vandrel_foundry_meshy_native_character_assembly_adapter/5.0"
-                    if extension_manifest_path is not None
-                    else "vandrel_foundry_meshy_native_character_assembly_adapter/3.0"
+                    "vandrel_foundry_meshy_native_character_assembly_adapter/6.0"
+                    if processing_profile == "provider_top8_pbr_v1"
+                    else (
+                        "vandrel_foundry_meshy_native_character_assembly_adapter/5.0"
+                        if extension_manifest_path is not None
+                        else "vandrel_foundry_meshy_native_character_assembly_adapter/3.0"
+                    )
                 ),
                 "blender_version": bpy.app.version_string,
                 "transformation_facts": {
@@ -166,13 +205,33 @@ def main() -> None:
                     "target_bind_matrix_signature_after": bind_after,
                     "bind_matrices_preserved": True,
                     "source_native_skin_weight_signature": native_skin_signature,
-                    "target_top4_skin_weight_signature": top4_skin_signature,
-                    "skin_weight_policy": "deterministic_top4_normalized",
-                    "skin_weights_exactly_preserved": False,
-                    **top4_policy,
+                    "target_processed_skin_weight_signature": processed_skin_signature,
+                    "target_top4_skin_weight_signature": (
+                        processed_skin_signature
+                        if processing_profile == "legacy_top4"
+                        else None
+                    ),
+                    "target_top8_skin_weight_signature": (
+                        processed_skin_signature
+                        if processing_profile == "provider_top8_pbr_v1"
+                        else None
+                    ),
+                    "skin_weight_policy": (
+                        "deterministic_top8_normalized"
+                        if processing_profile == "provider_top8_pbr_v1"
+                        else "deterministic_top4_normalized"
+                    ),
+                    "skin_weights_exactly_preserved": skin_policy[
+                        "skin_weights_exactly_preserved"
+                    ],
+                    **skin_policy,
+                    "provider_material_signature_before_normalization": (
+                        provider_material_signature
+                    ),
                     "target_material_signature_before": material_before,
                     "target_material_signature_after": material_after,
                     "material_texture_preserved": True,
+                    **material_policy,
                     "preexport_unweighted_vertex_count": 0,
                     "output_action_count": len(transferred),
                     "base_action_count": 10,
@@ -830,6 +889,79 @@ def _bind_exact_texture(meshes, texture_path):
         raise RuntimeError("Exact Meshy texture was not bound to the character material.")
 
 
+def _normalize_body_materials(meshes, texture_path):
+    image = bpy.data.images.load(str(texture_path), check_existing=False)
+    image.colorspace_settings.name = "sRGB"
+    materials = sorted(
+        {
+            slot.material
+            for mesh in meshes
+            for slot in mesh.material_slots
+            if slot.material is not None
+        },
+        key=lambda item: item.name.casefold(),
+    )
+    if not materials:
+        raise RuntimeError("Real Meshy character has no material.")
+    for material in materials:
+        material.use_nodes = True
+        nodes = material.node_tree.nodes
+        links = material.node_tree.links
+        shaders = [node for node in nodes if node.type == "BSDF_PRINCIPLED"]
+        if len(shaders) != 1:
+            raise RuntimeError("Real Meshy material must contain one Principled shader.")
+        shader = shaders[0]
+        for socket_name in (
+            "Base Color",
+            "Alpha",
+            "Emission Color",
+            "Emission",
+            "Emission Strength",
+            "Metallic",
+            "Roughness",
+            "Specular IOR Level",
+            "Specular Tint",
+        ):
+            socket = shader.inputs.get(socket_name)
+            if socket is not None:
+                for link in list(socket.links):
+                    links.remove(link)
+        for node in list(nodes):
+            if node.type == "TEX_IMAGE":
+                nodes.remove(node)
+        texture = nodes.new("ShaderNodeTexImage")
+        texture.name = "MeshyBaseColor"
+        texture.label = "Base Color Only"
+        texture.image = image
+        links.new(texture.outputs["Color"], shader.inputs["Base Color"])
+        _set_input(shader, "Base Color", (1.0, 1.0, 1.0, 1.0))
+        _set_input(shader, "Alpha", 1.0)
+        _set_input(shader, "Metallic", 0.0)
+        _set_input(shader, "Roughness", 0.8)
+        _set_input(shader, "Emission Color", (0.0, 0.0, 0.0, 1.0))
+        _set_input(shader, "Emission", (0.0, 0.0, 0.0, 1.0))
+        _set_input(shader, "Emission Strength", 0.0)
+        _set_input(shader, "Specular IOR Level", 0.5)
+        _set_input(shader, "Specular Tint", (1.0, 1.0, 1.0, 1.0))
+        material.diffuse_color[3] = 1.0
+    return {
+        "material_policy": "opaque_basecolor_only_nonmetal_roughness_0_8",
+        "base_color_texture_only": True,
+        "authored_distinct_emissive_mask_present": False,
+        "emissive_factor_zero": True,
+        "opaque_body_material": True,
+        "metallic_factor": 0.0,
+        "roughness_factor": 0.8,
+        "normal_and_tangent_geometry_preservation_required": True,
+    }
+
+
+def _set_input(shader, name, value):
+    socket = shader.inputs.get(name)
+    if socket is not None:
+        socket.default_value = value
+
+
 def _skinned_meshes(scene, armature):
     return [
         item
@@ -893,11 +1025,15 @@ def _unweighted(meshes, armature):
     )
 
 
-def _apply_top4_policy(meshes, armature):
+def _apply_influence_limit(meshes, armature, limit):
+    if limit not in {4, 8}:
+        raise RuntimeError("Meshy skin influence limit must be four or eight.")
     bone_names = {bone.name for bone in armature.data.bones}
-    over_four = 0
+    over_limit = 0
     maximum_before = 0
     dropped_weight = 0.0
+    dropped_influence_count = 0
+    normalization_adjustment = 0.0
     vertex_count = 0
     for mesh in sorted(meshes, key=lambda item: item.name.casefold()):
         groups = {index: group for index, group in enumerate(mesh.vertex_groups)}
@@ -910,19 +1046,22 @@ def _apply_top4_policy(meshes, armature):
             ]
             weighted.sort(key=lambda item: (-item[1], item[0].casefold(), item[0]))
             maximum_before = max(maximum_before, len(weighted))
-            if len(weighted) > 4:
-                over_four += 1
-            retained = weighted[:4]
-            dropped_weight += sum(item[1] for item in weighted[4:])
+            if len(weighted) > limit:
+                over_limit += 1
+            retained = weighted[:limit]
+            dropped_influence_count += len(weighted[limit:])
+            dropped_weight += sum(item[1] for item in weighted[limit:])
             total = sum(item[1] for item in retained)
             if not math.isfinite(total) or total <= 0:
-                raise RuntimeError("Top-four skin policy encountered an unweighted vertex.")
+                raise RuntimeError("Bounded skin policy encountered an unweighted vertex.")
             for item in list(vertex.groups):
                 groups[item.group].remove([vertex.index])
             for _name, weight, group in retained:
-                group.add([vertex.index], weight / total, "REPLACE")
+                normalized = weight / total
+                normalization_adjustment += abs(weight - normalized)
+                group.add([vertex.index], normalized, "REPLACE")
     if _unweighted(meshes, armature):
-        raise RuntimeError("Top-four skin policy produced unweighted vertices.")
+        raise RuntimeError("Bounded skin policy produced unweighted vertices.")
     maximum_after = max(
         sum(
             1
@@ -932,16 +1071,24 @@ def _apply_top4_policy(meshes, armature):
         for mesh in meshes
         for vertex in mesh.data.vertices
     )
-    if maximum_after > 4:
-        raise RuntimeError("Top-four skin policy left more than four influences.")
-    return {
+    if maximum_after > limit:
+        raise RuntimeError("Bounded skin policy left too many influences.")
+    result = {
         "source_vertex_count": vertex_count,
         "source_maximum_influences": maximum_before,
-        "source_vertices_over_four_influences": over_four,
-        "dropped_source_weight_total": dropped_weight,
-        "top4_maximum_influences": maximum_after,
-        "top4_normalized": True,
+        "skin_weights_exactly_preserved": False,
+        "positive_source_influence_identities_preserved": over_limit == 0,
+        "positive_source_influence_count_dropped": dropped_influence_count,
+        "retained_weight_normalization_adjustment_total": normalization_adjustment,
+        f"source_vertices_over_{limit}_influences": over_limit,
+        f"dropped_source_weight_above_{limit}_total": dropped_weight,
+        f"top{limit}_maximum_influences": maximum_after,
+        f"top{limit}_normalized": True,
     }
+    if limit == 4:
+        result["source_vertices_over_four_influences"] = over_limit
+        result["dropped_source_weight_total"] = dropped_weight
+    return result
 
 
 def _skin_weight_signature(meshes, armature):
@@ -1056,7 +1203,7 @@ def _select_only(objects):
     bpy.context.view_layer.objects.active = objects[0]
 
 
-def _export(armature, meshes, path, *, animations):
+def _export(armature, meshes, path, *, animations, influence_limit):
     _select_only([armature, *meshes])
     bpy.ops.export_scene.gltf(
         filepath=str(path),
@@ -1067,8 +1214,8 @@ def _export(armature, meshes, path, *, animations):
         export_anim_slide_to_zero=False,
         export_skins=True,
         export_materials="EXPORT",
-        export_all_influences=False,
-        export_influence_nb=4,
+        export_all_influences=influence_limit == 8,
+        export_influence_nb=influence_limit,
     )
     if not path.is_file():
         raise RuntimeError("Meshy-native character exporter did not create the GLB.")

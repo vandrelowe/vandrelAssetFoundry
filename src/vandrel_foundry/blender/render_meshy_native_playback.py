@@ -12,11 +12,18 @@ from mathutils import Vector
 
 def main() -> None:
     values = sys.argv[sys.argv.index("--") + 1 :]
-    if len(values) != 4:
+    render_profile = "standard"
+    if values and values[-1].startswith("profile="):
+        render_profile = values.pop().split("=", 1)[1]
+    if render_profile not in {"standard", "repair_comparison"}:
+        raise RuntimeError("Unsupported Meshy native playback render profile.")
+    if len(values) not in {4, 5}:
         raise RuntimeError(
-            "Expected input GLB, output directory, report JSON, and bound durations JSON."
+            "Expected input model, output directory, report JSON, bound durations JSON, "
+            "and optional target-action GLB."
         )
-    source, output, report, durations_path = map(Path, values)
+    source, output, report, durations_path = map(Path, values[:4])
+    target_action_source = Path(values[4]) if len(values) == 5 else None
     expected_durations = json.loads(durations_path.read_text(encoding="utf-8"))
     if (
         not isinstance(expected_durations, dict)
@@ -35,7 +42,12 @@ def main() -> None:
     scene = bpy.context.scene
     scene.render.fps = 30
     scene.render.fps_base = 1.0
-    bpy.ops.import_scene.gltf(filepath=str(source))
+    if target_action_source is None:
+        bpy.ops.import_scene.gltf(filepath=str(source))
+        source_mode = "glb"
+    else:
+        bpy.ops.import_scene.fbx(filepath=str(source), use_anim=True)
+        source_mode = "provider_fbx_with_target_actions"
     armatures = [item for item in scene.objects if item.type == "ARMATURE"]
     if len(armatures) != 1:
         raise RuntimeError("Meshy native playback requires exactly one armature.")
@@ -46,7 +58,19 @@ def main() -> None:
         if item.type == "MESH"
         and any(mod.type == "ARMATURE" and mod.object == armature for mod in item.modifiers)
     ]
-    imported_actions = list(bpy.data.actions)
+    if target_action_source is not None:
+        for action in list(bpy.data.actions):
+            bpy.data.actions.remove(action)
+        existing_objects = set(scene.objects)
+        bpy.ops.import_scene.gltf(filepath=str(target_action_source))
+        action_objects = [item for item in scene.objects if item not in existing_objects]
+        imported_actions = list(bpy.data.actions)
+        for action in imported_actions:
+            action.use_fake_user = True
+        for item in action_objects:
+            bpy.data.objects.remove(item, do_unlink=True)
+    else:
+        imported_actions = list(bpy.data.actions)
     by_name = {action.name: action for action in imported_actions}
     if not meshes or len(by_name) != len(imported_actions):
         raise RuntimeError("Meshy native playback requires skinned geometry and unique actions.")
@@ -67,8 +91,8 @@ def main() -> None:
     if scene.world is None:
         scene.world = bpy.data.worlds.new("MeshyNativePlaybackWorld")
     scene.world.color = (0.0, 0.0, 0.0)
-    scene.render.resolution_x = 384
-    scene.render.resolution_y = 384
+    scene.render.resolution_x = 768 if render_profile == "repair_comparison" else 384
+    scene.render.resolution_y = 768 if render_profile == "repair_comparison" else 384
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     armature.animation_data_create()
@@ -86,7 +110,8 @@ def main() -> None:
             )
         start = math.floor(source_start)
         end = max(start, math.ceil(source_end))
-        step = max(1, math.ceil((end - start + 1) / 72))
+        maximum_samples = 24 if render_profile == "repair_comparison" else 72
+        step = max(1, math.ceil((end - start + 1) / maximum_samples))
         frames = list(range(start, end + 1, step))
         if frames[-1] != end:
             frames.append(end)
@@ -141,6 +166,9 @@ def main() -> None:
             {
                 "schema": "vandrel_foundry_meshy_native_playback/1.0",
                 "blender_version": bpy.app.version_string,
+                "source_mode": source_mode,
+                "render_profile": render_profile,
+                "resolution": [scene.render.resolution_x, scene.render.resolution_y],
                 "neutral_gray": True,
                 "lateral_camera": True,
                 "continuous_temporal_output": True,

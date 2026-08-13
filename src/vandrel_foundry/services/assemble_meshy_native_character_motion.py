@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.errors import FoundryError
@@ -23,7 +23,7 @@ from vandrel_foundry.domain.meshy_native_multi_motion import (
     MeshyNativeMultiMotionIntakeReport,
 )
 from vandrel_foundry.domain.states import WorkflowState
-from vandrel_foundry.domain.workflow_policy import invalidate_approval
+from vandrel_foundry.domain.workflow_policy import invalidate_approval, transition_workflow
 from vandrel_foundry.services.add_meshy_native_character_package import (
     API_CHARACTER_SOURCE,
     LEGACY_CHARACTER_SOURCE,
@@ -36,7 +36,9 @@ from vandrel_foundry.services.add_meshy_native_multi_motion_package import packa
 from vandrel_foundry.services.inspect_glb import inspect_glb, load_glb_document
 from vandrel_foundry.services.inspect_glb_skin import (
     inspect_top4_glb_skin,
+    inspect_top8_repaired_glb_skin,
     require_matching_top4_skin,
+    require_matching_top8_repaired_skin,
 )
 from vandrel_foundry.services.validate_godot import ProcessRunner, run_bounded_process
 from vandrel_foundry.services.windows_acl_policy import apply_candidate_acl
@@ -45,7 +47,7 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "blender_meshy_native_character_motion_assembly"
-PROCESSOR_VERSION = "5"
+PROCESSOR_VERSION = "6"
 CHARACTER_ROOTS = set(LEGACY_CHARACTER_SOURCE.root_ids)
 API_CHARACTER_ROOTS = set(API_CHARACTER_SOURCE.root_ids)
 MOTION_ROOTS = {
@@ -68,12 +70,27 @@ def assemble_meshy_native_character_motion(
     config: FoundryConfig,
     asset_id: str,
     runner: ProcessRunner | None = None,
-    playback_profile: Literal["release_review", "representative_batch"] = "release_review",
+    playback_profile: Literal[
+        "release_review", "representative_batch", "repair_canary"
+    ] = "release_review",
+    processing_profile: Literal[
+        "legacy_top4", "provider_top8_pbr_v1"
+    ] = "legacy_top4",
 ) -> MeshyNativeCharacterMotionResult:
     repository = ManifestRepository(config.foundry.workspace_root)
     manifest = repository.load(asset_id)
-    if manifest.asset.lane != "humanoid" or manifest.workflow.state is not WorkflowState.PROCESSED:
+    allowed_states = {WorkflowState.PROCESSED}
+    if processing_profile == "provider_top8_pbr_v1":
+        allowed_states.add(WorkflowState.APPROVED)
+    if manifest.asset.lane != "humanoid" or manifest.workflow.state not in allowed_states:
         raise FoundryError("Meshy-native character motion assembly requires a processed humanoid.")
+    if (
+        manifest.workflow.state is WorkflowState.APPROVED
+        and not manifest.release.released
+    ):
+        raise FoundryError("Repairing an approved Meshy-native candidate requires a prior release.")
+    if playback_profile == "repair_canary" and processing_profile != "provider_top8_pbr_v1":
+        raise FoundryError("Repair-canary playback requires the provider top-eight PBR profile.")
     current_roots = [
         item for item in manifest.artifacts if item.stage == "source" and not item.derived_from
     ]
@@ -105,6 +122,30 @@ def assemble_meshy_native_character_motion(
         raise FoundryError("Meshy-native character motion roots are incomplete.")
     adding_motion_roots = not motion_root_presence
     extended_motion = bool(multi_packages)
+    prior_model_artifact = None
+    prior_model_path = None
+    if processing_profile == "provider_top8_pbr_v1":
+        approved_hash = manifest.approval.approved_artifact_hashes.get("processed_model")
+        legacy_models = [
+            item
+            for item in manifest.artifacts
+            if item.role == "processed_model"
+            and item.processor is not None
+            and item.processor.name == PROCESSOR_NAME
+            and item.processor.version.startswith("5+")
+        ]
+        prior_model_artifact = next(
+            (
+                item
+                for item in reversed(manifest.artifacts)
+                if item.role == "processed_model" and item.sha256 == approved_hash
+            ),
+            legacy_models[-1] if legacy_models else None,
+        )
+        if prior_model_artifact is None:
+            raise FoundryError("Repair profile requires the exact prior approved model baseline.")
+        prior_model_path = contained_path(asset_root, prior_model_artifact.path)
+        _verify_local(asset_root, [prior_model_artifact])
     if adding_motion_roots:
         canary = repository.load("meshy_native_brukk_canary_001")
         motion_model = _artifact(canary, "meshy_native_canary_model_005")
@@ -182,6 +223,12 @@ def assemble_meshy_native_character_motion(
     playback_process_relative = RelativeManifestPath(
         f"reports/meshy-native-character-motion-{suffix}.playback-process.json"
     )
+    prior_playback_process_relative = RelativeManifestPath(
+        f"reports/meshy-native-character-motion-{suffix}.prior-playback-process.json"
+    )
+    provider_playback_process_relative = RelativeManifestPath(
+        f"reports/meshy-native-character-motion-{suffix}.provider-playback-process.json"
+    )
     preview_relative = RelativeManifestPath(
         f"preview/meshy-native-character-motion-{suffix}"
     )
@@ -192,6 +239,14 @@ def assemble_meshy_native_character_motion(
         contained_path(asset_root, semantic_relative),
         contained_path(asset_root, assembly_process_relative),
         contained_path(asset_root, playback_process_relative),
+        *(
+            [
+                contained_path(asset_root, prior_playback_process_relative),
+                contained_path(asset_root, provider_playback_process_relative),
+            ]
+            if processing_profile == "provider_top8_pbr_v1"
+            else []
+        ),
         contained_path(asset_root, preview_relative),
         *(
             [contained_path(asset_root, motion_source_relative)]
@@ -218,7 +273,7 @@ def assemble_meshy_native_character_motion(
         ) != (motion_report.sha256, motion_report.size_bytes):
             raise FoundryError("Meshy-native canary contribution changed while copied.")
         temp_model = temporary / "model.glb"
-        temp_reference = temporary / "top4-reference.glb"
+        temp_reference = temporary / "skin-reference.glb"
         adapter_report = temporary / "assembly-adapter.json"
         assembly_script = (
             Path(__file__).parents[1] / "blender" / "assemble_meshy_native_character.py"
@@ -271,6 +326,7 @@ def assemble_meshy_native_character_motion(
         ]
         if extension_manifest is not None:
             assembly_args.append(str(extension_manifest))
+        assembly_args.append(f"profile={processing_profile}")
         assembly_log, assembly_result = _run(
             config,
             runner,
@@ -283,6 +339,9 @@ def assemble_meshy_native_character_motion(
         )
         adapter = _load_json(adapter_report, "Meshy-native assembly adapter")
         expected_adapter_schemas = (
+            {"vandrel_foundry_meshy_native_character_assembly_adapter/6.0"}
+            if processing_profile == "provider_top8_pbr_v1"
+            else
             {
                 "vandrel_foundry_meshy_native_character_assembly_adapter/4.0",
                 "vandrel_foundry_meshy_native_character_assembly_adapter/5.0",
@@ -320,6 +379,7 @@ def assemble_meshy_native_character_motion(
             extended_motion,
             expected_extension_entries,
             expected_compatible_entries,
+            processing_profile,
         )
         canary_data = _load_json(temp_motion_report, "Meshy-native canary report")
         canary_clips = canary_data.get("clips")
@@ -365,13 +425,22 @@ def assemble_meshy_native_character_motion(
             raise FoundryError(
                 "Assembled Meshy-native character failed independent GLB inspection."
             )
-        reference_skin = inspect_top4_glb_skin(temp_reference)
-        output_skin = inspect_top4_glb_skin(temp_model)
-        require_matching_top4_skin(
-            reference_skin,
-            output_skin,
-            texture_artifact.sha256,
-        )
+        if processing_profile == "provider_top8_pbr_v1":
+            reference_skin = inspect_top8_repaired_glb_skin(temp_reference)
+            output_skin = inspect_top8_repaired_glb_skin(temp_model)
+            require_matching_top8_repaired_skin(
+                reference_skin,
+                output_skin,
+                texture_artifact.sha256,
+            )
+        else:
+            reference_skin = inspect_top4_glb_skin(temp_reference)
+            output_skin = inspect_top4_glb_skin(temp_model)
+            require_matching_top4_skin(
+                reference_skin,
+                output_skin,
+                texture_artifact.sha256,
+            )
 
         playback_names = _playback_names(
             names,
@@ -400,6 +469,8 @@ def assemble_meshy_native_character_motion(
             str(playback_adapter),
             str(durations_path),
         ]
+        if processing_profile == "provider_top8_pbr_v1":
+            playback_args.append("profile=repair_comparison")
         playback_log, playback_result = _run(
             config,
             runner,
@@ -411,28 +482,115 @@ def assemble_meshy_native_character_motion(
             playback_script,
         )
         playback_data = _load_json(playback_adapter, "Meshy-native playback adapter")
-        playback_clips = playback_data.get("clips")
-        if (
-            playback_data.get("schema") != "vandrel_foundry_meshy_native_playback/1.0"
-            or not isinstance(playback_clips, list)
-            or len(playback_clips) != len(durations)
-        ):
-            raise FoundryError("Meshy-native playback adapter report is invalid.")
-        output_skin = inspect_top4_glb_skin(temp_model)
-        require_matching_top4_skin(
-            reference_skin,
-            output_skin,
-            texture_artifact.sha256,
-        )
+        playback_clips = _require_playback(playback_data, durations, "repaired")
+        prior_playback_log = None
+        prior_playback_result = None
+        provider_playback_log = None
+        provider_playback_result = None
+        prior_frames_root = None
+        provider_frames_root = None
+        prior_playback_clips = None
+        provider_playback_clips = None
+        if processing_profile == "provider_top8_pbr_v1":
+            if prior_model_path is None or prior_model_artifact is None:
+                raise FoundryError("Repair comparison baseline is unavailable.")
+            prior_frames_root = temporary / "prior-playback-frames"
+            prior_adapter = temporary / "prior-playback-adapter.json"
+            prior_args = [
+                *playback_args[: playback_args.index("--") + 1],
+                str(prior_model_path),
+                str(prior_frames_root),
+                str(prior_adapter),
+                str(durations_path),
+                "profile=repair_comparison",
+            ]
+            prior_playback_log, prior_playback_result = _run(
+                config,
+                runner,
+                prior_args,
+                asset_root,
+                temporary,
+                "prior_playback",
+                executable,
+                playback_script,
+            )
+            prior_playback_clips = _require_playback(
+                _load_json(prior_adapter, "Prior Meshy-native playback adapter"),
+                durations,
+                "prior r001",
+            )
+            provider_frames_root = temporary / "provider-playback-frames"
+            provider_adapter = temporary / "provider-playback-adapter.json"
+            provider_args = [
+                *playback_args[: playback_args.index("--") + 1],
+                str(paths["meshy_native_character_fbx_root_001"]),
+                str(provider_frames_root),
+                str(provider_adapter),
+                str(durations_path),
+                str(temp_model),
+                "profile=repair_comparison",
+            ]
+            provider_playback_log, provider_playback_result = _run(
+                config,
+                runner,
+                provider_args,
+                asset_root,
+                temporary,
+                "provider_playback",
+                executable,
+                playback_script,
+            )
+            provider_playback_clips = _require_playback(
+                _load_json(provider_adapter, "Provider FBX playback adapter"),
+                durations,
+                "provider FBX",
+            )
+        if processing_profile == "provider_top8_pbr_v1":
+            output_skin = inspect_top8_repaired_glb_skin(temp_model)
+            require_matching_top8_repaired_skin(
+                reference_skin,
+                output_skin,
+                texture_artifact.sha256,
+            )
+        else:
+            output_skin = inspect_top4_glb_skin(temp_model)
+            require_matching_top4_skin(
+                reference_skin,
+                output_skin,
+                texture_artifact.sha256,
+            )
         temp_videos = temporary / "videos"
         temp_videos.mkdir()
         playback_descriptors = []
+        prior_by_name = (
+            {item["exact_name"]: item for item in prior_playback_clips}
+            if prior_playback_clips is not None
+            else {}
+        )
+        provider_by_name = (
+            {item["exact_name"]: item for item in provider_playback_clips}
+            if provider_playback_clips is not None
+            else {}
+        )
         for index, item in enumerate(playback_clips, start=1):
             name = item.get("exact_name")
             if name not in durations or abs(float(item.get("duration_delta_seconds", 1))) > 0.002:
                 raise FoundryError("Meshy-native playback duration binding failed.")
             video = temp_videos / f"{index:02d}.webp"
-            _encode_webp(frames_root, item, video, durations[name])
+            if processing_profile == "provider_top8_pbr_v1":
+                if prior_frames_root is None or provider_frames_root is None:
+                    raise FoundryError("Repair comparison frame roots are unavailable.")
+                _encode_comparison_webp(
+                    (
+                        (provider_frames_root, provider_by_name.get(name), "Provider FBX"),
+                        (prior_frames_root, prior_by_name.get(name), "r001 top4"),
+                        (frames_root, item, "Repaired top8"),
+                    ),
+                    video,
+                    durations[name],
+                )
+            else:
+                _encode_webp(frames_root, item, video, durations[name])
             digest, size = _hash(video)
             playback_descriptors.append(
                 {
@@ -445,6 +603,36 @@ def assemble_meshy_native_character_motion(
                     "size_bytes": size,
                     "duration_seconds": durations[name],
                     "sampled_ground_minimum_range": item.get("sampled_ground_minimum_range"),
+                    **(
+                        {
+                            "comparison_stages": [
+                                {
+                                    "stage": "provider_fbx_all_weights",
+                                    "artifact_id": "meshy_native_character_fbx_root_001",
+                                    "sha256": character_root_by_id[
+                                        "meshy_native_character_fbx_root_001"
+                                    ].sha256,
+                                },
+                                {
+                                    "stage": "prior_r001",
+                                    "artifact_id": prior_model_artifact.artifact_id,
+                                    "sha256": prior_model_artifact.sha256,
+                                },
+                                {
+                                    "stage": "corrected_output",
+                                    "sha256": _hash(temp_model)[0],
+                                },
+                            ],
+                            "render_resolution_per_panel": [768, 768],
+                            "provider_action_basis": (
+                                "exact repaired H4 target actions applied unchanged to the "
+                                "original provider FBX rig and all-positive provider weights"
+                            ),
+                        }
+                        if processing_profile == "provider_top8_pbr_v1"
+                        and prior_model_artifact is not None
+                        else {}
+                    ),
                 }
             )
         semantic = MeshyNativeMotionSemanticEvidence(
@@ -462,11 +650,37 @@ def assemble_meshy_native_character_motion(
         playback_process = _write_process(
             temporary / "playback-process.json", playback_log, playback_result
         )
+        extra_playback_processes = []
+        if processing_profile == "provider_top8_pbr_v1":
+            if (
+                prior_playback_log is None
+                or prior_playback_result is None
+                or provider_playback_log is None
+                or provider_playback_result is None
+            ):
+                raise FoundryError("Repair comparison process evidence is incomplete.")
+            extra_playback_processes = [
+                _write_process(
+                    temporary / "prior-playback-process.json",
+                    prior_playback_log,
+                    prior_playback_result,
+                ),
+                _write_process(
+                    temporary / "provider-playback-process.json",
+                    provider_playback_log,
+                    provider_playback_result,
+                ),
+            ]
+            extra_playback_processes[0]["phase"] = "prior_playback"
+            extra_playback_processes[1]["phase"] = "provider_playback"
         model_hash, model_size = _hash(temp_model)
         base_root_ids = character_root_ids | MOTION_ROOTS
         root_ids = sorted(base_root_ids | multi_root_ids if extended_motion else base_root_ids)
         report = MeshyNativeCharacterMotionReport(
             schema=(
+                "vandrel_foundry_meshy_native_character_motion/1.5"
+                if processing_profile == "provider_top8_pbr_v1"
+                else
                 "vandrel_foundry_meshy_native_character_motion/1.4"
                 if playback_profile == "representative_batch"
                 else
@@ -496,10 +710,20 @@ def assemble_meshy_native_character_motion(
             transformation_facts={
                 **facts,
                 "playback_evidence_profile": playback_profile,
+                "processing_profile": processing_profile,
                 "independent_glb_inspection": inspection.__dict__,
-                "independent_top4_reference_skin": reference_skin.__dict__,
-                "independent_final_top4_skin": output_skin.__dict__,
-                "independent_top4_reference_match": True,
+                "independent_skin_reference": reference_skin.__dict__,
+                "independent_final_skin": output_skin.__dict__,
+                "independent_skin_reference_match": True,
+                **(
+                    {
+                        "independent_top4_reference_skin": reference_skin.__dict__,
+                        "independent_final_top4_skin": output_skin.__dict__,
+                        "independent_top4_reference_match": True,
+                    }
+                    if processing_profile == "legacy_top4"
+                    else {}
+                ),
                 "source_animation_entry_count": (
                     10 + expected_extension_entries if extended_motion else 10
                 ),
@@ -514,20 +738,27 @@ def assemble_meshy_native_character_motion(
                 comparison=(
                     _comparison(collisions) if extended_motion else _comparison()
                 ),
-            runtime_readiness=_runtime_gaps(names, extended_motion),
+            runtime_readiness=_runtime_gaps(
+                names,
+                extended_motion,
+                processing_profile=processing_profile,
+                facts=facts,
+            ),
             output={
                 "artifact_id": f"meshy_native_character_animated_model_{suffix}",
                 "path": str(model_relative),
                 "sha256": model_hash,
                 "size_bytes": model_size,
             },
-            process_logs=[assembly_process, playback_process],
+            process_logs=[assembly_process, playback_process, *extra_playback_processes],
         )
         temp_report = temporary / "report.json"
         _write_new(temp_report, json_bytes(report.model_dump(mode="json", by_alias=True)))
         report_hash, report_size = _hash(temp_report)
         _verify_inputs(paths, by_id, external)
         _verify_local(asset_root, list(multi_by_id.values()))
+        if prior_model_artifact is not None:
+            _verify_local(asset_root, [prior_model_artifact])
         promotion_pairs = [
             (temp_model, contained_path(asset_root, model_relative)),
             (temp_semantic, contained_path(asset_root, semantic_relative)),
@@ -541,6 +772,20 @@ def assemble_meshy_native_character_motion(
             ),
             (temp_report, contained_path(asset_root, report_relative)),
             (temp_videos, contained_path(asset_root, preview_relative)),
+            *(
+                [
+                    (
+                        temporary / "prior-playback-process.json",
+                        contained_path(asset_root, prior_playback_process_relative),
+                    ),
+                    (
+                        temporary / "provider-playback-process.json",
+                        contained_path(asset_root, provider_playback_process_relative),
+                    ),
+                ]
+                if processing_profile == "provider_top8_pbr_v1"
+                else []
+            ),
         ]
         if adding_motion_roots:
             promotion_pairs.insert(
@@ -619,6 +864,30 @@ def assemble_meshy_native_character_motion(
                 model_artifact.artifact_id,
                 processor,
             ),
+            *(
+                [
+                    _process_artifact(
+                        "prior_playback",
+                        suffix,
+                        prior_playback_process_relative,
+                        extra_playback_processes[0],
+                        root_ids,
+                        model_artifact.artifact_id,
+                        processor,
+                    ),
+                    _process_artifact(
+                        "provider_playback",
+                        suffix,
+                        provider_playback_process_relative,
+                        extra_playback_processes[1],
+                        root_ids,
+                        model_artifact.artifact_id,
+                        processor,
+                    ),
+                ]
+                if processing_profile == "provider_top8_pbr_v1"
+                else []
+            ),
         ]
         report_artifact = Artifact(
             artifact_id=f"meshy_native_character_motion_report_{suffix}",
@@ -662,11 +931,15 @@ def assemble_meshy_native_character_motion(
         manifest.scale_calibration = ScaleCalibration()
         manifest.quality.observed = {}
         invalidate_approval(manifest)
+        if manifest.workflow.state is WorkflowState.APPROVED:
+            transition_workflow(manifest, WorkflowState.PROCESSED)
         manifest.revision += 1
         manifest.asset.updated_at = utc_now()
         try:
             _verify_exact_root_union(asset_root, root_artifacts, set(root_ids))
             _verify_local(asset_root, [texture_artifact])
+            if prior_model_artifact is not None:
+                _verify_local(asset_root, [prior_model_artifact])
             rollback = False
             repository.save(
                 manifest,
@@ -686,6 +959,8 @@ def assemble_meshy_native_character_motion(
                 raise
         _verify_exact_root_union(asset_root, root_artifacts, set(root_ids))
         _verify_local(asset_root, [texture_artifact])
+        if prior_model_artifact is not None:
+            _verify_local(asset_root, [prior_model_artifact])
         _verify_local(asset_root, targets)
         return MeshyNativeCharacterMotionResult(
             model_artifact, report_artifact, semantic_artifact, playback_artifacts
@@ -757,6 +1032,7 @@ def _require_facts(
     extended,
     expected_extension_entries=0,
     expected_compatible_entries=0,
+    processing_profile="legacy_top4",
 ):
     required = {
         "target_joint_count": 24,
@@ -772,14 +1048,70 @@ def _require_facts(
         "direct_matrix_basis_copy_applied": False,
         "bind_matrices_preserved": True,
         "material_texture_preserved": True,
-        "skin_weight_policy": "deterministic_top4_normalized",
-        "skin_weights_exactly_preserved": False,
-        "top4_normalized": True,
         "preexport_unweighted_vertex_count": 0,
         "output_action_count": expected_action_count,
     }
+    if processing_profile == "provider_top8_pbr_v1":
+        required.update(
+            {
+                "skin_weight_policy": "deterministic_top8_normalized",
+                "top8_normalized": True,
+                "material_policy": "opaque_basecolor_only_nonmetal_roughness_0_8",
+                "base_color_texture_only": True,
+                "authored_distinct_emissive_mask_present": False,
+                "emissive_factor_zero": True,
+                "opaque_body_material": True,
+                "metallic_factor": 0.0,
+                "roughness_factor": 0.8,
+                "normal_and_tangent_geometry_preservation_required": True,
+            }
+        )
+    else:
+        required.update(
+            {
+                "skin_weight_policy": "deterministic_top4_normalized",
+                "skin_weights_exactly_preserved": False,
+                "top4_normalized": True,
+            }
+        )
     if any(facts.get(key) != value for key, value in required.items()):
         raise FoundryError("Meshy-native assembly facts violate the contract.")
+    if processing_profile == "provider_top8_pbr_v1":
+        signatures_match = facts.get("source_native_skin_weight_signature") == facts.get(
+            "target_processed_skin_weight_signature"
+        )
+        if facts.get("skin_weights_exactly_preserved") is not signatures_match:
+            raise FoundryError("Meshy-native exact skin-preservation claim is not hash-bound.")
+        source_maximum = facts.get("source_maximum_influences")
+        affected_vertices = facts.get("source_vertices_over_8_influences")
+        dropped_count = facts.get("positive_source_influence_count_dropped")
+        dropped_weight = facts.get("dropped_source_weight_above_8_total")
+        identities_preserved = facts.get(
+            "positive_source_influence_identities_preserved"
+        )
+        if (
+            not isinstance(source_maximum, int)
+            or not isinstance(affected_vertices, int)
+            or not isinstance(dropped_count, int)
+        ):
+            raise FoundryError("Meshy-native top-eight source influence facts are invalid.")
+        if source_maximum <= 8:
+            if (
+                affected_vertices != 0
+                or identities_preserved is not True
+                or dropped_count != 0
+                or dropped_weight != 0
+            ):
+                raise FoundryError("Meshy-native top-eight no-drop claim is invalid.")
+        elif (
+            affected_vertices <= 0
+            or identities_preserved is not False
+            or facts.get("skin_weights_exactly_preserved") is not False
+            or dropped_count <= 0
+            or not isinstance(dropped_weight, (int, float))
+            or float(dropped_weight) <= 0
+        ):
+            raise FoundryError("Meshy-native above-eight loss accounting is incomplete.")
     if extended:
         extended_required = {
             "base_action_count": 10,
@@ -914,6 +1246,19 @@ def _playback_names(names, extended, entries=None, profile="release_review"):
                 f"Meshy representative batch playback is missing: {missing}."
             )
         return [name for name in selected if isinstance(name, str)]
+    if profile == "repair_canary":
+        selected = [
+            "target_character|Idle_6",
+            "target_character|Walking",
+            "target_character|019fe8ca-a6c4-7968-822f-92efebbab5a4",
+            "target_character|019fe8d7-ed16-7b82-a594-728d821ee711",
+            "target_character|Heavy_Hammer_Swing",
+            "target_character|Walk_Forward_with_Bow_Aimed",
+        ]
+        missing = [name for name in selected if name not in names]
+        if missing:
+            raise FoundryError(f"Meshy repair-canary playback is missing: {missing}.")
+        return selected
     if profile != "release_review":
         raise FoundryError(f"Unsupported Meshy-native playback evidence profile: {profile}")
     selected = [
@@ -991,9 +1336,9 @@ def _comparison(collisions=None):
     return value
 
 
-def _runtime_gaps(names, extended):
+def _runtime_gaps(names, extended, *, processing_profile, facts):
     if extended:
-        return {
+        value = {
             "vandrel_ready": False,
             "motion_set_ready": True,
             "available_named_locomotion": [
@@ -1005,6 +1350,19 @@ def _runtime_gaps(names, extended):
             "remaining_gate": "Vandrel consumer validation and explicit adoption",
             "substitution_policy": "frozen_eat_butcher_and_explicit_collision_selection",
         }
+        if processing_profile == "provider_top8_pbr_v1":
+            source_maximum = facts.get("source_maximum_influences")
+            above_eight = isinstance(source_maximum, int) and source_maximum > 8
+            blockers = ["pending_vandrel_lightweight_f12_validation"]
+            if above_eight:
+                blockers.insert(0, "greater_than_eight_source_influences")
+            value.update(
+                {
+                    "top8_source_influence_gate_passes": not above_eight,
+                    "consumer_blocking_reasons": blockers,
+                }
+            )
+        return value
     return {
         "vandrel_ready": False,
         "available_named_locomotion": [
@@ -1020,6 +1378,20 @@ def _runtime_gaps(names, extended):
         ],
         "substitution_policy": "do_not_substitute_unrelated_motion",
     }
+
+
+def _require_playback(value, durations, label):
+    clips = value.get("clips")
+    if (
+        value.get("schema") != "vandrel_foundry_meshy_native_playback/1.0"
+        or not isinstance(clips, list)
+        or len(clips) != len(durations)
+    ):
+        raise FoundryError(f"Meshy-native {label} playback adapter report is invalid.")
+    names = [item.get("exact_name") for item in clips if isinstance(item, dict)]
+    if len(names) != len(clips) or set(names) != set(durations):
+        raise FoundryError(f"Meshy-native {label} playback clip inventory is invalid.")
+    return clips
 
 
 def _encode_webp(root, clip, destination, duration):
@@ -1047,6 +1419,65 @@ def _encode_webp(root, clip, destination, duration):
         )
     finally:
         for image in images:
+            image.close()
+
+
+def _encode_comparison_webp(stages, destination, duration):
+    opened = []
+    combined = []
+    try:
+        stage_files = []
+        for root, clip, label in stages:
+            if not isinstance(clip, dict):
+                raise FoundryError(f"Meshy-native comparison stage is missing: {label}.")
+            files = clip.get("frame_files")
+            if not isinstance(files, list) or len(files) < 2:
+                raise FoundryError(
+                    f"Meshy-native comparison frames are incomplete: {label}."
+                )
+            stage_files.append((root, files, label))
+        frame_counts = {len(files) for _root, files, _label in stage_files}
+        if len(frame_counts) != 1:
+            raise FoundryError("Meshy-native comparison stage frame counts differ.")
+        for frame_index in range(frame_counts.pop()):
+            panels = []
+            for root, files, label in stage_files:
+                path = contained_path(root, RelativeManifestPath(files[frame_index]))
+                panel = Image.open(path).convert("RGB")
+                opened.append(panel)
+                labeled = Image.new("RGB", (panel.width, panel.height + 28), "black")
+                labeled.paste(panel, (0, 28))
+                ImageDraw.Draw(labeled).text((10, 7), label, fill="white")
+                panels.append(labeled)
+                opened.append(labeled)
+            canvas = Image.new(
+                "RGB",
+                (sum(panel.width for panel in panels), max(panel.height for panel in panels)),
+                "black",
+            )
+            offset = 0
+            for panel in panels:
+                canvas.paste(panel, (offset, 0))
+                offset += panel.width
+            combined.append(canvas)
+        total = round(duration * 1000)
+        base, remainder = divmod(total, len(combined))
+        if base < 1:
+            raise FoundryError("Meshy-native comparison duration is too short.")
+        frame_durations = [
+            base + (index < remainder) for index in range(len(combined))
+        ]
+        combined[0].save(
+            destination,
+            format="WEBP",
+            save_all=True,
+            append_images=combined[1:],
+            duration=frame_durations,
+            loop=0,
+            lossless=True,
+        )
+    finally:
+        for image in [*combined, *opened]:
             image.close()
 
 
