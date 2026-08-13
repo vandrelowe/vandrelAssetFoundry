@@ -119,17 +119,33 @@ retain at least thirteen playback artifacts. Schema 1.4 is accepted only for an
 exact 61-action model with exactly the registered representative set: `Idle_6`,
 `Walking`, and `Pull_Radish`, using `Collect_Object` only when `Pull_Radish` is
 absent. Missing, reordered, duplicated, additional, or substituted
-representative clips fail closed. Both policies retain the same exact-root,
+representative clips fail closed. Schema 1.5 is accepted only for the exact
+61-action repair model with the six registered repair-canary clips (`Idle_6`,
+`Walking`, selected Eat, selected Butcher, `Heavy_Hammer_Swing`, and
+`Walk_Forward_with_Bow_Aimed`). It independently decodes both numbered
+JOINTS/WEIGHTS sets, at most eight normalized influences, zero unweighted
+vertices, inverse binds, geometry, material bindings, and the exact embedded
+character texture. Its normalized material must be opaque, base-color-only,
+nonmetallic, roughness 0.8, and nonemissive. The exact current Godot import
+artifact chain must resolve to the current model. The assembly source-influence
+gate must pass and `consumer_blocking_reasons` must be empty; an above-eight
+provider source therefore fails before release-validation runtime. All policies
+retain the same exact-root,
 hash, H4, skin, bind, material, texture, current-validation, and
 bounded Godot import/playback with each imported duration reconciled to the
 source duration within at most one 30 FPS frame of engine import quantization,
-independently decoded top-four-normalized skin
+independently decoded policy-bound skin
 with zero unweighted vertices, preserved bind/material/embedded-texture
-signatures, and the H4 transfer deltas. The report records the user-accepted
-bounded provider-native hand orientation/weighting debt and proves the H4
-transfer introduced no additional hand corruption. The descriptor retains the
-complete technical clip inventory in the packaged report, does not assign
-gameplay action IDs, and remains `vandrel_runtime_accepted: false`.
+signatures, and the H4 transfer deltas. Legacy reports retain the user-accepted
+bounded provider-native hand orientation/weighting debt. Schema 1.5 instead
+records that hand limitation only as an observation with
+`pending_consumer_review` / `pending_vandrel_lightweight_f12`; neither approval
+nor release planning may convert it to accepted debt before that consumer
+review. All routes prove the H4 transfer introduced no additional hand
+corruption. The descriptor retains the complete technical clip inventory in the
+packaged report, does not assign gameplay action IDs, and remains
+`vandrel_runtime_accepted: false`. That downstream runtime marker does not
+substitute for, or weaken, the schema-1.5 technical source-influence gate.
 
 Independent cross-character visual review, including the accepted nine-body-
 class close-up hand review, is DevMaster release-decision evidence. It is not a

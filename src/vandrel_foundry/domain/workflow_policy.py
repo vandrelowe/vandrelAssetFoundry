@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from vandrel_foundry.domain.errors import FoundryError
-from vandrel_foundry.domain.meshy_native_release import release_check_playback_policy_passes
+from vandrel_foundry.domain.meshy_native_release import (
+    release_check_playback_policy_passes,
+    release_check_visual_review_policy_passes,
+)
 from vandrel_foundry.domain.states import WorkflowState
 
 if TYPE_CHECKING:
@@ -218,8 +221,7 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
                 and check.get("passed")
                 and check.get("processed_model_sha256") == processed[-1].sha256
                 and release_check_playback_policy_passes(check)
-                and check.get("accepted_hand_visual_debt") is True
-                and check.get("h4_additional_hand_corruption") is False
+                and release_check_visual_review_policy_passes(check)
                 for check in manifest.validation.checks
             )
         )

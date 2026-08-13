@@ -332,8 +332,11 @@ hammer control, and one bow control. This evidence is diagnostic and cannot set
 skin continuity; it does not exercise or visually accept the repaired texture
 or PBR material appearance. The actual Vandrel lightweight F12 composition
 remains the decisive consumer gate. A schema-1.5 report always retains
-`vandrel_ready: false`. If the provider source exceeds eight influences, it
-also records a failed top-eight source gate and the explicit consumer blocker
+`vandrel_ready: false` and records the F12/adoption step as its remaining gate,
+not as a technical-release `consumer_blocking_reason`. A source with at most
+eight positive influences records a passing top-eight source gate and an empty
+consumer-blocker list. If the provider source exceeds eight influences, it
+records a failed top-eight source gate and the sole explicit consumer blocker
 `greater_than_eight_source_influences`.
 Index grafting, Mixamo retargeting, and provider-native character migration are
 forbidden. Clip timing remains bound to the canary normalization report, and
@@ -355,6 +358,19 @@ independent H4, skin, bind, material, texture, and Godot gates pass. Schema 1.2
 and 1.3 reports retain the established release-review policy of at least thirteen
 registered playback clips. Neither profile alone confers visual acceptance,
 approval, release, publication, or Vandrel runtime acceptance.
+
+The `repair_canary` schema-1.5 profile may enter the same specialized technical
+release validator only with the exact 61-action inventory and exact six
+registered repair clips. The validator independently decodes the final GLB with
+the existing top-eight repaired-skin inspector, matches its full skin, inverse
+bind, geometry, material, and embedded-texture facts to both report-bound
+reference and final proofs, resolves the passing ordinary Godot report through
+project, wrapper, and staged-model ancestry to the exact current model, and
+requires the top-eight source gate to pass with no consumer blockers. It keeps
+`vandrel_ready` and `vandrel_runtime_accepted` false pending consumer adoption;
+it also records provider-native hand behavior only as a pending consumer-review
+observation, not accepted visual debt. Those downstream markers cannot launder
+an above-eight technical failure or a missing Vandrel F12 visual decision.
 
 Before adding actions, Blender exports a temporary policy-bound reference GLB.
 After the animated export, the service independently decodes both GLBs. Legacy

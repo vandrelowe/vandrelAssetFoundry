@@ -1353,13 +1353,12 @@ def _runtime_gaps(names, extended, *, processing_profile, facts):
         if processing_profile == "provider_top8_pbr_v1":
             source_maximum = facts.get("source_maximum_influences")
             above_eight = isinstance(source_maximum, int) and source_maximum > 8
-            blockers = ["pending_vandrel_lightweight_f12_validation"]
-            if above_eight:
-                blockers.insert(0, "greater_than_eight_source_influences")
             value.update(
                 {
                     "top8_source_influence_gate_passes": not above_eight,
-                    "consumer_blocking_reasons": blockers,
+                    "consumer_blocking_reasons": (
+                        ["greater_than_eight_source_influences"] if above_eight else []
+                    ),
                 }
             )
         return value

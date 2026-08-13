@@ -8,10 +8,16 @@ import pytest
 from PIL import Image
 
 import vandrel_foundry.services.assemble_meshy_native_character_motion as service
+import vandrel_foundry.services.plan_release as plan_service
 import vandrel_foundry.services.validate_meshy_native_character_release as release_service
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import Artifact, Processor, ScaleCalibration, utc_now
+from vandrel_foundry.domain.meshy_native_release import (
+    REPAIR_REVIEW_CLIPS,
+    MeshyNativeReleaseReport,
+    release_check_playback_policy_passes,
+)
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.services.add_meshy_native_character_package import (
@@ -784,6 +790,9 @@ def _release_validation_candidate(
     schema: str,
     clip_names: list[str],
     playback_names: list[str],
+    top8_output: bool = False,
+    bad_material: bool = False,
+    source_maximum_influences: int = 8,
 ):
     asset_id = "native_release_validation_test_001"
     config.tools.godot_executable = prompt
@@ -829,7 +838,12 @@ def _release_validation_candidate(
 
     model_path = root / "processed/release-validation/model.glb"
     model_path.parent.mkdir(parents=True, exist_ok=True)
-    _write_glb(model_path, clip_names)
+    _write_glb(
+        model_path,
+        clip_names,
+        top8=top8_output,
+        bad_material=bad_material,
+    )
     processor = Processor(
         name="blender_meshy_native_character_motion_assembly",
         version="test",
@@ -843,16 +857,23 @@ def _release_validation_candidate(
         derived_from=source_ids,
         processor=processor,
     )
-    skin = release_service.inspect_top4_glb_skin(model_path)
-    skin_facts = {
-        "policy": skin.policy,
-        "skin_payload_sha256": skin.skin_payload_sha256,
-        "inverse_bind_matrices_sha256": skin.inverse_bind_matrices_sha256,
-        "material_binding_sha256": skin.material_binding_sha256,
-        "embedded_image_sha256s": list(skin.embedded_image_sha256s),
-        "unweighted_vertex_count": skin.unweighted_vertex_count,
-        "maximum_influences": skin.maximum_influences,
-    }
+    is_repair = schema.endswith("/1.5")
+    if is_repair:
+        proof_path = tmp_path / "release-validation-top8-proof.glb"
+        _write_glb(proof_path, clip_names, top8=True)
+        skin = release_service.inspect_top8_repaired_glb_skin(proof_path)
+        skin_facts = release_service._skin_facts(skin)
+    else:
+        skin = release_service.inspect_top4_glb_skin(model_path)
+        skin_facts = {
+            "policy": skin.policy,
+            "skin_payload_sha256": skin.skin_payload_sha256,
+            "inverse_bind_matrices_sha256": skin.inverse_bind_matrices_sha256,
+            "material_binding_sha256": skin.material_binding_sha256,
+            "embedded_image_sha256s": list(skin.embedded_image_sha256s),
+            "unweighted_vertex_count": skin.unweighted_vertex_count,
+            "maximum_influences": skin.maximum_influences,
+        }
 
     playback_artifacts = []
     playback = []
@@ -892,12 +913,54 @@ def _release_validation_candidate(
             "semantic_transfer_policy": "native_joint_identity_global_pose_reconstruction",
             "bind_matrices_preserved": True,
             "material_texture_preserved": True,
-            "independent_top4_reference_match": True,
-            "independent_final_top4_skin": skin_facts,
             "maximum_sampled_global_orientation_delta_degrees": 0.0,
             "maximum_sampled_parent_local_orientation_delta_degrees": 0.0,
             "playback_evidence_profile": (
-                "representative_batch" if schema.endswith("/1.4") else "release_review"
+                "repair_canary"
+                if is_repair
+                else "representative_batch"
+                if schema.endswith("/1.4")
+                else "release_review"
+            ),
+            **(
+                {
+                    "processing_profile": "provider_top8_pbr_v1",
+                    "skin_weight_policy": "deterministic_top8_normalized",
+                    "material_policy": "opaque_basecolor_only_nonmetal_roughness_0_8",
+                    "base_color_texture_only": True,
+                    "authored_distinct_emissive_mask_present": False,
+                    "emissive_factor_zero": True,
+                    "opaque_body_material": True,
+                    "metallic_factor": 0.0,
+                    "roughness_factor": 0.8,
+                    "normal_and_tangent_geometry_preservation_required": True,
+                    "source_maximum_influences": source_maximum_influences,
+                    "source_vertices_over_8_influences": (
+                        1 if source_maximum_influences > 8 else 0
+                    ),
+                    "positive_source_influence_count_dropped": (
+                        2 if source_maximum_influences > 8 else 0
+                    ),
+                    "dropped_source_weight_above_8_total": (
+                        0.1 if source_maximum_influences > 8 else 0.0
+                    ),
+                    "positive_source_influence_identities_preserved": (
+                        source_maximum_influences <= 8
+                    ),
+                    "skin_weights_exactly_preserved": False,
+                    "top8_normalized": True,
+                    "top8_maximum_influences": 8,
+                    "output_action_count": 61,
+                    "final_unique_runtime_action_count": 61,
+                    "independent_skin_reference": skin_facts,
+                    "independent_final_skin": skin_facts,
+                    "independent_skin_reference_match": True,
+                }
+                if is_repair
+                else {
+                    "independent_top4_reference_match": True,
+                    "independent_final_top4_skin": skin_facts,
+                }
             ),
         },
         "clips": [
@@ -905,7 +968,23 @@ def _release_validation_candidate(
         ],
         "playback": playback,
         "comparison": {},
-        "runtime_readiness": {"vandrel_ready": False},
+        "runtime_readiness": {
+            "vandrel_ready": False,
+            **(
+                {
+                    "top8_source_influence_gate_passes": (
+                        source_maximum_influences <= 8
+                    ),
+                    "consumer_blocking_reasons": (
+                        []
+                        if source_maximum_influences <= 8
+                        else ["greater_than_eight_source_influences"]
+                    ),
+                }
+                if is_repair
+                else {}
+            ),
+        },
         "output": {
             "sha256": model_artifact.sha256,
             "size_bytes": model_artifact.size_bytes,
@@ -925,14 +1004,85 @@ def _release_validation_candidate(
         processor=processor,
     )
 
-    manifest.artifacts.extend(
-        [*source_artifacts, model_artifact, report_artifact, *playback_artifacts]
-    )
+    registered = [*source_artifacts, model_artifact, report_artifact, *playback_artifacts]
+    standard_check = {"name": "godot_sandbox_import", "passed": True}
+    if is_repair:
+        texture_path = root / "source/release-validation/texture.png"
+        texture_path.write_bytes(b"texture")
+        texture_artifact = artifact_for(
+            "meshy_native_character_texture_001",
+            "meshy_native_character_texture",
+            "source",
+            "png",
+            "source/release-validation/texture.png",
+            derived_from=[source_ids[0]],
+        )
+        staged_path = root / "godot_staging/release-validation/model.glb"
+        staged_path.parent.mkdir(parents=True, exist_ok=True)
+        staged_path.write_bytes(model_path.read_bytes())
+        staged = artifact_for(
+            "godot_staged_model_001",
+            "godot_staged_model",
+            "staged",
+            "glb",
+            "godot_staging/release-validation/model.glb",
+            derived_from=[model_artifact.artifact_id],
+        )
+        wrapper_path = root / "godot_staging/release-validation/wrapper.tscn"
+        wrapper_path.write_text("[gd_scene]\n", encoding="utf-8")
+        wrapper = artifact_for(
+            "godot_wrapper_scene_001",
+            "godot_wrapper_scene",
+            "staged",
+            "tscn",
+            "godot_staging/release-validation/wrapper.tscn",
+            derived_from=[staged.artifact_id],
+        )
+        project_path = root / "godot_staging/release-validation/project.godot"
+        project_path.write_text("config_version=5\n", encoding="utf-8")
+        project = artifact_for(
+            "godot_validation_project_001",
+            "godot_validation_project",
+            "staged",
+            "godot",
+            "godot_staging/release-validation/project.godot",
+            derived_from=[wrapper.artifact_id],
+        )
+        godot_report_path = root / "reports/release-validation/godot.json"
+        godot_report_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "asset_id": asset_id,
+                    "project_artifact_id": project.artifact_id,
+                    "project_artifact_sha256": project.sha256,
+                    "return_code": 0,
+                    "timed_out": False,
+                    "output_limited": False,
+                    "import_cache_created": True,
+                    "passed": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        godot_report = artifact_for(
+            "godot_validation_report_001",
+            "godot_validation_report",
+            "validation",
+            "json",
+            "reports/release-validation/godot.json",
+            derived_from=[project.artifact_id],
+        )
+        registered.extend(
+            [texture_artifact, staged, wrapper, project, godot_report]
+        )
+        standard_check["report"] = str(godot_report.path)
+    manifest.artifacts.extend(registered)
     transition_workflow(manifest, WorkflowState.DOWNLOADED)
     transition_workflow(manifest, WorkflowState.PROCESSED)
     transition_workflow(manifest, WorkflowState.REVIEW)
     manifest.validation.result = "passed"
-    manifest.validation.checks = [{"name": "godot_sandbox_import", "passed": True}]
+    manifest.validation.checks = [standard_check]
     source_revision = manifest.revision
     manifest.revision += 1
     repository.save(manifest, expected_revision=source_revision)
@@ -1046,6 +1196,9 @@ def test_schema_1_4_release_validation_accepts_exact_representative_batch(
     assert check["playback_clip_names"] == representative_actions
     assert check["assembly_evidence_schema"].endswith("/1.4")
     assert check["playback_evidence_profile"] == "representative_batch"
+    assert validated["visual_debt"]["status"] == "accepted_bounded_debt"
+    assert validated["visual_debt"]["acceptance_basis"] == "user_visual_acceptance"
+    assert check["accepted_hand_visual_debt"] is True
 
 
 @pytest.mark.parametrize(
@@ -1115,6 +1268,186 @@ def test_schema_1_4_release_validation_rejects_invalid_representative_evidence(
     )
 
     with pytest.raises(FoundryError, match="representative|61-action"):
+        release_service.validate_meshy_native_character_release(
+            config,
+            asset_id,
+            runner=runner,
+            environment={},
+        )
+    assert calls["count"] == 0
+
+
+def _repair_release_actions() -> list[str]:
+    core = list(dict.fromkeys([*REPAIR_REVIEW_CLIPS, *RELEASE_REVIEW_ACTIONS]))
+    return [
+        *core,
+        *(
+            f"target_character|Repair_Action_{index:02d}"
+            for index in range(61 - len(core))
+        ),
+    ]
+
+
+def test_schema_1_5_release_validation_accepts_exact_top8_repair_evidence(
+    config, prompt, tmp_path
+):
+    clip_names = _repair_release_actions()
+    asset_id, root, runner, calls = _release_validation_candidate(
+        config,
+        prompt,
+        tmp_path,
+        schema="vandrel_foundry_meshy_native_character_motion/1.5",
+        clip_names=clip_names,
+        playback_names=list(REPAIR_REVIEW_CLIPS),
+        top8_output=True,
+    )
+
+    result = release_service.validate_meshy_native_character_release(
+        config,
+        asset_id,
+        runner=runner,
+        environment={},
+    )
+
+    validated = json.loads((root / result.report.path).read_text(encoding="utf-8"))
+    live = ManifestRepository(config.foundry.workspace_root).load(asset_id)
+    check = next(
+        item
+        for item in live.validation.checks
+        if item.get("name") == "meshy_native_character_release_playback"
+    )
+    assert calls["count"] == 2
+    assert validated["schema"] == "vandrel_foundry_meshy_native_character_release/1.3"
+    assert validated["selected_review_clips"] == list(REPAIR_REVIEW_CLIPS)
+    assert validated["skin"]["joint_weight_sets"] == [
+        "JOINTS_0",
+        "JOINTS_1",
+        "WEIGHTS_0",
+        "WEIGHTS_1",
+    ]
+    assert validated["skin"]["maximum_influences"] == 8
+    assert validated["skin"]["unweighted_vertex_count"] == 0
+    assert validated["skin"]["material_policy"] == (
+        "opaque_basecolor_only_nonmetal_roughness_0_8"
+    )
+    assert validated["godot"]["current_model_binding_passed"] is True
+    assert [
+        item["role"] for item in validated["godot"]["current_import_artifacts"]
+    ] == [
+        "godot_validation_report",
+        "godot_validation_project",
+        "godot_wrapper_scene",
+        "godot_staged_model",
+    ]
+    assert validated["material_texture"]["character_texture_artifact"]["sha256"] == (
+        hashlib.sha256(b"texture").hexdigest()
+    )
+    assert validated["readiness"]["top8_source_influence_gate_passes"] is True
+    assert validated["readiness"]["consumer_blocking_reasons"] == []
+    assert validated["visual_debt"] == {
+        "status": "pending_consumer_review",
+        "observation": (
+            "Meshy provider-native hands may retain odd orientation or weighting"
+        ),
+        "acceptance_basis": "pending_vandrel_lightweight_f12",
+        "h4_additional_hand_corruption": False,
+        "repair_policy": "no_broad_hand_rig_repair_in_this_release",
+    }
+    assert check["accepted_hand_visual_debt"] is False
+    assert check["consumer_visual_review_pending"] is True
+    assert release_check_playback_policy_passes(check) is True
+    current_model = [item for item in live.artifacts if item.role == "processed_model"][-1]
+    live.approval.approved_artifact_hashes = {
+        "processed_model": current_model.sha256,
+        "meshy_native_character_release_report": result.report.sha256,
+    }
+    compatibility, packaged_report = plan_service._humanoid_release_evidence(
+        live, root
+    )
+    assert compatibility is not None
+    assert compatibility["known_hand_visual_debt"] == "pending_consumer_review"
+    assert compatibility["vandrel_runtime_accepted"] is False
+    assert packaged_report == result.report
+
+    laundered = json.loads(json.dumps(validated))
+    laundered["visual_debt"].update(
+        {
+            "status": "accepted_bounded_debt",
+            "acceptance_basis": "user_visual_acceptance",
+        }
+    )
+    with pytest.raises(ValueError, match="repair release authority"):
+        MeshyNativeReleaseReport.model_validate(laundered)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("top8_independent_skin_passed", False),
+        ("top8_source_influence_gate_passes", False),
+        ("consumer_blocking_reasons", ["greater_than_eight_source_influences"]),
+        ("godot_current_model_binding_passed", False),
+        ("accepted_hand_visual_debt", True),
+        ("visual_debt_status", "accepted_bounded_debt"),
+        ("visual_acceptance_basis", "user_visual_acceptance"),
+        ("consumer_visual_review_pending", False),
+    ],
+)
+def test_schema_1_5_release_policy_rejects_laundered_gate_fields(field, value):
+    check = {
+        "clip_count": 61,
+        "playback_evidence_count": 6,
+        "source_root_count": 68,
+        "assembly_evidence_schema": (
+            "vandrel_foundry_meshy_native_character_motion/1.5"
+        ),
+        "playback_evidence_profile": "repair_canary",
+        "playback_clip_names": list(REPAIR_REVIEW_CLIPS),
+        "top8_independent_skin_passed": True,
+        "top8_source_influence_gate_passes": True,
+        "consumer_blocking_reasons": [],
+        "godot_current_model_binding_passed": True,
+        "accepted_hand_visual_debt": False,
+        "visual_debt_status": "pending_consumer_review",
+        "visual_acceptance_basis": "pending_vandrel_lightweight_f12",
+        "consumer_visual_review_pending": True,
+        "h4_additional_hand_corruption": False,
+    }
+    check[field] = value
+
+    assert release_check_playback_policy_passes(check) is False
+
+
+@pytest.mark.parametrize(
+    ("top8_output", "bad_material", "source_maximum", "error"),
+    [
+        (False, False, 8, "JOINTS_1"),
+        (True, True, 8, "opaque, nonmetallic"),
+        (True, False, 10, "source influence gate"),
+    ],
+)
+def test_schema_1_5_release_validation_rejects_invalid_repair_evidence_before_runtime(
+    config,
+    prompt,
+    tmp_path,
+    top8_output,
+    bad_material,
+    source_maximum,
+    error,
+):
+    asset_id, _root, runner, calls = _release_validation_candidate(
+        config,
+        prompt,
+        tmp_path,
+        schema="vandrel_foundry_meshy_native_character_motion/1.5",
+        clip_names=_repair_release_actions(),
+        playback_names=list(REPAIR_REVIEW_CLIPS),
+        top8_output=top8_output,
+        bad_material=bad_material,
+        source_maximum_influences=source_maximum,
+    )
+
+    with pytest.raises(FoundryError, match=error):
         release_service.validate_meshy_native_character_release(
             config,
             asset_id,
@@ -1227,9 +1560,7 @@ def test_repair_profile_preserves_r001_and_registers_top8_material_comparison(
     )
     assert report["runtime_readiness"]["vandrel_ready"] is False
     assert report["runtime_readiness"]["top8_source_influence_gate_passes"] is True
-    assert report["runtime_readiness"]["consumer_blocking_reasons"] == [
-        "pending_vandrel_lightweight_f12_validation"
-    ]
+    assert report["runtime_readiness"]["consumer_blocking_reasons"] == []
     assert facts["independent_final_skin"]["joint_weight_sets"] == [
         "JOINTS_0",
         "JOINTS_1",
@@ -1313,7 +1644,6 @@ def test_repair_profile_records_and_blocks_source_influences_above_eight(
     assert report["runtime_readiness"]["top8_source_influence_gate_passes"] is False
     assert report["runtime_readiness"]["consumer_blocking_reasons"] == [
         "greater_than_eight_source_influences",
-        "pending_vandrel_lightweight_f12_validation",
     ]
 
 

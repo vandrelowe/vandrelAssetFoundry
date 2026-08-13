@@ -239,7 +239,9 @@ class MeshyNativeAssemblyCompatibilityV2(ReleaseModel):
     shared_animation_pool_compatible: Literal[False]
     clip_count: int = Field(ge=29)
     embedded_texture_sha256s: list[Sha256] = Field(min_length=1)
-    known_hand_visual_debt: Literal["accepted_bounded_debt"]
+    known_hand_visual_debt: Literal[
+        "accepted_bounded_debt", "pending_consumer_review"
+    ]
     h4_additional_hand_corruption: Literal[False]
     report: PackagedHumanoidReportV2
 

@@ -12,7 +12,11 @@ from vandrel_foundry.domain.custody_assertion import approval_custody_freshness
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest
-from vandrel_foundry.domain.meshy_native_release import release_check_playback_policy_passes
+from vandrel_foundry.domain.meshy_native_release import (
+    REPAIR_ASSEMBLY_SCHEMA,
+    release_check_playback_policy_passes,
+    release_check_visual_review_policy_passes,
+)
 from vandrel_foundry.domain.release_descriptor import (
     ReleaseDescriptorV2,
     format_release_revision,
@@ -366,8 +370,7 @@ def _humanoid_release_evidence(
             or check.get("godot_playback_passed") is not True
             or check.get("skin_binding_passed") is not True
             or check.get("zero_unweighted_vertices") is not True
-            or check.get("accepted_hand_visual_debt") is not True
-            or check.get("h4_additional_hand_corruption") is not False
+            or not release_check_visual_review_policy_passes(check)
         ):
             raise FoundryError(
                 "Meshy-native assembly release evidence is incomplete or stale."
@@ -386,7 +389,11 @@ def _humanoid_release_evidence(
             "shared_animation_pool_compatible": False,
             "clip_count": clip_count,
             "embedded_texture_sha256s": embedded_hashes,
-            "known_hand_visual_debt": "accepted_bounded_debt",
+            "known_hand_visual_debt": (
+                "pending_consumer_review"
+                if check.get("assembly_evidence_schema") == REPAIR_ASSEMBLY_SCHEMA
+                else "accepted_bounded_debt"
+            ),
             "h4_additional_hand_corruption": False,
         }, report_artifact
     native_checks = [

@@ -43,7 +43,10 @@
           "type": "array"
         },
         "known_hand_visual_debt": {
-          "const": "accepted_bounded_debt",
+          "enum": [
+            "accepted_bounded_debt",
+            "pending_consumer_review"
+          ],
           "title": "Known Hand Visual Debt",
           "type": "string"
         },

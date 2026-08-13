@@ -127,6 +127,21 @@ def test_v2_accepts_bounded_meshy_native_assembly_evidence() -> None:
     assert expanded.humanoid_compatibility is not None
     assert expanded.humanoid_compatibility.clip_count == 61
 
+    value["humanoid_compatibility"]["known_hand_visual_debt"] = (
+        "pending_consumer_review"
+    )
+    pending = ReleaseDescriptorV2.model_validate(value)
+    assert pending.humanoid_compatibility is not None
+    assert pending.humanoid_compatibility.known_hand_visual_debt == (
+        "pending_consumer_review"
+    )
+
+    value["humanoid_compatibility"]["known_hand_visual_debt"] = (
+        "accepted_without_consumer_review"
+    )
+    with pytest.raises(ValidationError):
+        ReleaseDescriptorV2.model_validate(value)
+
 
 def test_historical_v2_scale_fixture_without_bounds_is_model_and_schema_compatible() -> None:
     value = _historical_v2_scale_fixture()

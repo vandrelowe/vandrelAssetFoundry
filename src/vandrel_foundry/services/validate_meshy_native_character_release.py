@@ -17,6 +17,9 @@ from vandrel_foundry.domain.meshy_native_character_motion import (
 )
 from vandrel_foundry.domain.meshy_native_release import (
     RELEASE_REVIEW_CLIPS,
+    REPAIR_ASSEMBLY_SCHEMA,
+    REPAIR_PROFILE,
+    REPAIR_REVIEW_CLIPS,
     REPRESENTATIVE_ASSEMBLY_SCHEMA,
     REPRESENTATIVE_PROFILE,
     MeshyNativeReleaseReport,
@@ -25,7 +28,11 @@ from vandrel_foundry.domain.meshy_native_release import (
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import invalidate_approval
 from vandrel_foundry.services.inspect_glb import inspect_glb
-from vandrel_foundry.services.inspect_glb_skin import inspect_top4_glb_skin
+from vandrel_foundry.services.inspect_glb_skin import (
+    GlbSkinProof,
+    inspect_top4_glb_skin,
+    inspect_top8_repaired_glb_skin,
+)
 from vandrel_foundry.services.validate_godot import (
     SAFE_ENVIRONMENT_KEYS,
     ProcessResult,
@@ -38,7 +45,7 @@ from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 PROCESSOR_NAME = "godot_meshy_native_character_release_validation"
-PROCESSOR_VERSION = "3"
+PROCESSOR_VERSION = "4"
 ASSEMBLY_PROCESSOR = "blender_meshy_native_character_motion_assembly"
 REPORT_ROLE = "meshy_native_character_release_report"
 CHECK_NAME = "meshy_native_character_release_playback"
@@ -238,6 +245,7 @@ def validate_meshy_native_character_release(
         "vandrel_foundry_meshy_native_character_motion/1.2",
         "vandrel_foundry_meshy_native_character_motion/1.3",
         REPRESENTATIVE_ASSEMBLY_SCHEMA,
+        REPAIR_ASSEMBLY_SCHEMA,
     }:
         raise FoundryError("Current Meshy-native assembly evidence schema is unsupported.")
     clip_count = len(assembly_data.clips)
@@ -258,6 +266,8 @@ def validate_meshy_native_character_release(
         or set(assembly_data.source_union) != root_ids
     ):
         raise FoundryError("Current Meshy-native model does not bind its exact source root union.")
+    facts = assembly_data.transformation_facts
+    is_repair = assembly_data.schema_name == REPAIR_ASSEMBLY_SCHEMA
     playback_artifacts = _playback_artifacts(manifest, assembly_data.playback)
     inputs = [model, assembly, *roots, *playback_artifacts]
     for artifact in inputs:
@@ -272,6 +282,30 @@ def validate_meshy_native_character_release(
     )
     if standard_check is None:
         raise FoundryError("Meshy-native release validation requires passing Godot import.")
+    godot_binding_artifacts = []
+    character_texture = None
+    inspection = None
+    skin = None
+    if is_repair:
+        godot_binding_artifacts = _current_godot_import_artifacts(
+            manifest,
+            standard_check,
+            model,
+            asset_root,
+            asset_id,
+        )
+        character_texture = _character_texture_artifact(manifest, root_ids)
+        inputs.extend([*godot_binding_artifacts, character_texture])
+        for artifact in [*godot_binding_artifacts, character_texture]:
+            _verify(contained_path(asset_root, artifact.path), artifact)
+        inspection = inspect_glb(model_path)
+        skin = inspect_top8_repaired_glb_skin(model_path)
+        _require_repaired_release_proof(
+            assembly_data,
+            inspection,
+            skin,
+            character_texture.sha256,
+        )
     executable = config.tools.godot_executable
     if executable is None or not executable.is_absolute() or not executable.is_file():
         raise FoundryError("Configure an absolute Godot executable for release validation.")
@@ -332,41 +366,41 @@ def validate_meshy_native_character_release(
         )
         _require_success(playback_result, "Godot Meshy-native playback")
         godot = _load_godot_report(temporary / "result.json", clip_count)
-        inspection = inspect_glb(model_path)
-        skin = inspect_top4_glb_skin(model_path)
-        facts = assembly_data.transformation_facts
-        expected_skin = facts.get("independent_final_top4_skin")
-        expected_skin_facts = (
-            expected_skin if isinstance(expected_skin, dict) else {}
-        )
-        actual_skin_facts = {
-            "policy": skin.policy,
-            "skin_payload_sha256": skin.skin_payload_sha256,
-            "inverse_bind_matrices_sha256": skin.inverse_bind_matrices_sha256,
-            "material_binding_sha256": skin.material_binding_sha256,
-            "embedded_image_sha256s": list(skin.embedded_image_sha256s),
-            "unweighted_vertex_count": skin.unweighted_vertex_count,
-            "maximum_influences": skin.maximum_influences,
-        }
-        if (
-            inspection.animation_count != clip_count
-            or inspection.skin_count != 1
-            or inspection.joint_count != 24
-            or inspection.material_count < 1
-            or inspection.image_count < 1
-            or facts.get("semantic_transfer_policy")
-            != "native_joint_identity_global_pose_reconstruction"
-            or facts.get("bind_matrices_preserved") is not True
-            or facts.get("material_texture_preserved") is not True
-            or facts.get("independent_top4_reference_match") is not True
-            or any(
-                expected_skin_facts.get(key) != value
-                for key, value in actual_skin_facts.items()
-            )
-        ):
-            raise FoundryError(
-                "Independent Meshy-native model, skin, bind, material, or texture proof failed."
-            )
+        if not is_repair:
+            inspection = inspect_glb(model_path)
+            skin = inspect_top4_glb_skin(model_path)
+            expected_skin = facts.get("independent_final_top4_skin")
+            expected_skin_facts = expected_skin if isinstance(expected_skin, dict) else {}
+            actual_skin_facts = {
+                "policy": skin.policy,
+                "skin_payload_sha256": skin.skin_payload_sha256,
+                "inverse_bind_matrices_sha256": skin.inverse_bind_matrices_sha256,
+                "material_binding_sha256": skin.material_binding_sha256,
+                "embedded_image_sha256s": list(skin.embedded_image_sha256s),
+                "unweighted_vertex_count": skin.unweighted_vertex_count,
+                "maximum_influences": skin.maximum_influences,
+            }
+            if (
+                inspection.animation_count != clip_count
+                or inspection.skin_count != 1
+                or inspection.joint_count != 24
+                or inspection.material_count < 1
+                or inspection.image_count < 1
+                or facts.get("semantic_transfer_policy")
+                != "native_joint_identity_global_pose_reconstruction"
+                or facts.get("bind_matrices_preserved") is not True
+                or facts.get("material_texture_preserved") is not True
+                or facts.get("independent_top4_reference_match") is not True
+                or any(
+                    expected_skin_facts.get(key) != value
+                    for key, value in actual_skin_facts.items()
+                )
+            ):
+                raise FoundryError(
+                    "Independent Meshy-native model, skin, bind, material, or texture proof failed."
+                )
+        assert inspection is not None
+        assert skin is not None
         h4_global = float(facts.get("maximum_sampled_global_orientation_delta_degrees", math.inf))
         h4_local = float(
             facts.get("maximum_sampled_parent_local_orientation_delta_degrees", math.inf)
@@ -378,6 +412,8 @@ def validate_meshy_native_character_release(
             schema=(
                 "vandrel_foundry_meshy_native_character_release/1.2"
                 if assembly_data.schema_name.endswith("/1.4")
+                else "vandrel_foundry_meshy_native_character_release/1.3"
+                if assembly_data.schema_name.endswith("/1.5")
                 else
                 "vandrel_foundry_meshy_native_character_release/1.1"
                 if assembly_data.schema_name.endswith("/1.3")
@@ -413,18 +449,41 @@ def validate_meshy_native_character_release(
                 **godot,
                 "standard_import_check": standard_check,
                 "processed_model_sha256": model.sha256,
+                **(
+                    {
+                        "current_model_binding_passed": True,
+                        "current_import_artifacts": [
+                            {
+                                "artifact_id": artifact.artifact_id,
+                                "role": artifact.role,
+                                "sha256": artifact.sha256,
+                                "size_bytes": artifact.size_bytes,
+                            }
+                            for artifact in godot_binding_artifacts
+                        ],
+                    }
+                    if is_repair
+                    else {}
+                ),
             },
-            skin={
-                **skin.__dict__,
-                "joint_weight_sets": list(skin.joint_weight_sets),
-                "embedded_image_sha256s": list(skin.embedded_image_sha256s),
-            },
+            skin=_skin_facts(skin),
             material_texture={
                 "material_count": inspection.material_count,
                 "texture_count": inspection.texture_count,
                 "image_count": inspection.image_count,
                 "material_binding_sha256": skin.material_binding_sha256,
                 "embedded_texture_sha256s": list(skin.embedded_image_sha256s),
+                **(
+                    {
+                        "character_texture_artifact": {
+                            "artifact_id": character_texture.artifact_id,
+                            "sha256": character_texture.sha256,
+                            "size_bytes": character_texture.size_bytes,
+                        }
+                    }
+                    if character_texture is not None
+                    else {}
+                ),
             },
             h4_transfer={
                 "policy": facts.get("semantic_transfer_policy"),
@@ -434,20 +493,40 @@ def validate_meshy_native_character_release(
                 "material_texture_preserved": facts.get("material_texture_preserved"),
                 "h4_additional_hand_corruption": False,
             },
-            visual_debt={
-                "status": "accepted_bounded_debt",
-                "known_limitation": (
-                    "Meshy provider-native hands may retain odd orientation or weighting"
-                ),
-                "acceptance_basis": "user_visual_acceptance",
-                "h4_additional_hand_corruption": False,
-                "repair_policy": "no_broad_hand_rig_repair_in_this_release",
-            },
+            visual_debt=(
+                {
+                    "status": "pending_consumer_review",
+                    "observation": (
+                        "Meshy provider-native hands may retain odd orientation or weighting"
+                    ),
+                    "acceptance_basis": "pending_vandrel_lightweight_f12",
+                    "h4_additional_hand_corruption": False,
+                    "repair_policy": "no_broad_hand_rig_repair_in_this_release",
+                }
+                if is_repair
+                else {
+                    "status": "accepted_bounded_debt",
+                    "known_limitation": (
+                        "Meshy provider-native hands may retain odd orientation or weighting"
+                    ),
+                    "acceptance_basis": "user_visual_acceptance",
+                    "h4_additional_hand_corruption": False,
+                    "repair_policy": "no_broad_hand_rig_repair_in_this_release",
+                }
+            ),
             readiness={
                 "technical_release_ready": True,
                 "candidate_only": True,
                 "vandrel_runtime_accepted": False,
                 "gameplay_mapping_included": False,
+                **(
+                    {
+                        "top8_source_influence_gate_passes": True,
+                        "consumer_blocking_reasons": [],
+                    }
+                    if is_repair
+                    else {}
+                ),
             },
         )
         report_temp = temporary / "release-report.json"
@@ -485,7 +564,17 @@ def validate_meshy_native_character_release(
             path=report_relative,
             sha256=report_hash,
             size_bytes=report_size,
-            derived_from=[model.artifact_id, assembly.artifact_id, *(x.artifact_id for x in playback_artifacts)],
+            derived_from=[
+                model.artifact_id,
+                assembly.artifact_id,
+                *(item.artifact_id for item in playback_artifacts),
+                *(item.artifact_id for item in godot_binding_artifacts),
+                *(
+                    [character_texture.artifact_id]
+                    if character_texture is not None
+                    else []
+                ),
+            ],
             processor=processor,
         )
         process_artifact = Artifact(
@@ -528,7 +617,20 @@ def validate_meshy_native_character_release(
             "zero_unweighted_vertices": skin.unweighted_vertex_count == 0,
             "embedded_texture_sha256s": list(skin.embedded_image_sha256s),
             "h4_additional_hand_corruption": False,
-            "accepted_hand_visual_debt": True,
+            "accepted_hand_visual_debt": not is_repair,
+            **(
+                {
+                    "top8_independent_skin_passed": True,
+                    "top8_source_influence_gate_passes": True,
+                    "consumer_blocking_reasons": [],
+                    "godot_current_model_binding_passed": True,
+                    "visual_debt_status": "pending_consumer_review",
+                    "visual_acceptance_basis": "pending_vandrel_lightweight_f12",
+                    "consumer_visual_review_pending": True,
+                }
+                if is_repair
+                else {}
+            ),
         }
         manifest.validation.checks = [
             item for item in manifest.validation.checks if item.get("name") != CHECK_NAME
@@ -578,6 +680,178 @@ def validate_meshy_native_character_release(
         shutil.rmtree(temporary, ignore_errors=True)
 
 
+def _current_godot_import_artifacts(
+    manifest,
+    check: Mapping[str, object],
+    model: Artifact,
+    asset_root: Path,
+    asset_id: str,
+) -> list[Artifact]:
+    report_path = check.get("report")
+    if not isinstance(report_path, str):
+        raise FoundryError("Schema 1.5 release requires a bound Godot import report.")
+    reports = [
+        item
+        for item in manifest.artifacts
+        if item.role == "godot_validation_report" and str(item.path) == report_path
+    ]
+    if len(reports) != 1:
+        raise FoundryError("Schema 1.5 Godot import report binding is ambiguous.")
+    report = reports[0]
+    _verify(contained_path(asset_root, report.path), report)
+    try:
+        report_value = json.loads(
+            contained_path(asset_root, report.path).read_text(encoding="utf-8")
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise FoundryError(f"Schema 1.5 Godot import report is unreadable: {exc}") from exc
+    if not isinstance(report_value, dict):
+        raise FoundryError("Schema 1.5 Godot import report is invalid.")
+    by_id = {item.artifact_id: item for item in manifest.artifacts}
+    project_id = report_value.get("project_artifact_id")
+    project = by_id.get(project_id) if isinstance(project_id, str) else None
+    if (
+        report_value.get("asset_id") != asset_id
+        or report_value.get("passed") is not True
+        or report_value.get("return_code") != 0
+        or report_value.get("timed_out") is not False
+        or report_value.get("output_limited") is not False
+        or report_value.get("import_cache_created") is not True
+        or project is None
+        or project.role != "godot_validation_project"
+        or report_value.get("project_artifact_sha256") != project.sha256
+        or report.derived_from != [project.artifact_id]
+    ):
+        raise FoundryError("Schema 1.5 Godot import report is not a passing current binding.")
+    wrapper = _single_parent(by_id, project, "godot_wrapper_scene")
+    staged = _single_parent(by_id, wrapper, "godot_staged_model")
+    if (
+        staged.derived_from != [model.artifact_id]
+        or staged.sha256 != model.sha256
+        or staged.size_bytes != model.size_bytes
+    ):
+        raise FoundryError("Schema 1.5 Godot import is not bound to the current model.")
+    values = [report, project, wrapper, staged]
+    for artifact in values:
+        _verify(contained_path(asset_root, artifact.path), artifact)
+    return values
+
+
+def _single_parent(by_id: dict[str, Artifact], child: Artifact, role: str) -> Artifact:
+    if len(child.derived_from) != 1:
+        raise FoundryError("Schema 1.5 Godot import lineage is incomplete.")
+    parent = by_id.get(child.derived_from[0])
+    if parent is None or parent.role != role:
+        raise FoundryError("Schema 1.5 Godot import lineage is invalid.")
+    return parent
+
+
+def _character_texture_artifact(manifest, root_ids: set[str]) -> Artifact:
+    values = [
+        item
+        for item in manifest.artifacts
+        if item.role == "meshy_native_character_texture"
+        and len(item.derived_from) == 1
+        and item.derived_from[0] in root_ids
+    ]
+    if len(values) != 1:
+        raise FoundryError("Schema 1.5 release requires one exact character texture.")
+    return values[0]
+
+
+def _skin_facts(skin: GlbSkinProof) -> dict[str, object]:
+    return {
+        **skin.__dict__,
+        "joint_weight_sets": list(skin.joint_weight_sets),
+        "embedded_image_sha256s": list(skin.embedded_image_sha256s),
+        "alpha_modes": list(skin.alpha_modes),
+        "metallic_factors": list(skin.metallic_factors),
+        "roughness_factors": list(skin.roughness_factors),
+    }
+
+
+def _require_repaired_release_proof(
+    assembly: MeshyNativeCharacterMotionReport,
+    inspection,
+    skin: GlbSkinProof,
+    texture_sha256: str,
+) -> None:
+    facts = assembly.transformation_facts
+    actual = _skin_facts(skin)
+    reference = facts.get("independent_skin_reference")
+    final = facts.get("independent_final_skin")
+    source_maximum = facts.get("source_maximum_influences")
+    if (
+        inspection.animation_count != 61
+        or inspection.skin_count != 1
+        or inspection.joint_count != 24
+        or inspection.mesh_count < 1
+        or inspection.primitive_count < 1
+        or inspection.material_count < 1
+        or inspection.texture_count < 1
+        or inspection.image_count != 1
+        or not isinstance(reference, dict)
+        or not isinstance(final, dict)
+        or reference != actual
+        or final != actual
+        or facts.get("independent_skin_reference_match") is not True
+        or skin.policy != "deterministic_top8_normalized"
+        or skin.joint_weight_sets
+        != ("JOINTS_0", "JOINTS_1", "WEIGHTS_0", "WEIGHTS_1")
+        or skin.maximum_influences > 8
+        or skin.unweighted_vertex_count != 0
+        or skin.maximum_weight_sum_error > 1e-5
+        or skin.inverse_bind_matrices_sha256 != reference.get(
+            "inverse_bind_matrices_sha256"
+        )
+        or skin.geometry_payload_sha256 != reference.get("geometry_payload_sha256")
+        or skin.material_binding_sha256 != reference.get("material_binding_sha256")
+        or skin.embedded_image_sha256s != (texture_sha256,)
+        or skin.material_policy != "opaque_basecolor_only_nonmetal_roughness_0_8"
+        or skin.alpha_modes != ("OPAQUE",)
+        or any(abs(value) > 1e-6 for value in skin.metallic_factors)
+        or any(abs(value - 0.8) > 1e-6 for value in skin.roughness_factors)
+        or skin.emissive_factor_maximum > 1e-6
+        or skin.emissive_texture_count != 0
+        or skin.identical_full_strength_base_emissive_count != 0
+        or skin.specular_color_factor_maximum > 1.0 + 1e-6
+        or facts.get("semantic_transfer_policy")
+        != "native_joint_identity_global_pose_reconstruction"
+        or facts.get("bind_matrices_preserved") is not True
+        or facts.get("material_texture_preserved") is not True
+        or facts.get("processing_profile") != "provider_top8_pbr_v1"
+        or facts.get("skin_weight_policy") != "deterministic_top8_normalized"
+        or facts.get("material_policy")
+        != "opaque_basecolor_only_nonmetal_roughness_0_8"
+        or facts.get("base_color_texture_only") is not True
+        or facts.get("authored_distinct_emissive_mask_present") is not False
+        or facts.get("emissive_factor_zero") is not True
+        or facts.get("opaque_body_material") is not True
+        or abs(float(facts.get("metallic_factor", math.inf))) > 1e-6
+        or abs(float(facts.get("roughness_factor", math.inf)) - 0.8) > 1e-6
+        or facts.get("normal_and_tangent_geometry_preservation_required") is not True
+        or not isinstance(source_maximum, int)
+        or isinstance(source_maximum, bool)
+        or source_maximum > 8
+        or facts.get("source_vertices_over_8_influences") != 0
+        or facts.get("positive_source_influence_count_dropped") != 0
+        or abs(float(facts.get("dropped_source_weight_above_8_total", math.inf)))
+        > 1e-8
+        or facts.get("positive_source_influence_identities_preserved") is not True
+        or facts.get("top8_normalized") is not True
+        or facts.get("top8_maximum_influences") != skin.maximum_influences
+        or facts.get("output_action_count") != 61
+        or facts.get("final_unique_runtime_action_count") != 61
+        or assembly.runtime_readiness.get("top8_source_influence_gate_passes") is not True
+        or assembly.runtime_readiness.get("consumer_blocking_reasons") != []
+        or assembly.runtime_readiness.get("vandrel_ready") is not False
+    ):
+        raise FoundryError(
+            "Independent schema 1.5 model, top-eight skin, bind, geometry, material, "
+            "texture, source-influence, or readiness proof failed."
+        )
+
+
 def _playback_artifacts(manifest, descriptors):
     by_id = {item.artifact_id: item for item in manifest.artifacts}
     values = []
@@ -595,6 +869,24 @@ def _playback_artifacts(manifest, descriptors):
 def _release_review_selection(assembly_data: MeshyNativeCharacterMotionReport) -> list[str]:
     clip_names = [str(item.get("exact_name")) for item in assembly_data.clips]
     playback_names = [str(item.get("exact_name")) for item in assembly_data.playback]
+    if assembly_data.schema_name == REPAIR_ASSEMBLY_SCHEMA:
+        readiness = assembly_data.runtime_readiness
+        expected = list(REPAIR_REVIEW_CLIPS)
+        if (
+            len(clip_names) != 61
+            or len(set(clip_names)) != 61
+            or playback_names != expected
+            or assembly_data.transformation_facts.get("playback_evidence_profile")
+            != REPAIR_PROFILE
+            or readiness.get("top8_source_influence_gate_passes") is not True
+            or readiness.get("consumer_blocking_reasons") != []
+        ):
+            raise FoundryError(
+                "Schema 1.5 Meshy-native release evidence requires the complete "
+                "61-action inventory, exact repair playback clips, and a passing "
+                "top-eight source influence gate without consumer blockers."
+            )
+        return expected
     if assembly_data.schema_name == REPRESENTATIVE_ASSEMBLY_SCHEMA:
         try:
             expected = list(representative_review_clips(clip_names))

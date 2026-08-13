@@ -266,6 +266,38 @@ def test_meshy_native_assembly_requires_exact_current_release_evidence() -> None
     assert not approval_checks_pass(manifest)
     manifest.validation.checks[-1]["source_root_count"] = 68
 
+    manifest.validation.checks[-1].update(
+        {
+            "playback_evidence_count": 6,
+            "playback_clip_names": [
+                "target_character|Idle_6",
+                "target_character|Walking",
+                "target_character|019fe8ca-a6c4-7968-822f-92efebbab5a4",
+                "target_character|019fe8d7-ed16-7b82-a594-728d821ee711",
+                "target_character|Heavy_Hammer_Swing",
+                "target_character|Walk_Forward_with_Bow_Aimed",
+            ],
+            "assembly_evidence_schema": (
+                "vandrel_foundry_meshy_native_character_motion/1.5"
+            ),
+            "playback_evidence_profile": "repair_canary",
+            "top8_independent_skin_passed": True,
+            "top8_source_influence_gate_passes": True,
+            "consumer_blocking_reasons": [],
+            "godot_current_model_binding_passed": True,
+            "accepted_hand_visual_debt": False,
+            "visual_debt_status": "pending_consumer_review",
+            "visual_acceptance_basis": "pending_vandrel_lightweight_f12",
+            "consumer_visual_review_pending": True,
+            "h4_additional_hand_corruption": False,
+        }
+    )
+    assert approval_checks_pass(manifest)
+
+    manifest.validation.checks[-1]["accepted_hand_visual_debt"] = True
+    assert not approval_checks_pass(manifest)
+    manifest.validation.checks[-1]["accepted_hand_visual_debt"] = False
+
     manifest.validation.checks[-1]["processed_model_sha256"] = "3" * 64
     assert not approval_checks_pass(manifest)
 

@@ -104,9 +104,9 @@ class MeshyNativeCharacterMotionReport(StrictModel):
             if not isinstance(source_maximum, int):
                 raise ValueError("Repair report requires the source influence maximum")
             above_eight = source_maximum > 8
-            expected_blockers = ["pending_vandrel_lightweight_f12_validation"]
-            if above_eight:
-                expected_blockers.insert(0, "greater_than_eight_source_influences")
+            expected_blockers = (
+                ["greater_than_eight_source_influences"] if above_eight else []
+            )
             influence_gate = self.runtime_readiness.get(
                 "top8_source_influence_gate_passes"
             )
