@@ -304,9 +304,11 @@ affected-vertex count, and discarded source-weight total. Those immutable
 outputs do not claim exact native skin-weight preservation.
 
 Schema 1.5 is the bounded provider-skin/material repair profile. It is allowed
-to create a fresh attempt from a released-approved Meshy-native candidate, but
-never rewrites the prior release. Success invalidates candidate approval and
-returns the candidate to `processed`; prior release history remains immutable.
+to create a fresh attempt from a processed, review, or released-approved
+Meshy-native candidate, but never rewrites an earlier attempt or prior release.
+A review retry is ordinary reprocessing: success transactionally clears stale
+validation, scale, and approval bindings and returns the candidate to
+`processed`; prior report and release history remain immutable.
 The processor explicitly limits provider influences to eight using the same
 deterministic ordering. It exports all retained influences as
 `JOINTS_0`/`WEIGHTS_0` and `JOINTS_1`/`WEIGHTS_1`. It may claim no positive

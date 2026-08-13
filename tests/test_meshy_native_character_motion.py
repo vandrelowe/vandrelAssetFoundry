@@ -11,7 +11,7 @@ import vandrel_foundry.services.assemble_meshy_native_character_motion as servic
 import vandrel_foundry.services.validate_meshy_native_character_release as release_service
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
-from vandrel_foundry.domain.manifest import Artifact, Processor, utc_now
+from vandrel_foundry.domain.manifest import Artifact, Processor, ScaleCalibration, utc_now
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import transition_workflow
 from vandrel_foundry.services.add_meshy_native_character_package import (
@@ -1315,6 +1315,101 @@ def test_repair_profile_records_and_blocks_source_influences_above_eight(
         "greater_than_eight_source_influences",
         "pending_vandrel_lightweight_f12_validation",
     ]
+
+
+def test_repair_profile_retries_review_as_fresh_processed_attempt(
+    config, prompt, tmp_path
+):
+    repository, root, durations = _candidate(config, prompt, tmp_path)
+    _extend_candidate(config, repository, tmp_path, durations)
+    _add_motion_archive(
+        config,
+        tmp_path,
+        2,
+        [
+            "Heavy_Hammer_Swing",
+            "Pull_Radish",
+            "Walk_Forward_with_Bow_Aimed",
+            *[f"Second_Action_{index:02d}" for index in range(15)],
+            "Walking",
+        ],
+    )
+    _add_motion_archive(
+        config,
+        tmp_path,
+        3,
+        [*[f"Third_Action_{index:02d}" for index in range(18)], "Running"],
+    )
+    first = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="full61"),
+        playback_profile="representative_batch",
+    )
+    old_report_bytes = (root / first.report.path).read_bytes()
+    manifest = repository.load("native_motion_test_001")
+    transition_workflow(manifest, WorkflowState.REVIEW)
+    manifest.validation.result = "passed"
+    manifest.validation.checks = [
+        {
+            "name": "godot_sandbox_import",
+            "passed": True,
+            "processed_model_sha256": first.model.sha256,
+        }
+    ]
+    manifest.scale_calibration = ScaleCalibration(
+        status="approved",
+        processed_model_sha256=first.model.sha256,
+        preview_report_sha256="a" * 64,
+        source_bounds_min=[0.0, 0.0, 0.0],
+        source_bounds_max=[1.0, 1.0, 1.0],
+        source_dimensions=[1.0, 1.0, 1.0],
+        target_height_meters=1.8,
+        baseline_uniform_scale=1.8,
+        variation_min_multiplier=0.9,
+        variation_max_multiplier=1.1,
+        reference_standard="meter_grid_and_human_1_8m",
+        reviewer="test-reviewer",
+        approved_at=utc_now(),
+        notes="stale model-bound test calibration",
+    )
+    manifest.approval.approved = True
+    manifest.approval.approved_at = utc_now()
+    manifest.approval.approved_artifact_hashes = {
+        "processed_model": first.model.sha256
+    }
+    revision = manifest.revision
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=revision)
+
+    retry = service.assemble_meshy_native_character_motion(
+        config,
+        "native_motion_test_001",
+        _runner(durations, extension_mode="full61"),
+        playback_profile="repair_canary",
+        processing_profile="provider_top8_pbr_v1",
+    )
+
+    live = repository.load("native_motion_test_001")
+    assert live.workflow.state is WorkflowState.PROCESSED
+    assert int(retry.model.artifact_id.rsplit("_", 1)[-1]) == (
+        int(first.model.artifact_id.rsplit("_", 1)[-1]) + 1
+    )
+    assert int(retry.report.artifact_id.rsplit("_", 1)[-1]) == (
+        int(first.report.artifact_id.rsplit("_", 1)[-1]) + 1
+    )
+    assert retry.report.artifact_id != first.report.artifact_id
+    assert any(
+        artifact.artifact_id == first.report.artifact_id
+        for artifact in live.artifacts
+    )
+    assert (root / first.report.path).read_bytes() == old_report_bytes
+    assert live.validation.result == "not_run"
+    assert live.validation.checks == []
+    assert live.scale_calibration.status == "not_calibrated"
+    assert live.scale_calibration.processed_model_sha256 is None
+    assert live.approval.approved is False
+    assert live.approval.approved_artifact_hashes == {}
 
 
 @pytest.mark.parametrize(

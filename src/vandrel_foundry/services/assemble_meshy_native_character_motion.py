@@ -81,7 +81,7 @@ def assemble_meshy_native_character_motion(
     manifest = repository.load(asset_id)
     allowed_states = {WorkflowState.PROCESSED}
     if processing_profile == "provider_top8_pbr_v1":
-        allowed_states.add(WorkflowState.APPROVED)
+        allowed_states.update({WorkflowState.REVIEW, WorkflowState.APPROVED})
     if manifest.asset.lane != "humanoid" or manifest.workflow.state not in allowed_states:
         raise FoundryError("Meshy-native character motion assembly requires a processed humanoid.")
     if (
@@ -931,7 +931,7 @@ def assemble_meshy_native_character_motion(
         manifest.scale_calibration = ScaleCalibration()
         manifest.quality.observed = {}
         invalidate_approval(manifest)
-        if manifest.workflow.state is WorkflowState.APPROVED:
+        if manifest.workflow.state in {WorkflowState.REVIEW, WorkflowState.APPROVED}:
             transition_workflow(manifest, WorkflowState.PROCESSED)
         manifest.revision += 1
         manifest.asset.updated_at = utc_now()
