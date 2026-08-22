@@ -182,7 +182,10 @@ def _write_v2_animation_library(root: Path, case: str = "valid") -> None:
             "animation_library_technical_report",
             "evidence/animation/technical.json",
             "animation-technical-001",
-            b'{"passed":true,"report":"technical"}\n',
+            (
+                b'{"import_policy":"godot_skeleton_profile_humanoid_meshy_bone_map_'
+                b'rest_fixer_v1","passed":true,"report":"technical"}\n'
+            ),
         ),
         (
             "animation_library_godot_monitor_report",
@@ -232,6 +235,7 @@ def _write_v2_animation_library(root: Path, case: str = "valid") -> None:
 
     descriptor["animation_library"] = {
         "import_policy": "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+        "processor_version": "4",
         "selected_sources": [
             {
                 "semantic": "AngryStomp",
@@ -273,6 +277,13 @@ def _write_v2_animation_library(root: Path, case: str = "valid") -> None:
         ] = "different-technical-report"
     elif case == "custody_source_mismatch":
         license_evidence["source_artifact_id"] = "different-license-evidence"
+    elif case == "technical_policy_mismatch":
+        descriptor["animation_library"]["import_policy"] = (
+            "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
+        )
+        descriptor["animation_library"]["processor_version"] = "5"
+    elif case == "processor_policy_mismatch":
+        descriptor["animation_library"]["processor_version"] = "5"
     elif case != "valid":
         raise AssertionError(case)
 
@@ -396,6 +407,8 @@ def test_live_audit_accepts_exact_v2_animation_library_release(config) -> None:
         "primary_role_substitution",
         "technical_source_mismatch",
         "custody_source_mismatch",
+        "technical_policy_mismatch",
+        "processor_policy_mismatch",
     ],
 )
 def test_live_audit_rejects_v2_animation_library_binding_substitution(

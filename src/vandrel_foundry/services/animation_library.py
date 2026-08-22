@@ -22,7 +22,10 @@ from pydantic import ValidationError
 
 from vandrel_foundry.config import FoundryConfig
 from vandrel_foundry.domain.animation_library import (
+    ANIMATION_CARRIER_BAKE_IMPORT_POLICY,
     ANIMATION_IMPORT_POLICY,
+    CARRIER_BAKE_POLICY,
+    CARRIER_REMOVE_POLICY,
     AnimationLibraryIntakeRequest,
     AnimationVisualMatrixRequest,
 )
@@ -37,6 +40,7 @@ from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 ANIMATION_LIBRARY_LANE = "animation_library"
 PROCESSOR_NAME = "godot_selective_animation_library"
 PROCESSOR_VERSION = "4"
+PROCESSOR_CARRIER_BAKE_VERSION = "5"
 TECHNICAL_SCHEMA = "vandrel_foundry_animation_library_technical/1.0"
 HIPS_HORIZONTAL_POLICY = "hold_hips_xz_at_first_key_preserve_y_time_interpolation_v1"
 REST_LEAF_COMPLETION_POLICY = "restore_optimized_identity_hand_rotation_tracks_v1"
@@ -190,6 +194,7 @@ def intake_animation_library(
                 "source_sha256": motion.source_sha256,
                 "source_size_bytes": motion.source_size_bytes,
                 "loop_mode": motion.loop_mode,
+                "carrier_orientation_policy": motion.carrier_orientation_policy,
             }
             for index, motion in enumerate(request.motions, start=1)
         ],
@@ -294,7 +299,14 @@ def normalize_animation_library(
         (execution.isolation_report, isolation_relative),
         (execution.monitor_report, monitor_relative),
     )
-    processor = Processor(name=PROCESSOR_NAME, version=PROCESSOR_VERSION)
+    processor = Processor(
+        name=PROCESSOR_NAME,
+        version=(
+            PROCESSOR_CARRIER_BAKE_VERSION
+            if membership["import_policy"] == ANIMATION_CARRIER_BAKE_IMPORT_POLICY
+            else PROCESSOR_VERSION
+        ),
+    )
     source_ids = [item["source_artifact_id"] for item in membership["selected"]]
     library_artifact = _artifact_from_source(
         execution.animation_library,
@@ -379,7 +391,7 @@ def normalize_animation_library(
             "report_sha256": technical_artifact.sha256,
             "animation_library_sha256": library_artifact.sha256,
             "selected_semantics": [item["semantic"] for item in membership["selected"]],
-            "import_policy": ANIMATION_IMPORT_POLICY,
+            "import_policy": membership["import_policy"],
         },
     ]
     manifest.validation.result = "passed"
@@ -638,6 +650,9 @@ def _stage_animation_sandbox(asset_root: Path, sandbox: Path, membership: dict[s
                 "source_sha256": item["source_sha256"],
                 "source_size_bytes": item["source_size_bytes"],
                 "loop_mode": item["loop_mode"],
+                "carrier_orientation_policy": item.get(
+                    "carrier_orientation_policy", CARRIER_REMOVE_POLICY
+                ),
             }
         )
     _write_new(sandbox / "animation-library-runtime.json", json_bytes(runtime_request))
@@ -659,7 +674,7 @@ def _validate_technical_report(
         raise FoundryError("Animation technical report schema is invalid.")
     if (
         report.get("passed") is not True
-        or report.get("import_policy") != ANIMATION_IMPORT_POLICY
+        or report.get("import_policy") != membership.get("import_policy")
         or report.get("horizontal_root_policy") != HIPS_HORIZONTAL_POLICY
         or report.get("animation_library_sha256") != library_sha
         or report.get("animation_library_size_bytes") != library_size
@@ -672,7 +687,7 @@ def _validate_technical_report(
         if isinstance(item, dict)
     ] != expected:
         raise FoundryError("Animation technical report membership differs from intake.")
-    for item in motions:
+    for item, selected_item in zip(motions, selected, strict=True):
         carrier_tracks = item.get("known_carrier_tracks")
         recognized_carriers = item.get("known_carrier_track_recognized_count")
         removed_carriers = item.get("known_carrier_track_removed_count")
@@ -712,6 +727,32 @@ def _validate_technical_report(
             or item.get("output_library_sha256") != library_sha
         ):
             raise FoundryError(f"Animation technical track contract failed: {item.get('semantic')}")
+        carrier_policy = selected_item.get("carrier_orientation_policy", CARRIER_REMOVE_POLICY)
+        if carrier_policy == CARRIER_BAKE_POLICY:
+            if (
+                membership.get("import_policy") != ANIMATION_CARRIER_BAKE_IMPORT_POLICY
+                or recognized_carriers != 1
+                or removed_carriers != 1
+                or carrier_tracks[0].get("key_count") != 1
+                or item.get("carrier_orientation_policy") != CARRIER_BAKE_POLICY
+                or not _valid_carrier_orientation_bake(
+                    item.get("carrier_orientation_bake"),
+                    carrier_tracks[0],
+                    item.get("hips_horizontal_pre_transform"),
+                    item.get("hips_preservation_pre_transform"),
+                )
+            ):
+                raise FoundryError(
+                    f"Animation carrier-bake contract failed: {item.get('semantic')}"
+                )
+        elif (
+            carrier_policy != CARRIER_REMOVE_POLICY
+            or membership.get("import_policy") != ANIMATION_IMPORT_POLICY
+            or "carrier_orientation_bake" in item
+        ):
+            raise FoundryError(
+                f"Animation ordinary carrier policy changed: {item.get('semantic')}"
+            )
 
 
 def valid_rest_leaf_completion_facts(item: dict[str, object]) -> bool:
@@ -803,6 +844,318 @@ def valid_rest_leaf_completion_facts(item: dict[str, object]) -> bool:
         observed_bones.add(bone)
         observed_indices.add(track_index)
     return True
+
+
+def _valid_carrier_orientation_bake(
+    value: object,
+    known_carrier_track: object,
+    horizontal_pre_transform: object,
+    preservation_pre_transform: object,
+) -> bool:
+    required = {
+        "policy",
+        "applied",
+        "passed",
+        "rotation_composition_order",
+        "position_transform",
+        "carrier_position_track_count",
+        "carrier_scale_track_count",
+        "carrier_other_track_count",
+        "carrier",
+        "hips_rotation_pre",
+        "hips_rotation_post",
+        "hips_root_pre",
+        "hips_root_post",
+        "carrier_removed",
+        "rotation_key_structure_preserved",
+        "root_key_structure_preserved",
+        "root_values_transformed",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != required
+        or value.get("policy") != CARRIER_BAKE_POLICY
+        or value.get("applied") is not True
+        or value.get("passed") is not True
+        or value.get("rotation_composition_order") != "carrier_times_hips"
+        or value.get("position_transform") != "carrier_rotate_hips_position"
+        or value.get("carrier_position_track_count") != 0
+        or value.get("carrier_scale_track_count") != 0
+        or value.get("carrier_other_track_count") != 0
+        or value.get("carrier_removed") is not True
+        or value.get("rotation_key_structure_preserved") is not True
+        or value.get("root_key_structure_preserved") is not True
+        or value.get("root_values_transformed") is not True
+    ):
+        return False
+    carrier = value.get("carrier")
+    rotation_pre = value.get("hips_rotation_pre")
+    rotation_post = value.get("hips_rotation_post")
+    root_pre = value.get("hips_root_pre")
+    root_post = value.get("hips_root_post")
+    if not _valid_carrier_fact(carrier) or not _valid_rotation_track_fact(
+        rotation_pre
+    ) or not _valid_rotation_track_fact(rotation_post):
+        return False
+    if not _valid_position_track_fact(root_pre) or not _valid_position_track_fact(
+        root_post
+    ):
+        return False
+    assert isinstance(carrier, dict)
+    assert isinstance(rotation_pre, dict) and isinstance(rotation_post, dict)
+    assert isinstance(root_pre, dict) and isinstance(root_post, dict)
+    if (
+        not isinstance(known_carrier_track, dict)
+        or {
+            key: known_carrier_track.get(key)
+            for key in ("track_index", "path", "type", "key_count")
+        }
+        != {
+            key: carrier.get(key)
+            for key in ("track_index", "path", "type", "key_count")
+        }
+        or len(
+            {
+                carrier["track_index"],
+                rotation_pre["track_index"],
+                root_pre["track_index"],
+            }
+        )
+        != 3
+    ):
+        return False
+    if {
+        key: rotation_pre[key]
+        for key in rotation_pre
+        if key != "keys"
+    } != {
+        key: rotation_post[key]
+        for key in rotation_post
+        if key != "keys"
+    } or len(rotation_pre["keys"]) != len(rotation_post["keys"]):
+        return False
+    carrier_quaternion = carrier["quaternion"]
+    for before, after in zip(rotation_pre["keys"], rotation_post["keys"], strict=True):
+        if before["time"] != after["time"] or before["transition"] != after["transition"]:
+            return False
+        expected = _normalized_quaternion_product(carrier_quaternion, before["quaternion"])
+        observed = after["quaternion"]
+        if expected is None or any(
+            not math.isclose(expected[index], float(observed[name]), rel_tol=1e-6, abs_tol=1e-6)
+            for index, name in enumerate(("x", "y", "z", "w"))
+        ):
+            return False
+    if {
+        key: root_pre[key] for key in root_pre if key != "keys"
+    } != {
+        key: root_post[key] for key in root_post if key != "keys"
+    } or len(root_pre["keys"]) != len(root_post["keys"]):
+        return False
+    for before, after in zip(root_pre["keys"], root_post["keys"], strict=True):
+        if before["time"] != after["time"] or before["transition"] != after["transition"]:
+            return False
+        expected_position = _quaternion_rotate_vector(
+            carrier_quaternion,
+            tuple(float(before[name]) for name in ("x", "y", "z")),
+        )
+        if any(
+            not math.isclose(
+                expected_position[index],
+                float(after[name]),
+                rel_tol=1e-6,
+                abs_tol=1e-6,
+            )
+            for index, name in enumerate(("x", "y", "z"))
+        ):
+            return False
+    return _bake_root_handoff_matches(
+        root_post,
+        horizontal_pre_transform,
+        preservation_pre_transform,
+    )
+
+
+def _bake_root_handoff_matches(
+    root_post: dict,
+    horizontal_pre_transform: object,
+    preservation_pre_transform: object,
+) -> bool:
+    keys = root_post["keys"]
+    first = keys[0]
+    xs = [float(key["x"]) for key in keys]
+    zs = [float(key["z"]) for key in keys]
+    expected_horizontal = {
+        "span_x": max(xs) - min(xs),
+        "span_z": max(zs) - min(zs),
+        "max_delta_from_first": max(
+            math.hypot(float(key["x"]) - float(first["x"]), float(key["z"]) - float(first["z"]))
+            for key in keys
+        ),
+        "initial_offset_x": float(first["x"]),
+        "initial_offset_z": float(first["z"]),
+        "key_count": len(keys),
+        "finite": True,
+    }
+    if not isinstance(horizontal_pre_transform, dict) or set(
+        horizontal_pre_transform
+    ) != set(expected_horizontal):
+        return False
+    for name, expected in expected_horizontal.items():
+        observed = horizontal_pre_transform.get(name)
+        if isinstance(expected, float):
+            if not _finite_number(observed) or not math.isclose(
+                float(observed), expected, rel_tol=1e-6, abs_tol=1e-6
+            ):
+                return False
+        elif observed != expected:
+            return False
+    expected_preservation = {
+        "track_interpolation_type": root_post["interpolation_type"],
+        "track_interpolation_loop_wrap": root_post["interpolation_loop_wrap"],
+        "keys": [
+            {
+                "y": key["y"],
+                "time": key["time"],
+                "transition": key["transition"],
+            }
+            for key in keys
+        ],
+        "finite": True,
+    }
+    return preservation_pre_transform == expected_preservation
+
+
+def _valid_carrier_fact(value: object) -> bool:
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {
+            "track_index",
+            "path",
+            "type",
+            "key_count",
+            "key_time",
+            "interpolation_type",
+            "interpolation_loop_wrap",
+            "quaternion",
+        }
+        or type(value.get("track_index")) is not int
+        or value["track_index"] < 0
+        or value.get("path") != "Armature"
+        or value.get("type") != 2
+        or value.get("key_count") != 1
+        or not _finite_number(value.get("key_time"))
+        or type(value.get("interpolation_type")) is not int
+        or not isinstance(value.get("interpolation_loop_wrap"), bool)
+    ):
+        return False
+    return _valid_quaternion_fact(value.get("quaternion"))
+
+
+def _valid_rotation_track_fact(value: object) -> bool:
+    if not _valid_track_fact(value, "%GeneralSkeleton:Hips", 2):
+        return False
+    assert isinstance(value, dict)
+    return all(
+        isinstance(key, dict)
+        and set(key) == {"time", "transition", "quaternion"}
+        and _finite_number(key.get("time"))
+        and _finite_number(key.get("transition"))
+        and _valid_quaternion_fact(key.get("quaternion"))
+        for key in value["keys"]
+    )
+
+
+def _valid_position_track_fact(value: object) -> bool:
+    if not _valid_track_fact(value, "%GeneralSkeleton:Hips", 1):
+        return False
+    assert isinstance(value, dict)
+    return all(
+        isinstance(key, dict)
+        and set(key) == {"time", "transition", "x", "y", "z", "finite"}
+        and key.get("finite") is True
+        and all(_finite_number(key.get(name)) for name in ("time", "transition", "x", "y", "z"))
+        for key in value["keys"]
+    )
+
+
+def _valid_track_fact(value: object, path: str, track_type: int) -> bool:
+    return bool(
+        isinstance(value, dict)
+        and set(value)
+        == {
+            "track_index",
+            "path",
+            "type",
+            "key_count",
+            "interpolation_type",
+            "interpolation_loop_wrap",
+            "keys",
+        }
+        and type(value.get("track_index")) is int
+        and value["track_index"] >= 0
+        and value.get("path") == path
+        and value.get("type") == track_type
+        and type(value.get("key_count")) is int
+        and value["key_count"] >= 1
+        and type(value.get("interpolation_type")) is int
+        and isinstance(value.get("interpolation_loop_wrap"), bool)
+        and isinstance(value.get("keys"), list)
+        and len(value["keys"]) == value["key_count"]
+    )
+
+
+def _valid_quaternion_fact(value: object) -> bool:
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"x", "y", "z", "w", "length", "finite", "unit"}
+        or value.get("finite") is not True
+        or value.get("unit") is not True
+        or any(not _finite_number(value.get(name)) for name in ("x", "y", "z", "w", "length"))
+    ):
+        return False
+    length = math.sqrt(sum(float(value[name]) ** 2 for name in ("x", "y", "z", "w")))
+    return math.isclose(length, 1.0, rel_tol=1e-5, abs_tol=1e-5) and math.isclose(
+        float(value["length"]), length, rel_tol=1e-6, abs_tol=1e-6
+    )
+
+
+def _normalized_quaternion_product(left: dict, right: dict) -> tuple[float, ...] | None:
+    lx, ly, lz, lw = (float(left[name]) for name in ("x", "y", "z", "w"))
+    rx, ry, rz, rw = (float(right[name]) for name in ("x", "y", "z", "w"))
+    values = (
+        lw * rx + lx * rw + ly * rz - lz * ry,
+        lw * ry - lx * rz + ly * rw + lz * rx,
+        lw * rz + lx * ry - ly * rx + lz * rw,
+        lw * rw - lx * rx - ly * ry - lz * rz,
+    )
+    length = math.sqrt(sum(item * item for item in values))
+    if not math.isfinite(length) or length <= 0.0:
+        return None
+    return tuple(item / length for item in values)
+
+
+def _quaternion_rotate_vector(
+    quaternion: dict, vector: tuple[float, float, float]
+) -> tuple[float, float, float]:
+    x, y, z, w = (float(quaternion[name]) for name in ("x", "y", "z", "w"))
+    vx, vy, vz = vector
+    tx = 2.0 * (y * vz - z * vy)
+    ty = 2.0 * (z * vx - x * vz)
+    tz = 2.0 * (x * vy - y * vx)
+    return (
+        vx + w * tx + (y * tz - z * ty),
+        vy + w * ty + (z * tx - x * tz),
+        vz + w * tz + (x * ty - y * tx),
+    )
+
+
+def _finite_number(value: object) -> bool:
+    return bool(
+        not isinstance(value, bool)
+        and isinstance(value, (int, float))
+        and math.isfinite(float(value))
+    )
 
 
 def _valid_horizontal_transform_facts(item: dict[str, object]) -> bool:

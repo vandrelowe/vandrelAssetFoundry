@@ -49,6 +49,13 @@ HUMANOID_COMPATIBILITY_CHECK = "humanoid_retarget_compatibility"
 MESHY_NATIVE_ASSEMBLY_PROCESSOR = "blender_meshy_native_character_motion_assembly"
 MESHY_NATIVE_RELEASE_CHECK = "meshy_native_character_release_playback"
 ANIMATION_LIBRARY_LANE = "animation_library"
+ANIMATION_LIBRARY_PROCESSOR = "godot_selective_animation_library"
+ANIMATION_LIBRARY_IMPORT_POLICY_V1 = (
+    "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
+)
+ANIMATION_LIBRARY_IMPORT_POLICY_V2 = (
+    "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
+)
 UNSAFE_RELEASE_COMPONENT = re.compile(r"[^a-zA-Z0-9._-]+")
 PORTABLE_TECHNICAL_FIELDS = {
     "triangle_count",
@@ -532,13 +539,37 @@ def _animation_library_release_evidence(
         or membership.get("schema_version")
         != "vandrel_foundry_animation_library_membership/1.0"
         or membership.get("import_policy")
-        != "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
+        not in {
+            "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+            "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2",
+        }
     ):
         raise FoundryError("Animation-library release membership is unavailable.")
     selected = membership.get("selected")
     exclusions = membership.get("explicit_exclusions")
     if not isinstance(selected, list) or not isinstance(exclusions, list):
         raise FoundryError("Animation-library release membership is malformed.")
+    import_policy = membership["import_policy"]
+    expected_processor_version = (
+        "5" if import_policy == ANIMATION_LIBRARY_IMPORT_POLICY_V2 else "4"
+    )
+    try:
+        technical_value = json.loads(
+            contained_path(asset_root, technical.path).read_text(encoding="utf-8")
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise FoundryError(f"Animation technical report is unreadable: {exc}") from exc
+    if (
+        technical_check.get("import_policy") != import_policy
+        or not isinstance(technical_value, dict)
+        or technical_value.get("import_policy") != import_policy
+        or library.processor is None
+        or library.processor.name != ANIMATION_LIBRARY_PROCESSOR
+        or library.processor.version != expected_processor_version
+    ):
+        raise FoundryError(
+            "Animation-library import policy, technical report, and processor differ."
+        )
     files = [
         {
             "role": "animation_library",
@@ -613,7 +644,8 @@ def _animation_library_release_evidence(
             }
         )
     packaged = {
-        "import_policy": membership["import_policy"],
+        "import_policy": import_policy,
+        "processor_version": expected_processor_version,
         "selected_sources": [
             {
                 "semantic": item["semantic"],

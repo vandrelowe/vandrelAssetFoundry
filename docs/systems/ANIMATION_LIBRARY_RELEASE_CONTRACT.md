@@ -30,8 +30,15 @@ intake request are source authority.
 - a typed, canonical-SHA-256-bound package policy containing the exact ordered
   selected and excluded hashes, forbidden aggregate payload hashes, and
   superseded route identities; and
-- import policy
-  `godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1`.
+- one explicit import policy. Ordinary packages use
+  `godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1` and every
+  selected motion uses
+  `remove_single_armature_rotation_carrier_v1`. A package that must preserve
+  an exact one-key parent orientation instead uses
+  `godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2`
+  and every selected motion explicitly uses
+  `bake_single_armature_rotation_into_hips_skeleton_space_v1`. The two policy
+  pairs cannot be mixed.
 
 The command performs no provider call. It rejects missing or non-FBX inputs,
 non-exact bytes, duplicate semantics, duplicate source bytes, selected/excluded
@@ -52,9 +59,11 @@ process job:
 2. import configuration with `SkeletonProfileHumanoid`, the accepted 22-bone
    Meshy `BoneMap`, bone renaming, and Rest Fixer settings;
 3. retargeted animation-library import; Godot 4.7.2 may retain one non-bone
-   rotation carrier at the exact path `Armature`, so the finalizer removes
-   that exact known carrier only when it occurs once and records the recognized
-   and removed track in technical evidence; and
+   rotation carrier at the exact path `Armature`. Ordinary processor version
+   4 removes that exact known carrier only when it occurs once and records the
+   recognized and removed track in technical evidence. Explicit carrier-bake
+   processor version 5 instead requires exactly one such track with exactly
+   one finite unit-quaternion key and bakes it as described below; and
 4. finalization plus technical probe; and
 5. isolated validation after removing source FBXs and the prior import cache.
 
@@ -100,6 +109,33 @@ and finite status. It also contains literal pre/post key Y/time/transition and
 track interpolation/loop-wrap facts. Python validation requires exact pre/post
 preservation, unchanged initial offsets and key count, finite facts, and each
 post-transform span/delta at or below `0.0001`.
+
+Processor version 5 is a distinct, request-gated exception for an exact source
+whose one-key `Armature` rotation carries required pose orientation. Before
+removing that non-bone carrier, it replaces each existing Hips rotation key
+`q_hips` in place with the normalized skeleton-space composition
+`q_carrier * q_hips` and rotates every existing Hips position `p_hips` to
+`q_carrier * p_hips`. The bake is permitted only when the same carrier path has
+no position, scale, or other track; it neither inserts, deletes, nor resamples
+Hips rotation or position keys. The unchanged horizontal-root transform then
+runs after this parent-to-Hips transform, preserving each transformed Y while
+holding transformed X/Z at the transformed first key.
+The report records the carrier path, type, track index, sole key time,
+interpolation type, loop-wrap setting, quaternion components, finite/unit
+facts, and complete Hips rotation and position pre/post facts. It separately
+proves rotation and root key structure, time, transition, track interpolation,
+loop-wrap, the absence of carrier position/scale/other tracks, quaternion
+normalization, the stated carrier-times-Hips rotation and carrier-rotated Hips
+position for every key, and carrier removal. Python recomputes both transforms
+and fails closed on any difference.
+
+This exception does not relax the final track contract: each motion still has
+one Hips position track, 22 mapped rotation tracks, no scale or non-Hips
+position tracks, no other tracks, finite keys, exact source/output custody,
+and the same three-body visual and approval gates. Version 4 behavior is
+unchanged. Raw source-space diagnostic renders may justify selecting version
+5, but are diagnostic evidence only and are not release payloads or visual
+acceptance.
 
 ## Three-body fixed-phase visual evidence
 
@@ -203,6 +239,13 @@ The normal `foundry release` command then emits descriptor v2 with
 the technical, isolated-validation, complete monitored-Godot, and visual-matrix
 reports, every referenced visual image at a portable release path, custody
 evidence, exact selected source membership, exclusions, and output SHA-256.
+Planning requires exact equality among the membership import policy, the
+hash-bound technical validation check, and the packaged technical report. The
+processed library must identify `godot_selective_animation_library` version 4
+for the ordinary policy or version 5 for the carrier-bake policy; the release
+descriptor records that exact version. Post-publication audit rehashes and
+parses the packaged technical report and rejects any descriptor policy,
+processor-version, or report-policy mismatch.
 Publication remains an explicit `--apply` action and does not imply Vandrel
 import or registration.
 

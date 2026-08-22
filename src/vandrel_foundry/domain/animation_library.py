@@ -13,6 +13,11 @@ FIXED_PHASES = (0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875)
 ANIMATION_IMPORT_POLICY = (
     "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
 )
+ANIMATION_CARRIER_BAKE_IMPORT_POLICY = (
+    "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
+)
+CARRIER_REMOVE_POLICY = "remove_single_armature_rotation_carrier_v1"
+CARRIER_BAKE_POLICY = "bake_single_armature_rotation_into_hips_skeleton_space_v1"
 
 
 class ContractModel(BaseModel):
@@ -25,6 +30,10 @@ class AnimationSourceRequest(ContractModel):
     source_sha256: Sha256
     source_size_bytes: int = Field(gt=0)
     loop_mode: Literal["none", "linear"] = "none"
+    carrier_orientation_policy: Literal[
+        "remove_single_armature_rotation_carrier_v1",
+        "bake_single_armature_rotation_into_hips_skeleton_space_v1",
+    ] = CARRIER_REMOVE_POLICY
 
 
 class ExcludedAnimationSource(ContractModel):
@@ -64,7 +73,8 @@ class AnimationLibraryIntakeRequest(ContractModel):
     motions: list[AnimationSourceRequest] = Field(min_length=1, max_length=64)
     explicit_exclusions: list[ExcludedAnimationSource] = Field(default_factory=list)
     import_policy: Literal[
-        "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
+        "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+        "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2",
     ]
     package_policy: AnimationPackagePolicy
     package_policy_sha256: Sha256
@@ -91,6 +101,15 @@ class AnimationLibraryIntakeRequest(ContractModel):
             raise ValueError("Selected sources differ from exact package policy order.")
         if excluded_hashes != self.package_policy.exact_excluded_source_sha256s:
             raise ValueError("Excluded sources differ from exact package policy order.")
+        policies = {item.carrier_orientation_policy for item in self.motions}
+        if self.import_policy == ANIMATION_IMPORT_POLICY and policies != {
+            CARRIER_REMOVE_POLICY
+        }:
+            raise ValueError("Ordinary animation imports cannot request carrier baking.")
+        if self.import_policy == ANIMATION_CARRIER_BAKE_IMPORT_POLICY and policies != {
+            CARRIER_BAKE_POLICY
+        }:
+            raise ValueError("Carrier-bake imports require explicit bake policy on every motion.")
         return self
 
 

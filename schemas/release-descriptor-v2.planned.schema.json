@@ -179,8 +179,19 @@
       "additionalProperties": false,
       "properties": {
         "import_policy": {
-          "const": "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+          "enum": [
+            "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+            "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
+          ],
           "title": "Import Policy",
+          "type": "string"
+        },
+        "processor_version": {
+          "enum": [
+            "4",
+            "5"
+          ],
+          "title": "Processor Version",
           "type": "string"
         },
         "selected_sources": {
@@ -188,7 +199,7 @@
             "$ref": "#/$defs/ReleaseAnimationSourceV2"
           },
           "maxItems": 64,
-          "minItems": 2,
+          "minItems": 1,
           "title": "Selected Sources",
           "type": "array"
         },
@@ -220,6 +231,7 @@
       },
       "required": [
         "import_policy",
+        "processor_version",
         "selected_sources",
         "output_sha256",
         "technical_report",

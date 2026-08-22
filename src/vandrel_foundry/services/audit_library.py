@@ -232,7 +232,9 @@ def _audit_release(
                 "v2 descriptor has evaluated documented custody",
             )
         )
-        evidence_roles_ok = _v2_evidence_roles_reconcile(descriptor)
+        evidence_roles_ok = _v2_evidence_roles_reconcile(
+            descriptor, descriptor_path.parent
+        )
         checks.append(
             LibraryAuditCheck(
                 f"{subject}:evidence_roles",
@@ -270,7 +272,9 @@ def _audit_file(release_root: Path, subject: str, entry: Any) -> LibraryAuditChe
     )
 
 
-def _v2_evidence_roles_reconcile(descriptor: dict[str, Any]) -> bool:
+def _v2_evidence_roles_reconcile(
+    descriptor: dict[str, Any], release_root: Path
+) -> bool:
     files = descriptor.get("files")
     if not isinstance(files, list) or not all(isinstance(item, dict) for item in files):
         return False
@@ -317,6 +321,51 @@ def _v2_evidence_roles_reconcile(descriptor: dict[str, Any]) -> bool:
                 not in file_bindings
             ):
                 return False
+        import_policy = animation_library.get("import_policy")
+        expected_processor_version = (
+            "5"
+            if import_policy
+            == "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
+            else "4"
+        )
+        technical_binding = animation_library.get("technical_report")
+        technical_file = next(
+            (
+                item
+                for item in files
+                if item.get("role") == "animation_library_technical_report"
+                and isinstance(technical_binding, dict)
+                and item.get("path") == technical_binding.get("release_path")
+            ),
+            None,
+        )
+        if (
+            import_policy
+            not in {
+                "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+                "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2",
+            }
+            or animation_library.get("processor_version")
+            != expected_processor_version
+            or not isinstance(technical_file, dict)
+        ):
+            return False
+        try:
+            technical_path = contained_path(
+                release_root,
+                RelativeManifestPath.validate(technical_file.get("path")),
+            )
+            technical_bytes = technical_path.read_bytes()
+            technical_value = json.loads(technical_bytes)
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            return False
+        if (
+            _sha256(technical_bytes) != technical_file.get("sha256")
+            or len(technical_bytes) != technical_file.get("size_bytes")
+            or not isinstance(technical_value, dict)
+            or technical_value.get("import_policy") != import_policy
+        ):
+            return False
     elif (
         primary_payload != "model"
         or len(model_files) != 1

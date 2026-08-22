@@ -224,8 +224,10 @@ class ReleaseAnimationSourceV2(ReleaseModel):
 
 class ReleaseAnimationLibraryV2(ReleaseModel):
     import_policy: Literal[
-        "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
+        "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+        "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2",
     ]
+    processor_version: Literal["4", "5"]
     selected_sources: list[ReleaseAnimationSourceV2] = Field(min_length=1, max_length=64)
     excluded_source_sha256s: list[Sha256] = Field(default_factory=list)
     output_sha256: Sha256
@@ -242,6 +244,14 @@ class ReleaseAnimationLibraryV2(ReleaseModel):
             raise ValueError("Release animation-library membership must be unique.")
         if set(source_hashes) & set(self.excluded_source_sha256s):
             raise ValueError("Selected and excluded animation sources overlap.")
+        expected_version = (
+            "5"
+            if self.import_policy
+            == "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
+            else "4"
+        )
+        if self.processor_version != expected_version:
+            raise ValueError("Animation-library processor version differs from import policy.")
         return self
 
 

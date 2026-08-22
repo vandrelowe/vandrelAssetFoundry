@@ -3,6 +3,10 @@ extends SceneTree
 
 const REQUEST_PATH := "res://animation-library-runtime.json"
 const BONE_MAP_PATH := "res://animation_library_bone_map.tres"
+const ORDINARY_IMPORT_POLICY := "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
+const CARRIER_BAKE_IMPORT_POLICY := "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
+const CARRIER_REMOVE_POLICY := "remove_single_armature_rotation_carrier_v1"
+const CARRIER_BAKE_POLICY := "bake_single_armature_rotation_into_hips_skeleton_space_v1"
 
 
 func _init() -> void:
@@ -11,7 +15,18 @@ func _init() -> void:
 	if request.is_empty() or bone_map == null:
 		_fail("runtime request or accepted BoneMap is unavailable")
 		return
+	var import_policy := str(request.get("import_policy", ""))
+	if import_policy not in [ORDINARY_IMPORT_POLICY, CARRIER_BAKE_IMPORT_POLICY]:
+		_fail("runtime import policy is unsupported")
+		return
 	for motion in request.get("motions", []):
+		var carrier_policy := str(motion.get("carrier_orientation_policy", CARRIER_REMOVE_POLICY))
+		if (
+			(import_policy == ORDINARY_IMPORT_POLICY and carrier_policy != CARRIER_REMOVE_POLICY)
+			or (import_policy == CARRIER_BAKE_IMPORT_POLICY and carrier_policy != CARRIER_BAKE_POLICY)
+		):
+			_fail("carrier policy does not match the exact import route")
+			return
 		var source_path := str(motion.get("source_path", ""))
 		var skeleton_key := _discover_skeleton_key(source_path)
 		if skeleton_key.is_empty():
