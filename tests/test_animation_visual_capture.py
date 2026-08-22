@@ -17,6 +17,8 @@ from vandrel_foundry.domain.animation_library import FIXED_PHASES
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.services.capture_animation_visual_matrix import (
     CAMERA_CONFIG_SHA256,
+    ENTRY_SENTINEL_BYTES,
+    ENTRY_SENTINEL_SHA256,
     AnimationVisualCaptureExecution,
     capture_animation_visual_matrix,
 )
@@ -178,6 +180,7 @@ def _fake_runner(
 ):
     def run(config, sandbox: Path, runtime_sha: str, script_sha: str):
         runtime = json.loads((sandbox / "animation-visual-runtime.json").read_text())
+        (sandbox / "output" / "capture-entry.json").write_bytes(ENTRY_SENTINEL_BYTES)
         evidence_root = sandbox / "output" / "cells"
         evidence_root.mkdir()
         cells = []
@@ -214,6 +217,7 @@ def _fake_runner(
                 )
         report = {
             "schema_version": "vandrel_foundry_animation_visual_capture_result/1.0",
+            "entry_sentinel_sha256": ENTRY_SENTINEL_SHA256,
             "animation_library_sha256": runtime["animation_library_sha256"],
             "technical_report_sha256": runtime["technical_report_sha256"],
             "selected_semantics": runtime["selected_semantics"],
@@ -400,6 +404,8 @@ def test_capture_stages_exact_unchanged_body_sidecars_and_bone_maps(
     def inspect_staging(config, sandbox: Path, runtime_sha: str, script_sha: str):
         runtime = json.loads((sandbox / "animation-visual-runtime.json").read_text())
         assert _sha((sandbox / "animation-visual-runtime.json").read_bytes()) == runtime_sha
+        project = (sandbox / "project.godot").read_text(encoding="utf-8")
+        assert "run/main_scene" not in project
         for requested, staged in zip(request["bodies"], runtime["bodies"], strict=True):
             assert staged["path"] == requested["resource_path"]
             assert staged["staging_policy"] == (
@@ -657,6 +663,13 @@ def test_godot_capture_script_binds_python_camera_hash() -> None:
         / "capture_animation_visual_matrix.gd"
     ).read_text(encoding="utf-8")
     assert f'EXPECTED_CAMERA_CONFIG_SHA256 := "{CAMERA_CONFIG_SHA256}"' in script
+    assert "func _init()" not in script
+    assert "func _initialize() -> void:" in script
+    assert f'EXPECTED_ENTRY_SENTINEL_SHA256 := "{ENTRY_SENTINEL_SHA256}"' in script
+    assert 'const ENTRY_SENTINEL_PATH := "res://output/capture-entry.json"' in script
+    sentinel_write = script.index("entry_file.store_string(ENTRY_SENTINEL_TEXT)")
+    deferred_run = script.index('call_deferred("_run")')
+    assert sentinel_write < deferred_run
     sanitize = script.index("_sanitize_imported_body(body_root)")
     add_to_world = script.index("world.add_child(body_root)")
     assert sanitize < add_to_world
@@ -677,6 +690,48 @@ def test_godot_capture_script_binds_python_camera_hash() -> None:
         '"staged_bone_map_sha256": str(body.staged_bone_map_sha256)',
     ):
         assert exact_body_binding in script
+
+
+def test_capture_rejects_exit_zero_without_scenetree_entry_sentinel(
+    config, tmp_path
+) -> None:
+    request = _inputs(config, tmp_path)
+
+    def zero_without_entry(*args):
+        execution = _fake_runner()(*args)
+        (args[1] / "output" / "capture-entry.json").unlink()
+        return execution
+
+    with pytest.raises(FoundryError, match="without entering the SceneTree script"):
+        capture_animation_visual_matrix(
+            config,
+            request,
+            tmp_path / "visual-capture",
+            runner=zero_without_entry,
+        )
+
+
+def test_visual_capture_supervisor_constructs_exact_engine_argv() -> None:
+    supervisor = (
+        Path(__file__).parents[1]
+        / "src"
+        / "vandrel_foundry"
+        / "godot"
+        / "Invoke-FoundryAnimationVisualCaptureMonitored.ps1"
+    ).read_text(encoding="utf-8")
+    assert "$resolvedSandbox = (Resolve-Path -LiteralPath $SandboxPath).Path" in supervisor
+    assert "-WorkingDirectory $resolvedSandbox" in supervisor
+    assert (
+        "$arguments = @('--headless', '--path', $resolvedSandbox) + "
+        "@($phase.arguments) + @('--log-file', $godotLog)"
+    ) in supervisor
+    assert (
+        "arguments = @('--script', "
+        "'res://capture_animation_visual_matrix.gd')"
+    ) in supervisor
+    capture_spec = supervisor.split("name = 'capture'", 1)[1].split(")\n", 1)[0]
+    assert "--quit-after" not in capture_spec
+    assert "'--'" not in supervisor
 
 
 def test_supervisor_preflight_failure_writes_structured_monitor(tmp_path) -> None:

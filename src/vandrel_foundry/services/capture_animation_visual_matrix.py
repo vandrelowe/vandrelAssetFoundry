@@ -27,6 +27,8 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.storage.atomic import json_bytes
 
 CAPTURE_REPORT_SCHEMA = "vandrel_foundry_animation_visual_capture_result/1.0"
+ENTRY_SENTINEL_BYTES = b'{"entrypoint":"_initialize","schema_version":"vandrel_foundry_animation_visual_capture_entry/1.0"}\n'
+ENTRY_SENTINEL_SHA256 = hashlib.sha256(ENTRY_SENTINEL_BYTES).hexdigest()
 MONITOR_SCHEMA = "vandrel_foundry_animation_visual_capture_monitor/1.0"
 MONITOR_POLICY = "vandrel_monitored_godot_animation_visual_capture_corridor_2026-08-21"
 CAMERA_CONFIG = {
@@ -150,6 +152,7 @@ def capture_animation_visual_matrix(
             runner = run_monitored_animation_visual_capture
         capture_script_sha = _hash_file(sandbox / "capture_animation_visual_matrix.gd")[0]
         execution = runner(config, sandbox, runtime_sha, capture_script_sha)
+        _require_entry_sentinel(sandbox)
         capture_report_path = _require_sandbox_output(
             execution.capture_report, sandbox, "capture report"
         )
@@ -468,6 +471,7 @@ def _validate_capture_report(
     if (
         not isinstance(report, dict)
         or report.get("schema_version") != CAPTURE_REPORT_SCHEMA
+        or report.get("entry_sentinel_sha256") != ENTRY_SENTINEL_SHA256
         or report.get("animation_library_sha256") != request.animation_library.sha256
         or report.get("technical_report_sha256") != request.technical_report.sha256
         or report.get("selected_semantics") != semantics
@@ -703,6 +707,23 @@ def _require_sandbox_output(path: Path, sandbox: Path, label: str) -> Path:
     path = path.resolve()
     if not path.is_file() or path.parent != (sandbox / "output").resolve():
         raise FoundryError(f"Visual capture {label} is missing or outside its sandbox.")
+    return path
+
+
+def _require_entry_sentinel(sandbox: Path) -> Path:
+    path = (sandbox / "output" / "capture-entry.json").resolve()
+    expected_parent = (sandbox / "output").resolve()
+    try:
+        value = path.read_bytes()
+    except OSError as exc:
+        raise FoundryError(
+            "Visual capture engine exited without entering the SceneTree script."
+        ) from exc
+    if path.parent != expected_parent or value != ENTRY_SENTINEL_BYTES:
+        raise FoundryError("Visual capture entry sentinel is stale or invalid.")
+    digest, size = _hash_file(path)
+    if digest != ENTRY_SENTINEL_SHA256 or size != len(ENTRY_SENTINEL_BYTES):
+        raise FoundryError("Visual capture entry sentinel hash binding differs.")
     return path
 
 

@@ -3,6 +3,9 @@ extends SceneTree
 
 const RUNTIME_PATH := "res://animation-visual-runtime.json"
 const REPORT_PATH := "res://output/capture-report.json"
+const ENTRY_SENTINEL_PATH := "res://output/capture-entry.json"
+const ENTRY_SENTINEL_TEXT := "{\"entrypoint\":\"_initialize\",\"schema_version\":\"vandrel_foundry_animation_visual_capture_entry/1.0\"}\n"
+const EXPECTED_ENTRY_SENTINEL_SHA256 := "f4d20ffc136a08c1651dbbe28c5fa2e672238ac633ee231575e6641bd2ba4bb3"
 const EXPECTED_CAMERA_CONFIG_SHA256 := "6852a2bfd195cf5f1f885d166ec92977958668cb6a58ed868c91708fa2923eaf"
 const EXPECTED_BONES := [
 	"Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
@@ -13,7 +16,24 @@ const EXPECTED_BONES := [
 ]
 
 
-func _init() -> void:
+func _initialize() -> void:
+	var entry_file := FileAccess.open(ENTRY_SENTINEL_PATH, FileAccess.WRITE)
+	if entry_file == null:
+		push_error("could not create visual capture entry sentinel")
+		quit(2)
+		return
+	entry_file.store_string(ENTRY_SENTINEL_TEXT)
+	entry_file.flush()
+	var entry_error := entry_file.get_error()
+	entry_file.close()
+	if (
+		entry_error != OK
+		or FileAccess.get_sha256(ENTRY_SENTINEL_PATH)
+		!= EXPECTED_ENTRY_SENTINEL_SHA256
+	):
+		push_error("visual capture entry sentinel write failed")
+		quit(2)
+		return
 	call_deferred("_run")
 
 
@@ -233,6 +253,7 @@ func _run() -> void:
 			await process_frame
 	var report := {
 		"schema_version": "vandrel_foundry_animation_visual_capture_result/1.0",
+		"entry_sentinel_sha256": FileAccess.get_sha256(ENTRY_SENTINEL_PATH),
 		"animation_library_sha256": str(runtime.animation_library_sha256),
 		"technical_report_sha256": str(runtime.technical_report_sha256),
 		"selected_semantics": semantics,

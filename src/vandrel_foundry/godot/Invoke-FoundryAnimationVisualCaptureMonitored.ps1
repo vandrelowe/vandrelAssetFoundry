@@ -74,10 +74,10 @@ $preflights = [ordered]@{
     initial_process_zero = $false
 }
 $phaseSpecs = @(
-    [ordered]@{ name = 'import'; arguments = @('--headless', '--import', '--quit-after', '600') },
+    [ordered]@{ name = 'import'; arguments = @('--import', '--quit-after', '600') },
     [ordered]@{
         name = 'capture'
-        arguments = @('--headless', '--script', 'res://capture_animation_visual_matrix.gd', '--quit-after', '600')
+        arguments = @('--script', 'res://capture_animation_visual_matrix.gd')
     }
 )
 $phaseResults = [System.Collections.Generic.List[object]]::new()
@@ -164,7 +164,7 @@ try {
                 throw "Monitored visual-capture phase output already exists: $path"
             }
         }
-        $arguments = @($phase.arguments) + @('--path', $resolvedSandbox, '--log-file', $godotLog)
+        $arguments = @('--headless', '--path', $resolvedSandbox) + @($phase.arguments) + @('--log-file', $godotLog)
         $process = $null
         $phaseStarted = [DateTime]::UtcNow
         $phaseExit = $null
