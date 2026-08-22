@@ -598,7 +598,7 @@ def _membership(manifest) -> dict[str, object]:
 def _verify_membership_artifacts(asset_root: Path, manifest, membership: dict[str, object]) -> None:
     artifacts = {item.artifact_id: item for item in manifest.artifacts}
     selected = membership.get("selected")
-    if not isinstance(selected, list) or len(selected) < 2:
+    if not isinstance(selected, list) or len(selected) < 1:
         raise FoundryError("Animation-library membership is incomplete.")
     for item in selected:
         artifact = artifacts.get(item.get("source_artifact_id")) if isinstance(item, dict) else None

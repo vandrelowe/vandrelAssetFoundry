@@ -36,7 +36,7 @@ class ExcludedAnimationSource(ContractModel):
 class AnimationPackagePolicy(ContractModel):
     schema_version: Literal["vandrel_foundry_animation_package_policy/1.0"]
     policy_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_.-]{2,127}$")
-    exact_selected_source_sha256s: list[Sha256] = Field(min_length=2, max_length=64)
+    exact_selected_source_sha256s: list[Sha256] = Field(min_length=1, max_length=64)
     exact_excluded_source_sha256s: list[Sha256] = Field(default_factory=list)
     forbidden_aggregate_payload_sha256s: list[Sha256] = Field(default_factory=list)
     superseded_route_ids: list[str] = Field(default_factory=list)

@@ -226,7 +226,7 @@ class ReleaseAnimationLibraryV2(ReleaseModel):
     import_policy: Literal[
         "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
     ]
-    selected_sources: list[ReleaseAnimationSourceV2] = Field(min_length=2, max_length=64)
+    selected_sources: list[ReleaseAnimationSourceV2] = Field(min_length=1, max_length=64)
     excluded_source_sha256s: list[Sha256] = Field(default_factory=list)
     output_sha256: Sha256
     technical_report: PackagedHumanoidReportV2

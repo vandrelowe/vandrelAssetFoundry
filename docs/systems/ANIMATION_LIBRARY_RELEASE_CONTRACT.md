@@ -22,7 +22,7 @@ intake request are source authority.
 `vandrel_foundry_animation_library_intake/1.0`. A request binds:
 
 - the candidate asset ID;
-- two or more unique semantic names;
+- one or more unique semantic names;
 - one absolute or request-relative local FBX path per semantic;
 - exact source size and SHA-256;
 - `none` or `linear` loop intent;

@@ -111,6 +111,21 @@ def _request(tmp_path: Path, *, duplicate_hash: bool = False) -> Path:
     return path
 
 
+def _one_motion_request(tmp_path: Path) -> Path:
+    value = json.loads(_request(tmp_path).read_text(encoding="utf-8"))
+    value["motions"] = value["motions"][:1]
+    policy = value["package_policy"]
+    policy["exact_selected_source_sha256s"] = policy[
+        "exact_selected_source_sha256s"
+    ][:1]
+    value["package_policy_sha256"] = _sha(
+        (json.dumps(policy, indent=2, ensure_ascii=False) + "\n").encode()
+    )
+    path = tmp_path / "one-motion-request.json"
+    path.write_text(json.dumps(value), encoding="utf-8")
+    return path
+
+
 def _fake_pipeline(config, sandbox: Path) -> AnimationPipelineExecution:
     library = b"selective animation library"
     library_path = sandbox / "output" / "animation_library.res"
@@ -355,6 +370,24 @@ def test_intake_rejects_duplicate_bytes_and_request_policy_laundering(
     path = tmp_path / "laundered.json"
     path.write_text(json.dumps(value), encoding="utf-8")
     with pytest.raises(FoundryError, match="Excluded sources differ"):
+        intake_animation_library(config, ASSET_ID, path)
+
+
+def test_one_motion_intake_still_requires_exact_package_membership(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    value = json.loads(_one_motion_request(tmp_path).read_text(encoding="utf-8"))
+    value["package_policy"]["exact_selected_source_sha256s"] = ["b" * 64]
+    value["package_policy_sha256"] = _sha(
+        (
+            json.dumps(value["package_policy"], indent=2, ensure_ascii=False) + "\n"
+        ).encode()
+    )
+    path = tmp_path / "one-motion-mismatched-policy.json"
+    path.write_text(json.dumps(value), encoding="utf-8")
+
+    with pytest.raises(FoundryError, match="Selected sources differ"):
         intake_animation_library(config, ASSET_ID, path)
 
 
@@ -828,3 +861,45 @@ def test_passing_exact_matrix_approves_and_plans_model_free_release(
     assert plan.descriptor["primary_payload"] == "animation_library"
     assert all(item["role"] != "model" for item in plan.descriptor["files"])
     assert plan.descriptor["animation_library"]["selected_sources"][0]["semantic"] == "AngryStomp"
+
+
+def test_one_motion_library_preserves_visual_approval_and_release_gates(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _one_motion_request(tmp_path))
+    normalize_animation_library(config, ASSET_ID, runner=_fake_pipeline)
+    import_animation_visual_matrix(config, ASSET_ID, _visual_request(config, tmp_path))
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load(ASSET_ID)
+    bind_documented_test_custody(
+        manifest, config.foundry.workspace_root / "assets" / ASSET_ID
+    )
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+
+    approved = approve_animation_library(config, ASSET_ID, "Independent reviewer")
+    assert set(approved.approval.approved_artifact_hashes) == {
+        "processed_animation_library",
+        "animation_library_technical_report",
+        "animation_library_godot_monitor_report",
+        "animation_library_isolation_report",
+        "animation_library_visual_matrix_report",
+        *(f"artifact:animation_visual_evidence_{index:04d}" for index in range(1, 4)),
+    }
+    plan = plan_release(config, _lanes(), ASSET_ID)
+    assert plan.descriptor["primary_payload"] == "animation_library"
+    assert len(plan.descriptor["animation_library"]["selected_sources"]) == 1
+    assert plan.descriptor["animation_library"]["selected_sources"][0] == {
+        "semantic": "AngryStomp",
+        "source_sha256": _sha(b"first exact fbx"),
+        "source_size_bytes": len(b"first exact fbx"),
+    }
+    assert len(
+        [
+            item
+            for item in plan.descriptor["files"]
+            if item["role"] == "animation_visual_evidence"
+        ]
+    ) == 3
