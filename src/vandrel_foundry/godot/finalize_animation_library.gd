@@ -395,7 +395,7 @@ func _position_track_fact(animation: Animation, track_index: int) -> Dictionary:
 		var value = animation.track_get_key_value(track_index, key_index)
 		var key_time := animation.track_get_key_time(track_index, key_index)
 		var transition := animation.track_get_key_transition(track_index, key_index)
-		var finite := value is Vector3 and value.is_finite() and is_finite(key_time) and is_finite(transition)
+		var finite: bool = value is Vector3 and value.is_finite() and is_finite(key_time) and is_finite(transition)
 		passed = passed and finite
 		keys.append({"time": key_time, "transition": transition, "x": value.x if value is Vector3 else 0.0, "y": value.y if value is Vector3 else 0.0, "z": value.z if value is Vector3 else 0.0, "finite": finite})
 	return {

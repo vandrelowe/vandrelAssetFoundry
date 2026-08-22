@@ -852,6 +852,8 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
     assert '"position_transform": "carrier_rotate_hips_position"' in script
     assert "carrier_quaternion * before_position" in script
     assert "_position_bake_matches" in script
+    assert "var finite: bool = value is Vector3" in script
+    assert "var finite := value is Vector3" not in script
     assert "var rest_leaf_completion := _complete_optimized_rest_leaf_tracks(animation)" in script
     assert "var horizontal_transform := _hold_hips_horizontal_at_first_key(animation)" in script
     assert 'track_path == "Armature"' in script
