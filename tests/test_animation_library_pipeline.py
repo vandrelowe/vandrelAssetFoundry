@@ -120,6 +120,7 @@ def _fake_pipeline(config, sandbox: Path) -> AnimationPipelineExecution:
     technical = {
         "schema_version": "vandrel_foundry_animation_library_technical/1.0",
         "import_policy": ANIMATION_IMPORT_POLICY,
+        "horizontal_root_policy": animation_service.HIPS_HORIZONTAL_POLICY,
         "animation_library_sha256": library_sha,
         "animation_library_size_bytes": len(library),
         "motions": [
@@ -133,6 +134,47 @@ def _fake_pipeline(config, sandbox: Path) -> AnimationPipelineExecution:
                 "non_hips_position_track_count": 0,
                 "other_track_count": 0,
                 "finite_keys": True,
+                "hips_horizontal_transform_policy": animation_service.HIPS_HORIZONTAL_POLICY,
+                "hips_horizontal_transform_applied": True,
+                "hips_vertical_time_interpolation_preserved": True,
+                "hips_horizontal_pre_transform": {
+                    "span_x": 0.4,
+                    "span_z": 0.3,
+                    "max_delta_from_first": 0.5,
+                    "initial_offset_x": 0.25,
+                    "initial_offset_z": -0.1,
+                    "key_count": 3,
+                    "finite": True,
+                },
+                "hips_horizontal_post_transform": {
+                    "span_x": 0.0,
+                    "span_z": 0.0,
+                    "max_delta_from_first": 0.0,
+                    "initial_offset_x": 0.25,
+                    "initial_offset_z": -0.1,
+                    "key_count": 3,
+                    "finite": True,
+                },
+                "hips_preservation_pre_transform": {
+                    "track_interpolation_type": 1,
+                    "track_interpolation_loop_wrap": True,
+                    "keys": [
+                        {"y": 0.0, "time": 0.0, "transition": 1.0},
+                        {"y": 0.2, "time": 0.5, "transition": 0.8},
+                        {"y": 0.0, "time": 1.0, "transition": 1.0},
+                    ],
+                    "finite": True,
+                },
+                "hips_preservation_post_transform": {
+                    "track_interpolation_type": 1,
+                    "track_interpolation_loop_wrap": True,
+                    "keys": [
+                        {"y": 0.0, "time": 0.0, "transition": 1.0},
+                        {"y": 0.2, "time": 0.5, "transition": 0.8},
+                        {"y": 0.0, "time": 1.0, "transition": 1.0},
+                    ],
+                    "finite": True,
+                },
                 "known_carrier_track_recognized_count": 1,
                 "known_carrier_track_removed_count": 1,
                 "known_carrier_tracks": [
@@ -370,15 +412,27 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
         / "finalize_animation_library.gd"
     ).read_text(encoding="utf-8")
 
+    assert animation_service.PROCESSOR_VERSION == "3"
+    assert animation_service.HIPS_HORIZONTAL_POLICY in script
     assert '"%GeneralSkeleton:" + bone' in script
     assert '"%GeneralSkeleton:%s" % bone' not in script
     assert 'print("FOUNDRY_ANIMATION_TRACK_FACT " + JSON.stringify(fact))' in script
     assert "var carrier := _strip_known_armature_carrier(animation)" in script
+    assert "var horizontal_transform := _hold_hips_horizontal_at_first_key(animation)" in script
     assert 'track_path == "Armature"' in script
     assert "animation.remove_track(int(matches[0].track_index))" in script
     assert 'fact["known_carrier_track_removed_count"] = carrier.removed_count' in script
     assert '"unexpected_tracks": unexpected_tracks' in script
     assert '"non_finite_keys": non_finite_keys' in script
+    assert "animation.track_set_key_value(" in script
+    assert "Vector3(first_value.x, value.y, first_value.z)" in script
+    assert "animation.track_get_key_time(track_index, key_index)" in script
+    assert "animation.track_get_key_transition(track_index, key_index)" in script
+    assert "animation.track_get_interpolation_type(track_index)" in script
+    assert "animation.track_get_interpolation_loop_wrap(track_index)" in script
+    assert "Vector2(value.x - first_value.x, value.z - first_value.z).length()" in script
+    assert 'fact["hips_horizontal_pre_transform"]' in script
+    assert 'fact["hips_horizontal_post_transform"]' in script
 
     loop_start = script.index('\tfor motion in request.get("motions", []):')
     failure_gate = script.index("\tif not failures.is_empty():", loop_start)
@@ -399,6 +453,56 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
     assert "actual.append(str(animation_name))" in isolation_script
     assert "if actual != expected:" in isolation_script
     assert "Array(library.get_animation_list())" not in isolation_script
+
+
+@pytest.mark.parametrize(
+    ("mutation", "value"),
+    [
+        ("post_delta", 0.001),
+        ("preserved", False),
+        ("post_nonfinite", float("nan")),
+        ("initial_changed", 0.5),
+        ("key_count_changed", 2),
+        ("interpolation_changed", 2),
+        ("policy", "stale_horizontal_policy"),
+        ("report_policy", "stale_horizontal_policy"),
+    ],
+)
+def test_normalization_rejects_invalid_hips_horizontal_transform_evidence(
+    config, prompt, tmp_path, mutation, value
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+
+    def invalid_horizontal_evidence(config, sandbox: Path) -> AnimationPipelineExecution:
+        execution = _fake_pipeline(config, sandbox)
+        report = json.loads(execution.technical_report.read_text(encoding="utf-8"))
+        motion = report["motions"][0]
+        if mutation == "post_delta":
+            motion["hips_horizontal_post_transform"]["max_delta_from_first"] = value
+        elif mutation == "preserved":
+            motion["hips_vertical_time_interpolation_preserved"] = value
+        elif mutation == "post_nonfinite":
+            motion["hips_horizontal_post_transform"]["span_x"] = value
+        elif mutation == "initial_changed":
+            motion["hips_horizontal_post_transform"]["initial_offset_x"] = value
+        elif mutation == "key_count_changed":
+            motion["hips_horizontal_post_transform"]["key_count"] = value
+        elif mutation == "interpolation_changed":
+            motion["hips_preservation_post_transform"]["track_interpolation_type"] = value
+        elif mutation == "policy":
+            motion["hips_horizontal_transform_policy"] = value
+        elif mutation == "report_policy":
+            report["horizontal_root_policy"] = value
+        execution.technical_report.write_text(json.dumps(report), encoding="utf-8")
+        return execution
+
+    expected_message = (
+        "failed or stale" if mutation == "report_policy" else "technical track contract failed"
+    )
+    with pytest.raises(FoundryError, match=expected_message):
+        normalize_animation_library(config, ASSET_ID, runner=invalid_horizontal_evidence)
 
 
 def test_normalization_rejects_missing_known_carrier_evidence(

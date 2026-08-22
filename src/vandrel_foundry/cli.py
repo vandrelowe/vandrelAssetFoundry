@@ -43,6 +43,9 @@ from vandrel_foundry.services.build_custody_inventory import (
 from vandrel_foundry.services.build_review_gallery import build_review_gallery
 from vandrel_foundry.services.calibrate_scale import calibrate_asset_scale
 from vandrel_foundry.services.candidate_custody import bind_candidate_custody
+from vandrel_foundry.services.capture_animation_visual_matrix import (
+    capture_animation_visual_matrix,
+)
 from vandrel_foundry.services.create_asset import create_asset
 from vandrel_foundry.services.derive_compound_creature import derive_compound_creature
 from vandrel_foundry.services.doctor import run_doctor
@@ -1947,6 +1950,26 @@ def import_selective_animation_visual_matrix(
         settings = load_config(config)
         report = import_animation_visual_matrix(settings, asset_id, request)
         console.print(f"[green]Imported animation visual matrix[/green] {report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("capture-animation-visual-matrix")
+def capture_selective_animation_visual_matrix(
+    request: Annotated[Path, typer.Option("--request")],
+    output_directory: Annotated[Path, typer.Option("--output-directory")],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Capture unsigned fixed-phase evidence for independent review."""
+    try:
+        settings = load_config(config)
+        package = capture_animation_visual_matrix(
+            settings,
+            request,
+            output_directory,
+        )
+        console.print(f"[green]Captured animation visual matrix[/green] {package.manifest}")
+        console.print(f"Unsigned review template: {package.review_template}")
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 

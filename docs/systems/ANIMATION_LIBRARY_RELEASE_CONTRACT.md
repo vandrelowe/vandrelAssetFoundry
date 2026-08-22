@@ -75,7 +75,92 @@ in the animation and fails the unchanged strict track-shape probe. The technical
 binds each semantic and exact source SHA-256 to the exact complete
 output-library SHA-256. Technical PASS does not constitute visual acceptance.
 
+Processor `godot_selective_animation_library` version 3 applies the exact
+in-place horizontal-root policy
+`hold_hips_xz_at_first_key_preserve_y_time_interpolation_v1` to every selected
+motion after deep duplication and known-carrier removal. It holds every Hips
+position key's X and Z at that track's first-key X/Z while leaving each key's Y,
+time, transition, track interpolation type, and interpolation loop-wrap setting
+unchanged. It neither deletes nor resamples keys. Per-motion technical evidence
+must contain pre-transform and post-transform horizontal facts: X/Z span,
+Euclidean maximum X/Z delta from the first key, initial X/Z offsets, key count,
+and finite status. It also contains literal pre/post key Y/time/transition and
+track interpolation/loop-wrap facts. Python validation requires exact pre/post
+preservation, unchanged initial offsets and key count, finite facts, and each
+post-transform span/delta at or below `0.0001`.
+
 ## Three-body fixed-phase visual evidence
+
+`foundry capture-animation-visual-matrix --request <json>
+--output-directory <directory>` is a candidate-free, non-approving evidence
+operation. Its request schema is
+`vandrel_foundry_animation_visual_capture_request/1.0`; it binds the exact
+processed `AnimationLibrary`, passing technical report, exactly three distinct
+body payload hashes, and the canonical fixed-camera configuration hash. The
+capture result and package manifest use
+`vandrel_foundry_animation_visual_capture_result/1.0` and
+`vandrel_foundry_animation_visual_capture_manifest/1.0`. The emitted unsigned
+manual-review template targets the existing
+`vandrel_foundry_animation_visual_matrix/1.0` import schema. Capture does not
+create or mutate a candidate, approve anatomy, or turn technical PASS into a
+visual PASS.
+
+The capture uses exactly phases
+`0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875`, a fixed 1280x720 camera at
+`(0, 0.28, 5.4)` looking at `(0, 0.95, 0)` with Y-up and 38-degree FOV, and an
+unmistakable fixed ground/grid. It strips imported cameras, environments,
+lights, animation trees, embedded animation players/autoplay, scripts, and
+unsupported control/presentation nodes before the body enters the viewport.
+The body origin and camera never follow or reframe. Horizontal Hips motion is
+measured as X/Z span plus Euclidean X/Z delta from the first key; a constant
+initial offset is recorded but is not movement. Any nonfinite fact or movement
+above `0.0001` fails closed.
+
+Import and capture are separate phases under the monitored Godot corridor.
+The capture-owned outer runner uses a filtered child environment, finite
+timeout and output bounds, and a Windows kill-on-close Job Object rather than
+the generic validation service. The supervisor performs sandbox, exact-hash,
+camera, console, and process-zero preflights inside one outer `try/finally`,
+rechecks process-zero before each phase, polls for application-error windows
+during and for five seconds after every launched phase, collects
+Application/.NET/WER/dump evidence, and finishes with a Godot inventory. Once
+the output path is resolvable, even a preflight failure writes a structured
+failed monitor record. Exit zero cannot override crash evidence.
+
+If Job Object setup, the outer timeout/output bomb, final inventory, or outer
+cleanup fails before that supervisor monitor is durable, the capture-local
+runner must not synthesize one. It instead writes the separate schema
+`vandrel_foundry_animation_visual_outer_watchdog/1.0`, with a stable reason,
+bounded detail, process facts, and hash-bound bounded stdout/stderr evidence.
+After those bounded artifacts and the initial record are durable, the runner
+removes its raw outer stdout/stderr temp files before failed-attempt promotion.
+The finalized record binds raw-temp cleanup status. A cleanup problem is
+recorded and surfaced without changing the original outer failure reason. The
+outer-watchdog record and its bounded evidence remain part of the failed attempt.
+If raw removal still fails after the bounded retry, whole-operation-root
+promotion is forbidden. The service atomically builds and verifies a filtered
+`.failed` package that excludes both raw temp names while preserving the exact
+watchdog record, bounded logs, runtime request, and partial evidence. It leaves
+the residual operation root in place and reports its exact path alongside the
+unchanged primary failure reason for explicit operator disposition.
+The filtered durable package excludes the transient `.godot` cache, especially
+`.godot/editor`, while retaining exact request/runtime/script/project/library,
+technical-report, body-input, supervisor-monitor, bounded-root-log, and partial
+output evidence. Disappearing cache entries cannot invalidate durable failure
+retention, and no `.godot` path may enter `.failed`.
+
+The requested output directory and sibling `<name>.failed` directory are
+operation-owned and must both be absent at start. Success is atomically
+promoted to the requested directory. Failure retains the complete attempt,
+including the supervisor monitor or outer-watchdog record, logs, runtime
+request, and partial evidence, in the sibling
+`.failed` directory; unchanged input is not retried until an operator explicitly
+dispositions that directory. A successful-run cleanup error is surfaced, and a
+cleanup error cannot hide the primary failure. The produced template leaves
+`reviewer`, `reviewed_at`, and every cell `result` null. An independent reviewer
+must inspect the unique eight-phase sheet for every semantic/body cell and
+enter literal `PASS` or `FAIL`; the unchanged import command below rehashes and
+imports that manual decision without capture-time acceptance inference.
 
 `foundry import-animation-visual-matrix <asset-id> --request <json>` accepts
 schema `vandrel_foundry_animation_visual_matrix/1.0`. It requires exactly three

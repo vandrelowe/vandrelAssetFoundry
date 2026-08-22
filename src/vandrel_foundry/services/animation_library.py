@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -35,8 +36,10 @@ from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 ANIMATION_LIBRARY_LANE = "animation_library"
 PROCESSOR_NAME = "godot_selective_animation_library"
-PROCESSOR_VERSION = "2"
+PROCESSOR_VERSION = "3"
 TECHNICAL_SCHEMA = "vandrel_foundry_animation_library_technical/1.0"
+HIPS_HORIZONTAL_POLICY = "hold_hips_xz_at_first_key_preserve_y_time_interpolation_v1"
+HORIZONTAL_ROOT_TOLERANCE = 0.0001
 MONITOR_SCHEMA = "vandrel_foundry_animation_godot_monitor/1.0"
 VISUAL_REPORT_SCHEMA = "vandrel_foundry_animation_visual_matrix_result/1.0"
 
@@ -656,6 +659,7 @@ def _validate_technical_report(
     if (
         report.get("passed") is not True
         or report.get("import_policy") != ANIMATION_IMPORT_POLICY
+        or report.get("horizontal_root_policy") != HIPS_HORIZONTAL_POLICY
         or report.get("animation_library_sha256") != library_sha
         or report.get("animation_library_size_bytes") != library_size
     ):
@@ -679,6 +683,10 @@ def _validate_technical_report(
             or item.get("non_hips_position_track_count") != 0
             or item.get("other_track_count") != 0
             or item.get("finite_keys") is not True
+            or item.get("hips_horizontal_transform_policy") != HIPS_HORIZONTAL_POLICY
+            or item.get("hips_horizontal_transform_applied") is not True
+            or item.get("hips_vertical_time_interpolation_preserved") is not True
+            or not _valid_horizontal_transform_facts(item)
             or type(recognized_carriers) is not int
             or recognized_carriers not in (0, 1)
             or type(removed_carriers) is not int
@@ -702,6 +710,86 @@ def _validate_technical_report(
             or item.get("output_library_sha256") != library_sha
         ):
             raise FoundryError(f"Animation technical track contract failed: {item.get('semantic')}")
+
+
+def _valid_horizontal_transform_facts(item: dict[str, object]) -> bool:
+    pre = item.get("hips_horizontal_pre_transform")
+    post = item.get("hips_horizontal_post_transform")
+    preservation_pre = item.get("hips_preservation_pre_transform")
+    preservation_post = item.get("hips_preservation_post_transform")
+    if (
+        not _valid_horizontal_facts(pre)
+        or not _valid_horizontal_facts(post)
+        or not _valid_preservation_facts(preservation_pre)
+        or not _valid_preservation_facts(preservation_post)
+    ):
+        return False
+    assert isinstance(pre, dict) and isinstance(post, dict)
+    assert isinstance(preservation_pre, dict) and isinstance(preservation_post, dict)
+    return (
+        preservation_post == preservation_pre
+        and len(preservation_pre["keys"]) == pre["key_count"]
+        and len(preservation_post["keys"]) == post["key_count"]
+        and post["key_count"] == pre["key_count"]
+        and post["initial_offset_x"] == pre["initial_offset_x"]
+        and post["initial_offset_z"] == pre["initial_offset_z"]
+        and float(post["span_x"]) <= HORIZONTAL_ROOT_TOLERANCE
+        and float(post["span_z"]) <= HORIZONTAL_ROOT_TOLERANCE
+        and float(post["max_delta_from_first"]) <= HORIZONTAL_ROOT_TOLERANCE
+    )
+
+
+def _valid_horizontal_facts(value: object) -> bool:
+    keys = {
+        "span_x",
+        "span_z",
+        "max_delta_from_first",
+        "initial_offset_x",
+        "initial_offset_z",
+        "key_count",
+        "finite",
+    }
+    if not isinstance(value, dict) or set(value) != keys:
+        return False
+    if value.get("finite") is not True:
+        return False
+    key_count = value.get("key_count")
+    if type(key_count) is not int or key_count < 1:
+        return False
+    numeric_keys = keys - {"key_count", "finite"}
+    if any(
+        isinstance(value.get(key), bool)
+        or not isinstance(value.get(key), (int, float))
+        or not math.isfinite(float(value[key]))
+        for key in numeric_keys
+    ):
+        return False
+    return all(float(value[key]) >= 0.0 for key in ("span_x", "span_z", "max_delta_from_first"))
+
+
+def _valid_preservation_facts(value: object) -> bool:
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {"track_interpolation_type", "track_interpolation_loop_wrap", "keys", "finite"}
+        or value.get("finite") is not True
+        or type(value.get("track_interpolation_type")) is not int
+        or not isinstance(value.get("track_interpolation_loop_wrap"), bool)
+        or not isinstance(value.get("keys"), list)
+        or not value["keys"]
+    ):
+        return False
+    for key in value["keys"]:
+        if not isinstance(key, dict) or set(key) != {"y", "time", "transition"}:
+            return False
+        if any(
+            isinstance(key.get(name), bool)
+            or not isinstance(key.get(name), (int, float))
+            or not math.isfinite(float(key[name]))
+            for name in ("y", "time", "transition")
+        ):
+            return False
+    return True
 
 
 def _validate_monitor_report(

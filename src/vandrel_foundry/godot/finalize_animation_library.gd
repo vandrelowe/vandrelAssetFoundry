@@ -4,6 +4,8 @@ extends SceneTree
 const REQUEST_PATH := "res://animation-library-runtime.json"
 const OUTPUT_PATH := "res://output/animation_library.res"
 const REPORT_PATH := "res://output/animation-library-technical.json"
+const HIPS_HORIZONTAL_POLICY := "hold_hips_xz_at_first_key_preserve_y_time_interpolation_v1"
+const HORIZONTAL_TOLERANCE := 0.0001
 const EXPECTED_ROTATION_BONES := [
 	"Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
 	"LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand",
@@ -41,10 +43,19 @@ func _init() -> void:
 			failures.append({"semantic": semantic, "reason": "deep_duplicate_failed"})
 			continue
 		var carrier := _strip_known_armature_carrier(animation)
+		var horizontal_transform := _hold_hips_horizontal_at_first_key(animation)
 		var fact := _probe(semantic, motion, animation)
 		fact["known_carrier_track_recognized_count"] = carrier.recognized_count
 		fact["known_carrier_track_removed_count"] = carrier.removed_count
 		fact["known_carrier_tracks"] = carrier.tracks
+		fact["hips_horizontal_transform_policy"] = HIPS_HORIZONTAL_POLICY
+		fact["hips_horizontal_transform_applied"] = horizontal_transform.applied
+		fact["hips_vertical_time_interpolation_preserved"] = horizontal_transform.preserved
+		fact["hips_horizontal_pre_transform"] = horizontal_transform.pre_transform
+		fact["hips_horizontal_post_transform"] = horizontal_transform.post_transform
+		fact["hips_preservation_pre_transform"] = horizontal_transform.preservation_pre
+		fact["hips_preservation_post_transform"] = horizontal_transform.preservation_post
+		fact["passed"] = bool(fact.passed) and bool(horizontal_transform.passed)
 		print("FOUNDRY_ANIMATION_TRACK_FACT " + JSON.stringify(fact))
 		facts.append(fact)
 		if not bool(fact.get("passed", false)):
@@ -71,6 +82,7 @@ func _init() -> void:
 	var report := {
 		"schema_version": "vandrel_foundry_animation_library_technical/1.0",
 		"import_policy": "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+		"horizontal_root_policy": HIPS_HORIZONTAL_POLICY,
 		"animation_library_sha256": output_sha,
 		"animation_library_size_bytes": output_size,
 		"motions": facts,
@@ -108,6 +120,145 @@ func _strip_known_armature_carrier(animation: Animation) -> Dictionary:
 		"recognized_count": matches.size(),
 		"removed_count": removed_count,
 		"tracks": matches,
+	}
+
+
+func _hold_hips_horizontal_at_first_key(animation: Animation) -> Dictionary:
+	var track_indices: Array[int] = []
+	for track_index in animation.get_track_count():
+		if (
+			animation.track_get_type(track_index) == Animation.TYPE_POSITION_3D
+			and str(animation.track_get_path(track_index)) == "%GeneralSkeleton:Hips"
+		):
+			track_indices.append(track_index)
+	if track_indices.size() != 1:
+		var missing_facts := _empty_horizontal_facts(0)
+		return {
+			"applied": false,
+			"preserved": false,
+			"pre_transform": missing_facts,
+			"post_transform": missing_facts.duplicate(true),
+			"preservation_pre": {},
+			"preservation_post": {},
+			"passed": false,
+		}
+	var track_index := track_indices[0]
+	var pre_transform := _horizontal_facts(animation, track_index)
+	var preserved_before := _vertical_time_interpolation_facts(animation, track_index)
+	if not bool(pre_transform.finite) or int(pre_transform.key_count) < 1:
+		return {
+			"applied": false,
+			"preserved": false,
+			"pre_transform": pre_transform,
+			"post_transform": pre_transform.duplicate(true),
+			"preservation_pre": preserved_before,
+			"preservation_post": preserved_before.duplicate(true),
+			"passed": false,
+		}
+	var first_value: Vector3 = animation.track_get_key_value(track_index, 0)
+	for key_index in animation.track_get_key_count(track_index):
+		var value: Vector3 = animation.track_get_key_value(track_index, key_index)
+		animation.track_set_key_value(
+			track_index,
+			key_index,
+			Vector3(first_value.x, value.y, first_value.z),
+		)
+	var post_transform := _horizontal_facts(animation, track_index)
+	var preserved_after := _vertical_time_interpolation_facts(animation, track_index)
+	var preserved := preserved_before == preserved_after
+	var passed := (
+		bool(post_transform.finite)
+		and int(post_transform.key_count) == int(pre_transform.key_count)
+		and float(post_transform.initial_offset_x) == float(pre_transform.initial_offset_x)
+		and float(post_transform.initial_offset_z) == float(pre_transform.initial_offset_z)
+		and float(post_transform.span_x) <= HORIZONTAL_TOLERANCE
+		and float(post_transform.span_z) <= HORIZONTAL_TOLERANCE
+		and float(post_transform.max_delta_from_first) <= HORIZONTAL_TOLERANCE
+		and preserved
+	)
+	return {
+		"applied": true,
+		"preserved": preserved,
+		"pre_transform": pre_transform,
+		"post_transform": post_transform,
+		"preservation_pre": preserved_before,
+		"preservation_post": preserved_after,
+		"passed": passed,
+	}
+
+
+func _horizontal_facts(animation: Animation, track_index: int) -> Dictionary:
+	var key_count := animation.track_get_key_count(track_index)
+	if key_count < 1:
+		return _empty_horizontal_facts(key_count)
+	var first_value = animation.track_get_key_value(track_index, 0)
+	if not first_value is Vector3 or not first_value.is_finite():
+		return _empty_horizontal_facts(key_count)
+	var min_x: float = first_value.x
+	var max_x: float = first_value.x
+	var min_z: float = first_value.z
+	var max_z: float = first_value.z
+	var max_delta := 0.0
+	for key_index in key_count:
+		var value = animation.track_get_key_value(track_index, key_index)
+		if not value is Vector3 or not value.is_finite():
+			return _empty_horizontal_facts(key_count)
+		min_x = min(min_x, value.x)
+		max_x = max(max_x, value.x)
+		min_z = min(min_z, value.z)
+		max_z = max(max_z, value.z)
+		max_delta = max(
+			max_delta,
+			Vector2(value.x - first_value.x, value.z - first_value.z).length(),
+		)
+	return {
+		"span_x": max_x - min_x,
+		"span_z": max_z - min_z,
+		"max_delta_from_first": max_delta,
+		"initial_offset_x": first_value.x,
+		"initial_offset_z": first_value.z,
+		"key_count": key_count,
+		"finite": true,
+	}
+
+
+func _empty_horizontal_facts(key_count: int) -> Dictionary:
+	return {
+		"span_x": 0.0,
+		"span_z": 0.0,
+		"max_delta_from_first": 0.0,
+		"initial_offset_x": 0.0,
+		"initial_offset_z": 0.0,
+		"key_count": key_count,
+		"finite": false,
+	}
+
+
+func _vertical_time_interpolation_facts(
+	animation: Animation, track_index: int
+) -> Dictionary:
+	var values: Array[Dictionary] = []
+	for key_index in animation.track_get_key_count(track_index):
+		var value = animation.track_get_key_value(track_index, key_index)
+		var key_time := animation.track_get_key_time(track_index, key_index)
+		var transition := animation.track_get_key_transition(track_index, key_index)
+		if (
+			not value is Vector3
+			or not value.is_finite()
+			or not is_finite(key_time)
+			or not is_finite(transition)
+		):
+			return {"finite": false}
+		values.append({
+			"y": value.y,
+			"time": key_time,
+			"transition": transition,
+		})
+	return {
+		"track_interpolation_type": int(animation.track_get_interpolation_type(track_index)),
+		"track_interpolation_loop_wrap": animation.track_get_interpolation_loop_wrap(track_index),
+		"keys": values,
+		"finite": true,
 	}
 
 
