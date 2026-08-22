@@ -20,12 +20,31 @@ func _init() -> void:
 		_fail("isolated AnimationLibrary or request is unavailable")
 		return
 	var expected: Array[String] = []
+	var expected_seen: Dictionary = {}
 	for motion in request.get("motions", []):
-		expected.append(str(motion.get("semantic", "")))
+		var expected_semantic := str(motion.get("semantic", ""))
+		if expected_semantic.is_empty() or expected_seen.has(expected_semantic):
+			_fail("isolated validation request contains an empty or duplicate semantic: %s" % expected_semantic)
+			return
+		expected_seen[expected_semantic] = true
+		expected.append(expected_semantic)
 	var actual: Array[String] = []
+	var actual_seen: Dictionary = {}
 	for animation_name in library.get_animation_list():
-		actual.append(str(animation_name))
-	if actual != expected:
+		var actual_semantic := str(animation_name)
+		if actual_semantic.is_empty() or actual_seen.has(actual_semantic):
+			_fail("isolated AnimationLibrary contains an empty or duplicate semantic: %s" % actual_semantic)
+			return
+		actual_seen[actual_semantic] = true
+		actual.append(actual_semantic)
+	if actual.size() != expected.size():
+		_fail("isolated AnimationLibrary membership differs from request: expected=%s actual=%s" % [expected, actual])
+		return
+	var expected_sorted := expected.duplicate()
+	var actual_sorted := actual.duplicate()
+	expected_sorted.sort()
+	actual_sorted.sort()
+	if actual_sorted != expected_sorted:
 		_fail("isolated AnimationLibrary membership differs from request: expected=%s actual=%s" % [expected, actual])
 		return
 	var report := {

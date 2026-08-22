@@ -450,9 +450,51 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
         / "validate_isolated_animation_library.gd"
     ).read_text(encoding="utf-8")
     assert "var actual: Array[String] = []" in isolation_script
-    assert "actual.append(str(animation_name))" in isolation_script
-    assert "if actual != expected:" in isolation_script
+    assert "actual.append(actual_semantic)" in isolation_script
+    assert "if actual != expected:" not in isolation_script
     assert "Array(library.get_animation_list())" not in isolation_script
+
+
+def test_isolation_script_accepts_unsorted_exact_string_membership() -> None:
+    script = (
+        Path(animation_service.__file__).parent.parent
+        / "godot"
+        / "validate_isolated_animation_library.gd"
+    ).read_text(encoding="utf-8")
+
+    requested = ["SquatIdle", "KneelingFixing"]
+    godot_canonical = ["KneelingFixing", "SquatIdle"]
+    assert requested != godot_canonical
+    assert sorted(requested) == sorted(godot_canonical)
+    assert "var expected_semantic := str(motion.get(\"semantic\", \"\"))" in script
+    assert "var actual_semantic := str(animation_name)" in script
+    assert "var expected_sorted := expected.duplicate()" in script
+    assert "var actual_sorted := actual.duplicate()" in script
+    assert "expected_sorted.sort()" in script
+    assert "actual_sorted.sort()" in script
+    assert "if actual_sorted != expected_sorted:" in script
+    assert '"selected_semantics": expected' in script
+
+
+def test_isolation_script_rejects_missing_extra_and_duplicate_membership() -> None:
+    script = (
+        Path(animation_service.__file__).parent.parent
+        / "godot"
+        / "validate_isolated_animation_library.gd"
+    ).read_text(encoding="utf-8")
+
+    assert "var expected_seen: Dictionary = {}" in script
+    assert "var actual_seen: Dictionary = {}" in script
+    assert "expected_seen.has(expected_semantic)" in script
+    assert "actual_seen.has(actual_semantic)" in script
+    assert "empty or duplicate semantic" in script
+    assert "if actual.size() != expected.size():" in script
+    for actual in (
+        ["SquatIdle"],
+        ["KneelingFixing", "SquatIdle", "Unexpected"],
+        ["KneelingFixing", "KneelingFixing"],
+    ):
+        assert actual != ["KneelingFixing", "SquatIdle"]
 
 
 @pytest.mark.parametrize(
