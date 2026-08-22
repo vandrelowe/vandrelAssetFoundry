@@ -682,6 +682,15 @@ def test_godot_capture_script_binds_python_camera_hash() -> None:
     ):
         assert f"child is {prohibited}" in script
     assert "Vector2(value.x - initial_x, value.z - initial_z).length()" in script
+    for membership_guard in (
+        "actual_semantics.sort()",
+        "expected_semantics.sort()",
+        "actual_semantics.size() != expected_semantics.size()",
+        "_has_duplicate_names(actual_semantics)",
+        "_has_duplicate_names(expected_semantics)",
+        "actual_semantics != expected_semantics",
+    ):
+        assert membership_guard in script
     for exact_body_binding in (
         '"staged_payload_sha256": str(body.staged_payload_sha256)',
         '"import_sidecar_sha256": sidecar_sha',

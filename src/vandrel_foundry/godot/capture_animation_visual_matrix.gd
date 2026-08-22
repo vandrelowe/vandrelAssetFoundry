@@ -37,6 +37,13 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 
+func _has_duplicate_names(names: Array[String]) -> bool:
+	for index in range(1, names.size()):
+		if names[index] == names[index - 1]:
+			return true
+	return false
+
+
 func _run() -> void:
 	var runtime := _read_json(RUNTIME_PATH)
 	if runtime.is_empty():
@@ -61,7 +68,17 @@ func _run() -> void:
 	var actual_semantics: Array[String] = []
 	for animation_name in library.get_animation_list():
 		actual_semantics.append(str(animation_name))
-	if actual_semantics != semantics:
+	var expected_semantics: Array[String] = []
+	for semantic in semantics:
+		expected_semantics.append(str(semantic))
+	actual_semantics.sort()
+	expected_semantics.sort()
+	if (
+		actual_semantics.size() != expected_semantics.size()
+		or _has_duplicate_names(actual_semantics)
+		or _has_duplicate_names(expected_semantics)
+		or actual_semantics != expected_semantics
+	):
 		_fail("loaded animation library membership differs from the request")
 		return
 	var camera_config: Dictionary = runtime.get("camera_config", {})
