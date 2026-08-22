@@ -3,7 +3,6 @@ extends SceneTree
 
 const REQUEST_PATH := "res://animation-library-runtime.json"
 const BONE_MAP_PATH := "res://animation_library_bone_map.tres"
-const SKELETON_KEY := "PATH:Armature/Skeleton3D"
 
 
 func _init() -> void:
@@ -14,13 +13,45 @@ func _init() -> void:
 		return
 	for motion in request.get("motions", []):
 		var source_path := str(motion.get("source_path", ""))
-		if not _configure(source_path + ".import", bone_map):
+		var skeleton_key := _discover_skeleton_key(source_path)
+		if skeleton_key.is_empty():
 			return
+		if not _configure(source_path + ".import", bone_map, skeleton_key):
+			return
+		print("FOUNDRY_ANIMATION_SKELETON_PATH source=%s key=%s" % [source_path, skeleton_key])
 	print("FOUNDRY_ANIMATION_IMPORT_CONFIGURATION_OK motions=%d" % request.motions.size())
 	quit(0)
 
 
-func _configure(import_path: String, bone_map: BoneMap) -> bool:
+func _discover_skeleton_key(source_path: String) -> String:
+	var packed := load(source_path) as PackedScene
+	if packed == null:
+		_fail("initial import did not produce a PackedScene: %s" % source_path)
+		return ""
+	var root := packed.instantiate()
+	var skeletons: Array[Skeleton3D] = []
+	_collect_skeletons(root, skeletons)
+	if skeletons.size() != 1:
+		var count := skeletons.size()
+		root.free()
+		_fail("source must expose exactly one Skeleton3D; found %d: %s" % [count, source_path])
+		return ""
+	var relative_path := root.get_path_to(skeletons[0])
+	root.free()
+	if relative_path.is_empty():
+		_fail("could not derive the exact Skeleton3D path: %s" % source_path)
+		return ""
+	return "PATH:" + str(relative_path)
+
+
+func _collect_skeletons(node: Node, skeletons: Array[Skeleton3D]) -> void:
+	if node is Skeleton3D:
+		skeletons.append(node)
+	for child in node.get_children():
+		_collect_skeletons(child, skeletons)
+
+
+func _configure(import_path: String, bone_map: BoneMap, skeleton_key: String) -> bool:
 	var config := ConfigFile.new()
 	var load_error := config.load(import_path)
 	if load_error != OK:
@@ -38,7 +69,7 @@ func _configure(import_path: String, bone_map: BoneMap) -> bool:
 	config.set_value("deps", "dest_files", PackedStringArray([destination]))
 	config.set_value("params", "animation/trimming", false)
 	config.set_value("params", "animation/remove_immutable_tracks", true)
-	config.set_value("params", "_subresources", {"nodes": {SKELETON_KEY: {
+	config.set_value("params", "_subresources", {"nodes": {skeleton_key: {
 		"rest_pose/external_animation_library": null,
 		"retarget/bone_map": bone_map,
 		"retarget/remove_tracks/except_bone_transform": false,

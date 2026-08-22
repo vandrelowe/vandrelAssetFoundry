@@ -456,6 +456,47 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
 
 
 @pytest.mark.parametrize(
+    ("raw_skeleton_path", "expected_key"),
+    [
+        ("Armature/Skeleton3D", "PATH:Armature/Skeleton3D"),
+        ("target_character/Skeleton3D", "PATH:target_character/Skeleton3D"),
+    ],
+)
+def test_configure_script_derives_exact_single_skeleton_import_key(
+    raw_skeleton_path: str,
+    expected_key: str,
+) -> None:
+    script = (
+        Path(animation_service.__file__).parent.parent
+        / "godot"
+        / "configure_animation_library_imports.gd"
+    ).read_text(encoding="utf-8")
+
+    assert expected_key == "PATH:" + raw_skeleton_path
+    assert 'return "PATH:" + str(relative_path)' in script
+    assert "var relative_path := root.get_path_to(skeletons[0])" in script
+    assert f'const SKELETON_KEY := "{expected_key}"' not in script
+    assert "_configure(source_path + \".import\", bone_map, skeleton_key)" in script
+    assert '{"nodes": {skeleton_key: {' in script
+
+
+def test_configure_script_fails_closed_on_zero_or_multiple_skeletons() -> None:
+    script = (
+        Path(animation_service.__file__).parent.parent
+        / "godot"
+        / "configure_animation_library_imports.gd"
+    ).read_text(encoding="utf-8")
+
+    assert "var skeletons: Array[Skeleton3D] = []" in script
+    assert "_collect_skeletons(root, skeletons)" in script
+    assert "if skeletons.size() != 1:" in script
+    assert "source must expose exactly one Skeleton3D; found %d" in script
+    assert "if node is Skeleton3D:" in script
+    assert "for child in node.get_children():" in script
+    assert "_collect_skeletons(child, skeletons)" in script
+
+
+@pytest.mark.parametrize(
     ("mutation", "value"),
     [
         ("post_delta", 0.001),
