@@ -67,15 +67,27 @@ Godot inventory. A zero process exit does not override crash evidence.
 Finalization deep-duplicates each imported animation before mutation and creates
 one `.res` `AnimationLibrary` containing exactly the selected semantics. The
 finished-library phase must load without source FBXs, prior import cache, or
-external dependencies. Every semantic must have exactly one Hips position
-track, exactly 22 unique mapped rotation tracks, no scale tracks, no non-Hips
+external dependencies. Godot's immutable-track optimization may remove a
+constant identity rotation track for `LeftHand` or `RightHand`. Before the
+track-shape probe, processor version 4 deterministically restores each such
+missing leaf track at identity at time zero and animation end under policy
+`restore_optimized_identity_hand_rotation_tracks_v1`. This preserves the
+source's effective rest-pose hand behavior and prevents a preceding clip's
+hand pose from leaking into playback. The technical report names every added
+track, its exact GeneralSkeleton path and index, key count/times, and identity
+status; Python accepts no other bone, path, value, timing, or duplicate. This
+is completion of optimized-away rest data, not permission to omit core-chain
+motion.
+
+Every semantic must still have exactly one Hips position track, exactly 22
+unique mapped rotation tracks after that bounded completion, no scale tracks, no non-Hips
 position tracks, no other tracks after the one exact known-carrier operation,
 and finite key values. Any different path, type, or duplicate carrier remains
 in the animation and fails the unchanged strict track-shape probe. The technical report
 binds each semantic and exact source SHA-256 to the exact complete
 output-library SHA-256. Technical PASS does not constitute visual acceptance.
 
-Processor `godot_selective_animation_library` version 3 applies the exact
+Processor `godot_selective_animation_library` version 4 applies the exact
 in-place horizontal-root policy
 `hold_hips_xz_at_first_key_preserve_y_time_interpolation_v1` to every selected
 motion after deep duplication and known-carrier removal. It holds every Hips

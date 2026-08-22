@@ -50,6 +50,12 @@ def _inputs(config, tmp_path: Path) -> Path:
                 "non_hips_position_track_count": 0,
                 "other_track_count": 0,
                 "finite_keys": True,
+                "optimized_rest_leaf_completion_policy": (
+                    "restore_optimized_identity_hand_rotation_tracks_v1"
+                ),
+                "optimized_rest_leaf_animation_length": 1.0,
+                "optimized_rest_leaf_tracks_added": [],
+                "optimized_rest_leaf_completion_passed": True,
                 "output_library_sha256": _sha(library),
                 "passed": True,
             }
@@ -390,6 +396,50 @@ def test_capture_rejects_stale_library_before_runner(config, tmp_path) -> None:
         capture_animation_visual_matrix(
             config,
             request,
+            tmp_path / "visual-capture",
+            runner=lambda *_args: pytest.fail("runner must not execute"),
+        )
+
+
+def test_capture_rejects_malformed_rest_leaf_completion_before_runner(
+    config, tmp_path
+) -> None:
+    request_path = _inputs(config, tmp_path)
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    technical_path = tmp_path / "technical.json"
+    technical = json.loads(technical_path.read_text(encoding="utf-8"))
+    technical["motions"][0]["optimized_rest_leaf_tracks_added"] = [
+        {
+            "bone": "Head",
+            "path": "%GeneralSkeleton:Head",
+            "track_index": 21,
+            "track_type": 2,
+            "interpolation_type": 1,
+            "key_count": 2,
+            "keys": [
+                {
+                    "time": time,
+                    "value_x": 0.0,
+                    "value_y": 0.0,
+                    "value_z": 0.0,
+                    "value_w": 1.0,
+                    "finite": True,
+                    "identity_rotation": True,
+                }
+                for time in (0.0, 1.0)
+            ],
+            "passed": True,
+        }
+    ]
+    technical_path.write_text(json.dumps(technical), encoding="utf-8")
+    request["technical_report"]["sha256"] = _sha(technical_path.read_bytes())
+    request["technical_report"]["size_bytes"] = technical_path.stat().st_size
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+
+    with pytest.raises(FoundryError, match="technical motion membership"):
+        capture_animation_visual_matrix(
+            config,
+            request_path,
             tmp_path / "visual-capture",
             runner=lambda *_args: pytest.fail("runner must not execute"),
         )

@@ -201,6 +201,12 @@ def _fake_pipeline(config, sandbox: Path) -> AnimationPipelineExecution:
                         "removed": True,
                     }
                 ],
+                "optimized_rest_leaf_completion_policy": (
+                    animation_service.REST_LEAF_COMPLETION_POLICY
+                ),
+                "optimized_rest_leaf_animation_length": 1.0,
+                "optimized_rest_leaf_tracks_added": [],
+                "optimized_rest_leaf_completion_passed": True,
                 "output_library_sha256": library_sha,
                 "passed": True,
             }
@@ -445,16 +451,21 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
         / "finalize_animation_library.gd"
     ).read_text(encoding="utf-8")
 
-    assert animation_service.PROCESSOR_VERSION == "3"
+    assert animation_service.PROCESSOR_VERSION == "4"
     assert animation_service.HIPS_HORIZONTAL_POLICY in script
     assert '"%GeneralSkeleton:" + bone' in script
     assert '"%GeneralSkeleton:%s" % bone' not in script
     assert 'print("FOUNDRY_ANIMATION_TRACK_FACT " + JSON.stringify(fact))' in script
     assert "var carrier := _strip_known_armature_carrier(animation)" in script
+    assert "var rest_leaf_completion := _complete_optimized_rest_leaf_tracks(animation)" in script
     assert "var horizontal_transform := _hold_hips_horizontal_at_first_key(animation)" in script
     assert 'track_path == "Armature"' in script
     assert "animation.remove_track(int(matches[0].track_index))" in script
     assert 'fact["known_carrier_track_removed_count"] = carrier.removed_count' in script
+    assert animation_service.REST_LEAF_COMPLETION_POLICY in script
+    assert 'fact["optimized_rest_leaf_tracks_added"]' in script
+    assert "Quaternion.IDENTITY" in script
+    assert "REST_LEAF_BONES := [\"LeftHand\", \"RightHand\"]" in script
     assert '"unexpected_tracks": unexpected_tracks' in script
     assert '"non_finite_keys": non_finite_keys' in script
     assert "animation.track_set_key_value(" in script
@@ -719,6 +730,134 @@ def test_normalization_accepts_explicit_zero_carrier_evidence(
         return execution
 
     execution = normalize_animation_library(config, ASSET_ID, runner=zero_carrier_evidence)
+    assert execution.animation_library.is_file()
+
+
+@pytest.mark.parametrize(
+    "malformation",
+    [
+        "missing_policy",
+        "wrong_policy",
+        "wrong_bone",
+        "wrong_path",
+        "nonidentity",
+        "duplicate_bone",
+        "boolean_track_index",
+        "bad_key_count",
+        "bad_first_time",
+        "bad_last_time",
+        "duplicate_index",
+        "false_completion",
+        "nonidentity_value",
+    ],
+)
+def test_normalization_rejects_malformed_rest_leaf_completion_evidence(
+    config, prompt, tmp_path, malformation
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+
+    def malformed_rest_leaf(config, sandbox: Path) -> AnimationPipelineExecution:
+        execution = _fake_pipeline(config, sandbox)
+        report = json.loads(execution.technical_report.read_text(encoding="utf-8"))
+        motion = report["motions"][0]
+        track = {
+            "bone": "LeftHand",
+            "path": "%GeneralSkeleton:LeftHand",
+            "track_index": 21,
+            "track_type": 2,
+            "interpolation_type": 1,
+            "key_count": 2,
+            "keys": [
+                {
+                    "time": time,
+                    "value_x": 0.0,
+                    "value_y": 0.0,
+                    "value_z": 0.0,
+                    "value_w": 1.0,
+                    "finite": True,
+                    "identity_rotation": True,
+                }
+                for time in (0.0, 1.0)
+            ],
+            "passed": True,
+        }
+        motion["optimized_rest_leaf_tracks_added"] = [track]
+        if malformation == "missing_policy":
+            motion.pop("optimized_rest_leaf_completion_policy")
+        elif malformation == "wrong_policy":
+            motion["optimized_rest_leaf_completion_policy"] = "weakened"
+        elif malformation == "wrong_bone":
+            track["bone"] = "Head"
+        elif malformation == "wrong_path":
+            track["path"] = "%GeneralSkeleton:RightHand"
+        elif malformation == "nonidentity":
+            track["keys"][0]["identity_rotation"] = False
+        elif malformation == "duplicate_bone":
+            motion["optimized_rest_leaf_tracks_added"].append(dict(track))
+        elif malformation == "boolean_track_index":
+            track["track_index"] = True
+        elif malformation == "bad_key_count":
+            track["key_count"] = 3
+        elif malformation == "bad_first_time":
+            track["keys"][0]["time"] = 0.1
+        elif malformation == "bad_last_time":
+            track["keys"][1]["time"] = 0.5
+        elif malformation == "duplicate_index":
+            duplicate = json.loads(json.dumps(track))
+            duplicate["bone"] = "RightHand"
+            duplicate["path"] = "%GeneralSkeleton:RightHand"
+            motion["optimized_rest_leaf_tracks_added"].append(duplicate)
+        elif malformation == "false_completion":
+            motion["optimized_rest_leaf_completion_passed"] = False
+        elif malformation == "nonidentity_value":
+            track["keys"][0]["value_x"] = 0.1
+        execution.technical_report.write_text(json.dumps(report), encoding="utf-8")
+        return execution
+
+    with pytest.raises(FoundryError, match="technical track contract failed"):
+        normalize_animation_library(config, ASSET_ID, runner=malformed_rest_leaf)
+
+
+def test_normalization_accepts_exact_identity_hand_rest_completion(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+
+    def exact_rest_leaf(config, sandbox: Path) -> AnimationPipelineExecution:
+        execution = _fake_pipeline(config, sandbox)
+        report = json.loads(execution.technical_report.read_text(encoding="utf-8"))
+        report["motions"][0]["optimized_rest_leaf_tracks_added"] = [
+            {
+                "bone": bone,
+                "path": f"%GeneralSkeleton:{bone}",
+                "track_index": 21 + index,
+                "track_type": 2,
+                "interpolation_type": 1,
+                "key_count": 2,
+                "keys": [
+                    {
+                        "time": time,
+                        "value_x": 0.0,
+                        "value_y": 0.0,
+                        "value_z": 0.0,
+                        "value_w": 1.0,
+                        "finite": True,
+                        "identity_rotation": True,
+                    }
+                    for time in (0.0, 1.0)
+                ],
+                "passed": True,
+            }
+            for index, bone in enumerate(("LeftHand", "RightHand"))
+        ]
+        execution.technical_report.write_text(json.dumps(report), encoding="utf-8")
+        return execution
+
+    execution = normalize_animation_library(config, ASSET_ID, runner=exact_rest_leaf)
     assert execution.animation_library.is_file()
 
 

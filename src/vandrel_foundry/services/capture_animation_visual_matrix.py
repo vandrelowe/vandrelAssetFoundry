@@ -24,6 +24,9 @@ from vandrel_foundry.domain.animation_visual_capture import (
     AnimationVisualCaptureRequest,
 )
 from vandrel_foundry.domain.errors import FoundryError
+from vandrel_foundry.services.animation_library import (
+    valid_rest_leaf_completion_facts,
+)
 from vandrel_foundry.storage.atomic import json_bytes
 
 CAPTURE_REPORT_SCHEMA = "vandrel_foundry_animation_visual_capture_result/1.0"
@@ -352,6 +355,7 @@ def _validate_technical_report(report: object, library_sha: str, library_size: i
             or item.get("non_hips_position_track_count") != 0
             or item.get("other_track_count") != 0
             or item.get("finite_keys") is not True
+            or not valid_rest_leaf_completion_facts(item)
             for item in motions
         )
     ):

@@ -36,9 +36,10 @@ from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 ANIMATION_LIBRARY_LANE = "animation_library"
 PROCESSOR_NAME = "godot_selective_animation_library"
-PROCESSOR_VERSION = "3"
+PROCESSOR_VERSION = "4"
 TECHNICAL_SCHEMA = "vandrel_foundry_animation_library_technical/1.0"
 HIPS_HORIZONTAL_POLICY = "hold_hips_xz_at_first_key_preserve_y_time_interpolation_v1"
+REST_LEAF_COMPLETION_POLICY = "restore_optimized_identity_hand_rotation_tracks_v1"
 HORIZONTAL_ROOT_TOLERANCE = 0.0001
 MONITOR_SCHEMA = "vandrel_foundry_animation_godot_monitor/1.0"
 VISUAL_REPORT_SCHEMA = "vandrel_foundry_animation_visual_matrix_result/1.0"
@@ -687,6 +688,7 @@ def _validate_technical_report(
             or item.get("hips_horizontal_transform_applied") is not True
             or item.get("hips_vertical_time_interpolation_preserved") is not True
             or not _valid_horizontal_transform_facts(item)
+            or not valid_rest_leaf_completion_facts(item)
             or type(recognized_carriers) is not int
             or recognized_carriers not in (0, 1)
             or type(removed_carriers) is not int
@@ -710,6 +712,97 @@ def _validate_technical_report(
             or item.get("output_library_sha256") != library_sha
         ):
             raise FoundryError(f"Animation technical track contract failed: {item.get('semantic')}")
+
+
+def valid_rest_leaf_completion_facts(item: dict[str, object]) -> bool:
+    animation_length = item.get("optimized_rest_leaf_animation_length")
+    if (
+        item.get("optimized_rest_leaf_completion_policy")
+        != REST_LEAF_COMPLETION_POLICY
+        or item.get("optimized_rest_leaf_completion_passed") is not True
+        or isinstance(animation_length, bool)
+        or not isinstance(animation_length, (int, float))
+        or not math.isfinite(float(animation_length))
+        or float(animation_length) < 0.0
+    ):
+        return False
+    tracks = item.get("optimized_rest_leaf_tracks_added")
+    if not isinstance(tracks, list) or len(tracks) > 2:
+        return False
+    expected_bones = {"LeftHand", "RightHand"}
+    observed_bones: set[str] = set()
+    observed_indices: set[int] = set()
+    required_track_keys = {
+        "bone",
+        "path",
+        "track_index",
+        "track_type",
+        "interpolation_type",
+        "key_count",
+        "keys",
+        "passed",
+    }
+    required_key_keys = {
+        "time",
+        "value_x",
+        "value_y",
+        "value_z",
+        "value_w",
+        "finite",
+        "identity_rotation",
+    }
+    for track in tracks:
+        if not isinstance(track, dict) or set(track) != required_track_keys:
+            return False
+        bone = track.get("bone")
+        track_index = track.get("track_index")
+        key_count = track.get("key_count")
+        keys = track.get("keys")
+        expected_key_count = 1 if float(animation_length) == 0.0 else 2
+        if (
+            not isinstance(bone, str)
+            or bone not in expected_bones
+            or bone in observed_bones
+            or track.get("path") != f"%GeneralSkeleton:{bone}"
+            or type(track_index) is not int
+            or track_index < 0
+            or track_index in observed_indices
+            or type(track.get("track_type")) is not int
+            or track.get("track_type") != 2
+            or type(track.get("interpolation_type")) is not int
+            or track.get("interpolation_type") != 1
+            or type(key_count) is not int
+            or key_count != expected_key_count
+            or not isinstance(keys, list)
+            or len(keys) != expected_key_count
+            or track.get("passed") is not True
+        ):
+            return False
+        expected_times = [0.0] if expected_key_count == 1 else [0.0, float(animation_length)]
+        for key, expected_time in zip(keys, expected_times, strict=True):
+            if not isinstance(key, dict) or set(key) != required_key_keys:
+                return False
+            time = key.get("time")
+            values = [key.get(name) for name in ("value_x", "value_y", "value_z", "value_w")]
+            if (
+                isinstance(time, bool)
+                or not isinstance(time, (int, float))
+                or not math.isfinite(float(time))
+                or float(time) != expected_time
+                or any(
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(float(value))
+                    for value in values
+                )
+                or [float(value) for value in values] != [0.0, 0.0, 0.0, 1.0]
+                or key.get("finite") is not True
+                or key.get("identity_rotation") is not True
+            ):
+                return False
+        observed_bones.add(bone)
+        observed_indices.add(track_index)
+    return True
 
 
 def _valid_horizontal_transform_facts(item: dict[str, object]) -> bool:

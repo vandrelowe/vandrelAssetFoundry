@@ -5,7 +5,9 @@ const REQUEST_PATH := "res://animation-library-runtime.json"
 const OUTPUT_PATH := "res://output/animation_library.res"
 const REPORT_PATH := "res://output/animation-library-technical.json"
 const HIPS_HORIZONTAL_POLICY := "hold_hips_xz_at_first_key_preserve_y_time_interpolation_v1"
+const REST_LEAF_COMPLETION_POLICY := "restore_optimized_identity_hand_rotation_tracks_v1"
 const HORIZONTAL_TOLERANCE := 0.0001
+const REST_LEAF_BONES := ["LeftHand", "RightHand"]
 const EXPECTED_ROTATION_BONES := [
 	"Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
 	"LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand",
@@ -43,11 +45,16 @@ func _init() -> void:
 			failures.append({"semantic": semantic, "reason": "deep_duplicate_failed"})
 			continue
 		var carrier := _strip_known_armature_carrier(animation)
+		var rest_leaf_completion := _complete_optimized_rest_leaf_tracks(animation)
 		var horizontal_transform := _hold_hips_horizontal_at_first_key(animation)
 		var fact := _probe(semantic, motion, animation)
 		fact["known_carrier_track_recognized_count"] = carrier.recognized_count
 		fact["known_carrier_track_removed_count"] = carrier.removed_count
 		fact["known_carrier_tracks"] = carrier.tracks
+		fact["optimized_rest_leaf_completion_policy"] = REST_LEAF_COMPLETION_POLICY
+		fact["optimized_rest_leaf_animation_length"] = rest_leaf_completion.animation_length
+		fact["optimized_rest_leaf_tracks_added"] = rest_leaf_completion.tracks_added
+		fact["optimized_rest_leaf_completion_passed"] = rest_leaf_completion.passed
 		fact["hips_horizontal_transform_policy"] = HIPS_HORIZONTAL_POLICY
 		fact["hips_horizontal_transform_applied"] = horizontal_transform.applied
 		fact["hips_vertical_time_interpolation_preserved"] = horizontal_transform.preserved
@@ -55,7 +62,11 @@ func _init() -> void:
 		fact["hips_horizontal_post_transform"] = horizontal_transform.post_transform
 		fact["hips_preservation_pre_transform"] = horizontal_transform.preservation_pre
 		fact["hips_preservation_post_transform"] = horizontal_transform.preservation_post
-		fact["passed"] = bool(fact.passed) and bool(horizontal_transform.passed)
+		fact["passed"] = (
+			bool(fact.passed)
+			and bool(horizontal_transform.passed)
+			and bool(rest_leaf_completion.passed)
+		)
 		print("FOUNDRY_ANIMATION_TRACK_FACT " + JSON.stringify(fact))
 		facts.append(fact)
 		if not bool(fact.get("passed", false)):
@@ -96,6 +107,77 @@ func _init() -> void:
 	report_file.close()
 	print("FOUNDRY_ANIMATION_LIBRARY_OK animations=%d sha256=%s" % [facts.size(), output_sha])
 	quit(0)
+
+
+func _complete_optimized_rest_leaf_tracks(animation: Animation) -> Dictionary:
+	var tracks_added: Array[Dictionary] = []
+	var animation_length := animation.length
+	var passed := is_finite(animation_length) and animation_length >= 0.0
+	for bone in REST_LEAF_BONES:
+		var path := "%GeneralSkeleton:" + bone
+		var matching_tracks: Array[int] = []
+		for track_index in animation.get_track_count():
+			if (
+				animation.track_get_type(track_index) == Animation.TYPE_ROTATION_3D
+				and str(animation.track_get_path(track_index)) == path
+			):
+				matching_tracks.append(track_index)
+		if not matching_tracks.is_empty():
+			continue
+		var track_index := animation.add_track(Animation.TYPE_ROTATION_3D)
+		animation.track_set_path(track_index, NodePath(path))
+		animation.track_set_interpolation_type(track_index, Animation.INTERPOLATION_LINEAR)
+		animation.track_insert_key(track_index, 0.0, Quaternion.IDENTITY)
+		if animation.length > 0.0:
+			animation.track_insert_key(track_index, animation.length, Quaternion.IDENTITY)
+		var keys: Array[Dictionary] = []
+		var track_passed := (
+			animation.track_get_type(track_index) == Animation.TYPE_ROTATION_3D
+			and str(animation.track_get_path(track_index)) == path
+			and animation.track_get_interpolation_type(track_index) == Animation.INTERPOLATION_LINEAR
+			and animation.track_get_key_count(track_index) == (2 if animation_length > 0.0 else 1)
+		)
+		for key_index in animation.track_get_key_count(track_index):
+			var key_time := animation.track_get_key_time(track_index, key_index)
+			var key_value = animation.track_get_key_value(track_index, key_index)
+			var key_finite := (
+				is_finite(key_time)
+				and key_value is Quaternion
+				and key_value.is_finite()
+			)
+			var key_identity := key_finite and key_value == Quaternion.IDENTITY
+			keys.append({
+				"time": key_time,
+				"value_x": key_value.x if key_value is Quaternion else 0.0,
+				"value_y": key_value.y if key_value is Quaternion else 0.0,
+				"value_z": key_value.z if key_value is Quaternion else 0.0,
+				"value_w": key_value.w if key_value is Quaternion else 0.0,
+				"finite": key_finite,
+				"identity_rotation": key_identity,
+			})
+			track_passed = track_passed and key_identity
+		if not keys.is_empty():
+			track_passed = (
+				track_passed
+				and float(keys[0].time) == 0.0
+				and float(keys[-1].time) == animation_length
+			)
+		passed = passed and track_passed
+		tracks_added.append({
+			"bone": bone,
+			"path": path,
+			"track_index": track_index,
+			"track_type": int(animation.track_get_type(track_index)),
+			"interpolation_type": int(animation.track_get_interpolation_type(track_index)),
+			"key_count": animation.track_get_key_count(track_index),
+			"keys": keys,
+			"passed": track_passed,
+		})
+	return {
+		"animation_length": animation_length,
+		"tracks_added": tracks_added,
+		"passed": passed,
+	}
 
 
 func _strip_known_armature_carrier(animation: Animation) -> Dictionary:
