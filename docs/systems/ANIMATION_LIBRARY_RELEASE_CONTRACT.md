@@ -51,7 +51,10 @@ process job:
 1. initial FBX import;
 2. import configuration with `SkeletonProfileHumanoid`, the accepted 22-bone
    Meshy `BoneMap`, bone renaming, and Rest Fixer settings;
-3. retargeted animation-library import; and
+3. retargeted animation-library import; Godot 4.7.2 may retain one non-bone
+   rotation carrier at the exact path `Armature`, so the finalizer removes
+   that exact known carrier only when it occurs once and records the recognized
+   and removed track in technical evidence; and
 4. finalization plus technical probe; and
 5. isolated validation after removing source FBXs and the prior import cache.
 
@@ -66,7 +69,9 @@ one `.res` `AnimationLibrary` containing exactly the selected semantics. The
 finished-library phase must load without source FBXs, prior import cache, or
 external dependencies. Every semantic must have exactly one Hips position
 track, exactly 22 unique mapped rotation tracks, no scale tracks, no non-Hips
-position tracks, no other tracks, and finite key values. The technical report
+position tracks, no other tracks after the one exact known-carrier operation,
+and finite key values. Any different path, type, or duplicate carrier remains
+in the animation and fails the unchanged strict track-shape probe. The technical report
 binds each semantic and exact source SHA-256 to the exact complete
 output-library SHA-256. Technical PASS does not constitute visual acceptance.
 

@@ -35,7 +35,7 @@ from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
 ANIMATION_LIBRARY_LANE = "animation_library"
 PROCESSOR_NAME = "godot_selective_animation_library"
-PROCESSOR_VERSION = "1"
+PROCESSOR_VERSION = "2"
 TECHNICAL_SCHEMA = "vandrel_foundry_animation_library_technical/1.0"
 MONITOR_SCHEMA = "vandrel_foundry_animation_godot_monitor/1.0"
 VISUAL_REPORT_SCHEMA = "vandrel_foundry_animation_visual_matrix_result/1.0"
@@ -668,6 +668,9 @@ def _validate_technical_report(
     ] != expected:
         raise FoundryError("Animation technical report membership differs from intake.")
     for item in motions:
+        carrier_tracks = item.get("known_carrier_tracks")
+        recognized_carriers = item.get("known_carrier_track_recognized_count")
+        removed_carriers = item.get("known_carrier_track_removed_count")
         if (
             item.get("passed") is not True
             or item.get("hips_position_track_count") != 1
@@ -676,6 +679,26 @@ def _validate_technical_report(
             or item.get("non_hips_position_track_count") != 0
             or item.get("other_track_count") != 0
             or item.get("finite_keys") is not True
+            or type(recognized_carriers) is not int
+            or recognized_carriers not in (0, 1)
+            or type(removed_carriers) is not int
+            or removed_carriers != recognized_carriers
+            or not isinstance(carrier_tracks, list)
+            or len(carrier_tracks) != recognized_carriers
+            or any(
+                not isinstance(track, dict)
+                or set(track)
+                != {"track_index", "path", "type", "key_count", "removed"}
+                or type(track.get("track_index")) is not int
+                or track.get("track_index") < 0
+                or track.get("path") != "Armature"
+                or type(track.get("type")) is not int
+                or track.get("type") != 2
+                or type(track.get("key_count")) is not int
+                or track.get("key_count") < 0
+                or track.get("removed") is not True
+                for track in carrier_tracks
+            )
             or item.get("output_library_sha256") != library_sha
         ):
             raise FoundryError(f"Animation technical track contract failed: {item.get('semantic')}")

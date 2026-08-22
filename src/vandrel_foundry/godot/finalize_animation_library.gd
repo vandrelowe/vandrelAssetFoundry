@@ -40,7 +40,11 @@ func _init() -> void:
 		if animation == null:
 			failures.append({"semantic": semantic, "reason": "deep_duplicate_failed"})
 			continue
+		var carrier := _strip_known_armature_carrier(animation)
 		var fact := _probe(semantic, motion, animation)
+		fact["known_carrier_track_recognized_count"] = carrier.recognized_count
+		fact["known_carrier_track_removed_count"] = carrier.removed_count
+		fact["known_carrier_tracks"] = carrier.tracks
 		print("FOUNDRY_ANIMATION_TRACK_FACT " + JSON.stringify(fact))
 		facts.append(fact)
 		if not bool(fact.get("passed", false)):
@@ -80,6 +84,31 @@ func _init() -> void:
 	report_file.close()
 	print("FOUNDRY_ANIMATION_LIBRARY_OK animations=%d sha256=%s" % [facts.size(), output_sha])
 	quit(0)
+
+
+func _strip_known_armature_carrier(animation: Animation) -> Dictionary:
+	var matches: Array[Dictionary] = []
+	for track_index in animation.get_track_count():
+		var track_type := animation.track_get_type(track_index)
+		var track_path := str(animation.track_get_path(track_index))
+		if track_type == Animation.TYPE_ROTATION_3D and track_path == "Armature":
+			matches.append({
+				"track_index": track_index,
+				"path": track_path,
+				"type": int(track_type),
+				"key_count": animation.track_get_key_count(track_index),
+				"removed": false,
+			})
+	var removed_count := 0
+	if matches.size() == 1:
+		animation.remove_track(int(matches[0].track_index))
+		matches[0]["removed"] = true
+		removed_count = 1
+	return {
+		"recognized_count": matches.size(),
+		"removed_count": removed_count,
+		"tracks": matches,
+	}
 
 
 func _probe(semantic: String, motion: Dictionary, animation: Animation) -> Dictionary:

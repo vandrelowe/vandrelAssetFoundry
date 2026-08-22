@@ -133,6 +133,17 @@ def _fake_pipeline(config, sandbox: Path) -> AnimationPipelineExecution:
                 "non_hips_position_track_count": 0,
                 "other_track_count": 0,
                 "finite_keys": True,
+                "known_carrier_track_recognized_count": 1,
+                "known_carrier_track_removed_count": 1,
+                "known_carrier_tracks": [
+                    {
+                        "track_index": 0,
+                        "path": "Armature",
+                        "type": 2,
+                        "key_count": 2,
+                        "removed": True,
+                    }
+                ],
                 "output_library_sha256": library_sha,
                 "passed": True,
             }
@@ -362,6 +373,10 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
     assert '"%GeneralSkeleton:" + bone' in script
     assert '"%GeneralSkeleton:%s" % bone' not in script
     assert 'print("FOUNDRY_ANIMATION_TRACK_FACT " + JSON.stringify(fact))' in script
+    assert "var carrier := _strip_known_armature_carrier(animation)" in script
+    assert 'track_path == "Armature"' in script
+    assert "animation.remove_track(int(matches[0].track_index))" in script
+    assert 'fact["known_carrier_track_removed_count"] = carrier.removed_count' in script
     assert '"unexpected_tracks": unexpected_tracks' in script
     assert '"non_finite_keys": non_finite_keys' in script
 
@@ -374,6 +389,107 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
     assert "\t\t\tcontinue" in loop_body[technical_check:]
     assert "_fail(" not in loop_body
     assert 'print("FOUNDRY_ANIMATION_FAILURE_SUMMARY "' in script[failure_gate:]
+
+
+def test_normalization_rejects_missing_known_carrier_evidence(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+
+    def missing_carrier_evidence(config, sandbox: Path) -> AnimationPipelineExecution:
+        execution = _fake_pipeline(config, sandbox)
+        report = json.loads(execution.technical_report.read_text(encoding="utf-8"))
+        for motion in report["motions"]:
+            motion.pop("known_carrier_tracks")
+            motion.pop("known_carrier_track_recognized_count")
+            motion.pop("known_carrier_track_removed_count")
+        execution.technical_report.write_text(json.dumps(report), encoding="utf-8")
+        return execution
+
+    with pytest.raises(FoundryError, match="technical track contract failed"):
+        normalize_animation_library(config, ASSET_ID, runner=missing_carrier_evidence)
+
+
+@pytest.mark.parametrize(
+    "malformation",
+    [
+        "boolean_recognized",
+        "unhashable_recognized",
+        "duplicate_count",
+        "wrong_path",
+        "wrong_type",
+        "missing_track_index",
+        "boolean_track_index",
+        "negative_track_index",
+        "missing_key_count",
+        "boolean_key_count",
+        "negative_key_count",
+    ],
+)
+def test_normalization_rejects_malformed_known_carrier_evidence(
+    config, prompt, tmp_path, malformation
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+
+    def malformed_carrier_evidence(config, sandbox: Path) -> AnimationPipelineExecution:
+        execution = _fake_pipeline(config, sandbox)
+        report = json.loads(execution.technical_report.read_text(encoding="utf-8"))
+        motion = report["motions"][0]
+        track = motion["known_carrier_tracks"][0]
+        if malformation == "boolean_recognized":
+            motion["known_carrier_track_recognized_count"] = True
+        elif malformation == "unhashable_recognized":
+            motion["known_carrier_track_recognized_count"] = []
+        elif malformation == "duplicate_count":
+            motion["known_carrier_track_recognized_count"] = 2
+            motion["known_carrier_track_removed_count"] = 2
+            motion["known_carrier_tracks"].append(dict(track))
+        elif malformation == "wrong_path":
+            track["path"] = "Armature/Skeleton3D"
+        elif malformation == "wrong_type":
+            track["type"] = 1
+        elif malformation == "missing_track_index":
+            track.pop("track_index")
+        elif malformation == "boolean_track_index":
+            track["track_index"] = True
+        elif malformation == "negative_track_index":
+            track["track_index"] = -1
+        elif malformation == "missing_key_count":
+            track.pop("key_count")
+        elif malformation == "boolean_key_count":
+            track["key_count"] = False
+        elif malformation == "negative_key_count":
+            track["key_count"] = -1
+        execution.technical_report.write_text(json.dumps(report), encoding="utf-8")
+        return execution
+
+    with pytest.raises(FoundryError, match="technical track contract failed"):
+        normalize_animation_library(config, ASSET_ID, runner=malformed_carrier_evidence)
+
+
+def test_normalization_accepts_explicit_zero_carrier_evidence(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+
+    def zero_carrier_evidence(config, sandbox: Path) -> AnimationPipelineExecution:
+        execution = _fake_pipeline(config, sandbox)
+        report = json.loads(execution.technical_report.read_text(encoding="utf-8"))
+        for motion in report["motions"]:
+            motion["known_carrier_track_recognized_count"] = 0
+            motion["known_carrier_track_removed_count"] = 0
+            motion["known_carrier_tracks"] = []
+        execution.technical_report.write_text(json.dumps(report), encoding="utf-8")
+        return execution
+
+    execution = normalize_animation_library(config, ASSET_ID, runner=zero_carrier_evidence)
+    assert execution.animation_library.is_file()
 
 
 def test_primary_operation_failure_retains_staging_and_restores_context(
