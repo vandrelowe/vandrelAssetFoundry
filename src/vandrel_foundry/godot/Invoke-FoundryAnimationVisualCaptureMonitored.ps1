@@ -74,7 +74,7 @@ $preflights = [ordered]@{
     initial_process_zero = $false
 }
 $phaseSpecs = @(
-    [ordered]@{ name = 'import'; arguments = @('--import', '--quit-after', '600') },
+    [ordered]@{ name = 'import'; arguments = @('--headless', '--import', '--quit-after', '600') },
     [ordered]@{
         name = 'capture'
         arguments = @('--script', 'res://capture_animation_visual_matrix.gd')
@@ -164,7 +164,7 @@ try {
                 throw "Monitored visual-capture phase output already exists: $path"
             }
         }
-        $arguments = @('--headless', '--path', $resolvedSandbox) + @($phase.arguments) + @('--log-file', $godotLog)
+        $arguments = @('--path', $resolvedSandbox) + @($phase.arguments) + @('--log-file', $godotLog)
         $process = $null
         $phaseStarted = [DateTime]::UtcNow
         $phaseExit = $null

@@ -722,14 +722,17 @@ def test_visual_capture_supervisor_constructs_exact_engine_argv() -> None:
     assert "$resolvedSandbox = (Resolve-Path -LiteralPath $SandboxPath).Path" in supervisor
     assert "-WorkingDirectory $resolvedSandbox" in supervisor
     assert (
-        "$arguments = @('--headless', '--path', $resolvedSandbox) + "
+        "$arguments = @('--path', $resolvedSandbox) + "
         "@($phase.arguments) + @('--log-file', $godotLog)"
     ) in supervisor
+    import_spec = supervisor.split("name = 'import'", 1)[1].split(" },", 1)[0]
+    assert "--headless" in import_spec
     assert (
         "arguments = @('--script', "
         "'res://capture_animation_visual_matrix.gd')"
     ) in supervisor
     capture_spec = supervisor.split("name = 'capture'", 1)[1].split(")\n", 1)[0]
+    assert "--headless" not in capture_spec
     assert "--quit-after" not in capture_spec
     assert "'--'" not in supervisor
 
