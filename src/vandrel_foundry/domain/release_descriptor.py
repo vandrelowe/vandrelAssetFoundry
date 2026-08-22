@@ -57,6 +57,13 @@ ReleaseFileRole = Literal[
     "custody_license_evidence",
     "humanoid_compatibility_report",
     "creature_playback_report",
+    "clean_body_buffer",
+    "clean_body_albedo",
+    "clean_body_processing_report",
+    "clean_body_technical_report",
+    "clean_body_godot_monitor_report",
+    "clean_body_visual_review_report",
+    "clean_body_visual_evidence",
 ]
 
 
@@ -255,6 +262,29 @@ class ReleaseAnimationLibraryV2(ReleaseModel):
         return self
 
 
+class ReleaseSharedAnimationReferenceV2(ReleaseModel):
+    asset_id: AssetId
+    release_revision: ReleaseRevision
+    output_sha256: Sha256
+
+
+class ReleaseCleanBodyV2(ReleaseModel):
+    evidence_route: Literal["clean_body_shared_animation"]
+    candidate_only: Literal[True]
+    vandrel_runtime_accepted: Literal[False]
+    shared_animation_pool_compatible: Literal[True]
+    embedded_animations_disabled: Literal[True]
+    import_policy: Literal["godot_clean_body_humanoid_bone_map_rest_fixer_v1"]
+    material_policy: Literal["external_lit_principled_albedo_v1"]
+    output_sha256: Sha256
+    dependency_sha256s: list[Sha256] = Field(min_length=2, max_length=2)
+    shared_animation_library: ReleaseSharedAnimationReferenceV2
+    processing_report: PackagedHumanoidReportV2
+    technical_report: PackagedHumanoidReportV2
+    monitor_report: PackagedHumanoidReportV2
+    visual_review_report: PackagedHumanoidReportV2
+
+
 class RetargetHumanoidCompatibilityV2(ReleaseModel):
     evidence_route: Literal["retarget_mapping"]
     candidate_only: Literal[True]
@@ -347,11 +377,12 @@ class ReleaseDescriptorV2(ReleaseModel):
     display_name: str = Field(min_length=1)
     lane: str = Field(min_length=1)
     files: list[ReleaseFileV2] = Field(min_length=1)
-    primary_payload: Literal["model", "animation_library"] | None = None
+    primary_payload: Literal["model", "animation_library", "clean_body"] | None = None
     godot: ReleaseGodotV2
     technical: ReleaseTechnicalV2
     custody: ReleaseCustodyV2
     animation_library: ReleaseAnimationLibraryV2 | None = None
+    clean_body: ReleaseCleanBodyV2 | None = None
     humanoid_compatibility: HumanoidCompatibilityV2 | None = None
     scale_calibration: ReleaseScaleCalibrationV2 | None = None
     provenance: ReleaseProvenanceV2
@@ -365,9 +396,9 @@ class ReleaseDescriptorV2(ReleaseModel):
         library_files = [item for item in self.files if item.role == "animation_library"]
         effective_primary = self.primary_payload or "model"
         if effective_primary == "model":
-            if model_count != 1 or library_files or self.animation_library is not None:
+            if model_count != 1 or library_files or self.animation_library is not None or self.clean_body is not None:
                 raise ValueError("Model-primary release requires exactly one model file.")
-        elif (
+        elif effective_primary == "animation_library" and (
             model_count != 0
             or len(library_files) != 1
             or self.animation_library is None
@@ -376,6 +407,33 @@ class ReleaseDescriptorV2(ReleaseModel):
             raise ValueError(
                 "Animation-library-primary release requires one exact library and no model."
             )
+        elif effective_primary == "clean_body":
+            allowed_roles = {
+                "model",
+                "clean_body_buffer",
+                "clean_body_albedo",
+                "clean_body_processing_report",
+                "clean_body_technical_report",
+                "clean_body_godot_monitor_report",
+                "clean_body_visual_review_report",
+                "clean_body_visual_evidence",
+                "custody_license_evidence",
+            }
+            if (
+                model_count != 1
+                or library_files
+                or self.animation_library is not None
+                or self.clean_body is None
+                or self.humanoid_compatibility is not None
+                or any(item.role not in allowed_roles for item in self.files)
+                or any(item.path.casefold().endswith((".import", ".tscn", ".fbx", ".res")) for item in self.files)
+                or sum(item.role == "clean_body_buffer" for item in self.files) != 1
+                or sum(item.role == "clean_body_albedo" for item in self.files) != 1
+                or sum(item.role == "clean_body_visual_evidence" for item in self.files) < 4
+                or next(item for item in self.files if item.role == "model").sha256
+                != self.clean_body.output_sha256
+            ):
+                raise ValueError("Clean-body-primary release requires one exact body model.")
         file_bindings = {
             (
                 item.role,
@@ -441,6 +499,18 @@ class ReleaseDescriptorV2(ReleaseModel):
                     raise ValueError(
                         "Animation-library evidence is not bound to its exact release file."
                     )
+        if self.clean_body is not None:
+            for role, report in (
+                ("clean_body_processing_report", self.clean_body.processing_report),
+                ("clean_body_technical_report", self.clean_body.technical_report),
+                ("clean_body_godot_monitor_report", self.clean_body.monitor_report),
+                ("clean_body_visual_review_report", self.clean_body.visual_review_report),
+            ):
+                if (role, report.release_path, report.sha256, report.size_bytes, report.source_artifact_id) not in file_bindings:
+                    raise ValueError("Clean-body evidence is not bound to its exact release file.")
+            dependencies = {item.sha256 for item in self.files if item.role in {"clean_body_buffer", "clean_body_albedo"}}
+            if dependencies != set(self.clean_body.dependency_sha256s):
+                raise ValueError("Clean-body dependencies do not bind the packaged buffer and albedo.")
         return self
 
 

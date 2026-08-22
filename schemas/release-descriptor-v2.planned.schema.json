@@ -269,6 +269,94 @@
       "title": "ReleaseAnimationSourceV2",
       "type": "object"
     },
+    "ReleaseCleanBodyV2": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_route": {
+          "const": "clean_body_shared_animation",
+          "title": "Evidence Route",
+          "type": "string"
+        },
+        "candidate_only": {
+          "const": true,
+          "title": "Candidate Only",
+          "type": "boolean"
+        },
+        "vandrel_runtime_accepted": {
+          "const": false,
+          "title": "Vandrel Runtime Accepted",
+          "type": "boolean"
+        },
+        "shared_animation_pool_compatible": {
+          "const": true,
+          "title": "Shared Animation Pool Compatible",
+          "type": "boolean"
+        },
+        "embedded_animations_disabled": {
+          "const": true,
+          "title": "Embedded Animations Disabled",
+          "type": "boolean"
+        },
+        "import_policy": {
+          "const": "godot_clean_body_humanoid_bone_map_rest_fixer_v1",
+          "title": "Import Policy",
+          "type": "string"
+        },
+        "material_policy": {
+          "const": "external_lit_principled_albedo_v1",
+          "title": "Material Policy",
+          "type": "string"
+        },
+        "output_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Output Sha256",
+          "type": "string"
+        },
+        "dependency_sha256s": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Dependency Sha256S",
+          "type": "array"
+        },
+        "shared_animation_library": {
+          "$ref": "#/$defs/ReleaseSharedAnimationReferenceV2"
+        },
+        "processing_report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        },
+        "technical_report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        },
+        "monitor_report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        },
+        "visual_review_report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        }
+      },
+      "required": [
+        "evidence_route",
+        "candidate_only",
+        "vandrel_runtime_accepted",
+        "shared_animation_pool_compatible",
+        "embedded_animations_disabled",
+        "import_policy",
+        "material_policy",
+        "output_sha256",
+        "dependency_sha256s",
+        "shared_animation_library",
+        "processing_report",
+        "technical_report",
+        "monitor_report",
+        "visual_review_report"
+      ],
+      "title": "ReleaseCleanBodyV2",
+      "type": "object"
+    },
     "ReleaseCustodyContributionV2": {
       "additionalProperties": false,
       "properties": {
@@ -577,7 +665,14 @@
             "animation_run",
             "custody_license_evidence",
             "humanoid_compatibility_report",
-            "creature_playback_report"
+            "creature_playback_report",
+            "clean_body_buffer",
+            "clean_body_albedo",
+            "clean_body_processing_report",
+            "clean_body_technical_report",
+            "clean_body_godot_monitor_report",
+            "clean_body_visual_review_report",
+            "clean_body_visual_evidence"
           ],
           "title": "Role",
           "type": "string"
@@ -769,6 +864,34 @@
         "approved_at"
       ],
       "title": "ReleaseScaleCalibrationV2",
+      "type": "object"
+    },
+    "ReleaseSharedAnimationReferenceV2": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_id": {
+          "pattern": "^[a-z0-9][a-z0-9_]{2,63}$",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "release_revision": {
+          "maximum": 999,
+          "minimum": 1,
+          "title": "Release Revision",
+          "type": "integer"
+        },
+        "output_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Output Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "asset_id",
+        "release_revision",
+        "output_sha256"
+      ],
+      "title": "ReleaseSharedAnimationReferenceV2",
       "type": "object"
     },
     "ReleaseTechnicalV2": {
@@ -1113,7 +1236,8 @@
         {
           "enum": [
             "model",
-            "animation_library"
+            "animation_library",
+            "clean_body"
           ],
           "type": "string"
         },
@@ -1137,6 +1261,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/ReleaseAnimationLibraryV2"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "clean_body": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReleaseCleanBodyV2"
         },
         {
           "type": "null"

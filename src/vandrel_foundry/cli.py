@@ -11,6 +11,7 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.lanes import LaneConfiguration
 from vandrel_foundry.domain.states import WorkflowState, next_actions
 from vandrel_foundry.providers.meshy.http import MeshyHttpTransport
+from vandrel_foundry.services.add_clean_meshy_body_package import add_clean_meshy_body_package
 from vandrel_foundry.services.add_meshy_native_animation_package import (
     add_meshy_native_animation_package,
 )
@@ -53,6 +54,9 @@ from vandrel_foundry.services.download_artifact import download_text_preview_glb
 from vandrel_foundry.services.experiment_semantic_mask import experiment_semantic_mask
 from vandrel_foundry.services.experiment_shaders import experiment_shader_variants
 from vandrel_foundry.services.graft_animations import graft_animations
+from vandrel_foundry.services.import_clean_meshy_body_visual_review import (
+    import_clean_meshy_body_visual_review,
+)
 from vandrel_foundry.services.import_consumer_validation import (
     import_vandrel_character_validation,
 )
@@ -83,6 +87,7 @@ from vandrel_foundry.services.preview_package import (
 )
 from vandrel_foundry.services.process_asset import process_passthrough
 from vandrel_foundry.services.process_blender import process_with_blender
+from vandrel_foundry.services.process_clean_meshy_body import process_clean_meshy_body
 from vandrel_foundry.services.provider_custody import bind_provider_custody
 from vandrel_foundry.services.publish_release import publish_release
 from vandrel_foundry.services.quantize_semantic_mask import quantize_semantic_mask
@@ -116,6 +121,7 @@ from vandrel_foundry.services.submit_preview import (
 from vandrel_foundry.services.supersede_meshy_native_intake_provenance import (
     supersede_meshy_native_intake_provenance,
 )
+from vandrel_foundry.services.validate_clean_meshy_body import validate_clean_meshy_body
 from vandrel_foundry.services.validate_godot import validate_godot_sandbox
 from vandrel_foundry.services.validate_humanoid_retarget import validate_humanoid_retarget
 from vandrel_foundry.services.validate_meshy_native_character_release import (
@@ -1431,6 +1437,42 @@ def render_missing(
     except FoundryError as exc:
         fail(exc)
     console.print(f"[green]Rendered[/green] {len(artifacts)} missing previews")
+
+
+@app.command("intake-clean-meshy-body")
+def intake_clean_meshy_body(asset_id: str, request: Annotated[Path, typer.Option("--request")], config: Annotated[Path | None, typer.Option("--config")] = None) -> None:
+    """Intake one exact request-bound clean-body provider ZIP."""
+    try:
+        artifacts = add_clean_meshy_body_package(load_config(config), asset_id, request)
+        console.print(f"[green]Clean body package added[/green] {len(artifacts)} artifacts")
+    except (FoundryError, OSError, ValueError) as exc: fail(exc)
+
+
+@app.command("process-clean-meshy-body")
+def process_clean_body(asset_id: str, config: Annotated[Path | None, typer.Option("--config")] = None) -> None:
+    """Create the animation-free external-material body payload in Blender."""
+    try:
+        artifacts = process_clean_meshy_body(load_config(config), asset_id)
+        console.print(f"[green]Clean body processed[/green] {len(artifacts)} artifacts")
+    except (FoundryError, OSError, ValueError) as exc: fail(exc)
+
+
+@app.command("validate-clean-meshy-body")
+def validate_clean_body(asset_id: str, request: Annotated[Path, typer.Option("--request")], config: Annotated[Path | None, typer.Option("--config")] = None) -> None:
+    """Run dedicated monitored Godot technical validation and manual-null capture."""
+    try:
+        artifacts = validate_clean_meshy_body(load_config(config), asset_id, request)
+        console.print(f"[green]Clean body captured for manual review[/green] {len(artifacts)} artifacts")
+    except (FoundryError, OSError, ValueError) as exc: fail(exc)
+
+
+@app.command("import-clean-meshy-body-visual-review")
+def import_clean_body_review(asset_id: str, request: Annotated[Path, typer.Option("--request")], config: Annotated[Path | None, typer.Option("--config")] = None) -> None:
+    """Import exact manual PASS/FAIL cells for one clean body."""
+    try:
+        artifacts = import_clean_meshy_body_visual_review(load_config(config), asset_id, request)
+        console.print(f"[green]Clean body review imported[/green] {len(artifacts)} artifacts")
+    except (FoundryError, OSError, ValueError) as exc: fail(exc)
 
 
 @app.command("prepare-godot")

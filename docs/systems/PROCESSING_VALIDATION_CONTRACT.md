@@ -568,7 +568,17 @@ required by CI.
 
 Godot command-line behavior follows the stable engine documentation:
 <https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html>.
-The validator uses `--headless`, `--path`, `--import`, and a sandbox-local log.
+The validator uses `--headless`, `--path`, `--import`, an engine-owned finite
+iteration bomb, and a sandbox-local log. On Windows it launches only the Godot
+console executable through the Foundry-owned monitored supervisor. The
+supervisor requires Godot process-zero, applies `DOTNET_ROLL_FORWARD=LatestMajor`
+to the child only, owns a finite outer timeout and run-owned process-tree
+cleanup, polls for Godot application-error windows during execution and for at
+least five seconds after exit, records Application/.NET/WER/dump evidence,
+rejects crash evidence even after exit zero, and finishes with a Godot process
+inventory. The exact crash-evidence JSON is retained as an immutable validation
+artifact. Missing or malformed supervisor evidence fails before candidate
+workflow mutation.
 
 Blender command-line behavior follows the official manual:
 <https://docs.blender.org/manual/en/latest/advanced/command_line/arguments.html>.

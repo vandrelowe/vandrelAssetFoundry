@@ -56,6 +56,7 @@ ANIMATION_LIBRARY_IMPORT_POLICY_V1 = (
 ANIMATION_LIBRARY_IMPORT_POLICY_V2 = (
     "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
 )
+CLEAN_BODY_PROCESSOR = "blender_clean_meshy_body"
 UNSAFE_RELEASE_COMPONENT = re.compile(r"[^a-zA-Z0-9._-]+")
 PORTABLE_TECHNICAL_FIELDS = {
     "triangle_count",
@@ -111,8 +112,17 @@ def plan_release(
     format_release_revision(revision)
     asset_root = config.foundry.workspace_root / "assets" / asset_id
     files: list[dict[str, Any]] = []
-    humanoid_compatibility, humanoid_report = _humanoid_release_evidence(manifest, asset_root)
+    processed_models = [item for item in manifest.artifacts if item.role == "processed_model"]
+    clean_body_route = bool(
+        processed_models
+        and processed_models[-1].processor is not None
+        and processed_models[-1].processor.name == CLEAN_BODY_PROCESSOR
+    )
+    humanoid_compatibility, humanoid_report = (
+        (None, None) if clean_body_route else _humanoid_release_evidence(manifest, asset_root)
+    )
     animation_library_evidence = None
+    clean_body_evidence = None
     if manifest.asset.lane == ANIMATION_LIBRARY_LANE:
         animation_library_evidence, animation_files = _animation_library_release_evidence(
             manifest, asset_root
@@ -136,8 +146,15 @@ def plan_release(
                 "source_artifact_id": model.artifact_id,
             }
         )
+        if clean_body_route:
+            clean_body_evidence, clean_files = _clean_body_release_evidence(
+                manifest, asset_root, model
+            )
+            files.extend(clean_files)
     for source_role, (release_path, release_role) in RELEASE_ROLES.items():
         if manifest.asset.lane == ANIMATION_LIBRARY_LANE:
+            continue
+        if clean_body_route:
             continue
         if source_role == "creature_playback_report" and manifest.asset.lane != "creature":
             continue
@@ -221,7 +238,7 @@ def plan_release(
     godot_check_name = (
         "animation_library_monitored_godot"
         if manifest.asset.lane == ANIMATION_LIBRARY_LANE
-        else "godot_sandbox_import"
+        else ("clean_body_monitored_godot" if clean_body_route else "godot_sandbox_import")
     )
     godot_checks = [
         check for check in manifest.validation.checks if check.get("name") == godot_check_name
@@ -252,7 +269,7 @@ def plan_release(
                 "animation_library": animation_library_evidence,
             }
             if animation_library_evidence is not None
-            else {}
+            else ({"primary_payload": "clean_body", "clean_body": clean_body_evidence} if clean_body_evidence is not None else {})
         ),
         "godot": {
             "import_validated": bool(godot_checks and godot_checks[-1].get("passed")),
@@ -358,6 +375,62 @@ def plan_release(
         destination=library_asset_root / format_release_revision(revision),
         descriptor=descriptor,
     )
+
+
+def _clean_body_release_evidence(
+    manifest: AssetManifest, asset_root: Path, model: Artifact
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    specs = (
+        ("processed_clean_body_buffer", "clean_body_buffer", "model/body.bin"),
+        ("processed_clean_body_albedo", "clean_body_albedo", "model/albedo.png"),
+        ("clean_body_processing_report", "clean_body_processing_report", "evidence/clean-body/processing.json"),
+        ("clean_body_technical_report", "clean_body_technical_report", "evidence/clean-body/technical.json"),
+        ("clean_body_godot_monitor_report", "clean_body_godot_monitor_report", "evidence/clean-body/monitor.json"),
+        ("clean_body_visual_review_report", "clean_body_visual_review_report", "evidence/clean-body/visual-review.json"),
+    )
+    files: list[dict[str, Any]] = []
+    reports: dict[str, dict[str, Any]] = {}
+    dependencies: list[str] = []
+    for source_role, release_role, path in specs:
+        artifact = _approved_artifact(manifest, asset_root, source_role)
+        files.append({"role": release_role, "path": path, "sha256": artifact.sha256, "size_bytes": artifact.size_bytes, "source_artifact_id": artifact.artifact_id})
+        if release_role in {"clean_body_buffer", "clean_body_albedo"}:
+            dependencies.append(artifact.sha256)
+        else:
+            reports[source_role] = {"release_path": path, "sha256": artifact.sha256, "size_bytes": artifact.size_bytes, "source_artifact_id": artifact.artifact_id}
+    review = _approved_artifact(manifest, asset_root, "clean_body_visual_review_report")
+    by_id = {item.artifact_id: item for item in manifest.artifacts}
+    for index, artifact_id in enumerate(review.derived_from, start=1):
+        artifact = by_id.get(artifact_id)
+        if artifact is None or artifact.role != "clean_body_visual_evidence":
+            continue
+        if manifest.approval.approved_artifact_hashes.get(f"artifact:{artifact_id}") != artifact.sha256:
+            raise FoundryError("Clean-body visual evidence is not approval-bound.")
+        _verify_artifact(asset_root, artifact)
+        files.append({"role": "clean_body_visual_evidence", "path": f"evidence/clean-body/cells/{index:03d}.{artifact.format}", "sha256": artifact.sha256, "size_bytes": artifact.size_bytes, "source_artifact_id": artifact.artifact_id})
+    checks = {str(item.get("name")): item for item in manifest.validation.checks}
+    technical = checks.get("clean_body_technical_probe", {})
+    library_asset_id = technical.get("shared_animation_library_asset_id")
+    library_revision = technical.get("shared_animation_library_release_revision")
+    library_sha = technical.get("shared_animation_library_sha256")
+    if not isinstance(library_asset_id, str) or not isinstance(library_revision, int) or not isinstance(library_sha, str):
+        raise FoundryError("Clean-body technical evidence lacks an immutable shared-library binding.")
+    return ({
+        "evidence_route": "clean_body_shared_animation",
+        "candidate_only": True,
+        "vandrel_runtime_accepted": False,
+        "shared_animation_pool_compatible": True,
+        "embedded_animations_disabled": True,
+        "import_policy": "godot_clean_body_humanoid_bone_map_rest_fixer_v1",
+        "material_policy": "external_lit_principled_albedo_v1",
+        "output_sha256": model.sha256,
+        "dependency_sha256s": dependencies,
+        "shared_animation_library": {"asset_id": library_asset_id, "release_revision": library_revision, "output_sha256": library_sha},
+        "processing_report": reports["clean_body_processing_report"],
+        "technical_report": reports["clean_body_technical_report"],
+        "monitor_report": reports["clean_body_godot_monitor_report"],
+        "visual_review_report": reports["clean_body_visual_review_report"],
+    }, files)
 
 
 def _humanoid_release_evidence(

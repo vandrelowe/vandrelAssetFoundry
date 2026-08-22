@@ -293,7 +293,30 @@ def _v2_evidence_roles_reconcile(
     model_files = [item for item in files if item.get("role") == "model"]
     library_files = [item for item in files if item.get("role") == "animation_library"]
     animation_library = descriptor.get("animation_library")
-    if lane == "animation_library":
+    if primary_payload == "clean_body":
+        clean_body = descriptor.get("clean_body")
+        if (
+            lane != "humanoid"
+            or len(model_files) != 1
+            or library_files
+            or animation_library is not None
+            or not isinstance(clean_body, dict)
+            or model_files[0].get("sha256") != clean_body.get("output_sha256")
+        ):
+            return False
+        for role, report_name in (
+            ("clean_body_processing_report", "processing_report"),
+            ("clean_body_technical_report", "technical_report"),
+            ("clean_body_godot_monitor_report", "monitor_report"),
+            ("clean_body_visual_review_report", "visual_review_report"),
+        ):
+            report = clean_body.get(report_name)
+            if not isinstance(report, dict) or (role, report.get("release_path"), report.get("sha256"), report.get("size_bytes"), report.get("source_artifact_id")) not in file_bindings:
+                return False
+        dependency_hashes = {item.get("sha256") for item in files if item.get("role") in {"clean_body_buffer", "clean_body_albedo"}}
+        if dependency_hashes != set(clean_body.get("dependency_sha256s", [])):
+            return False
+    elif lane == "animation_library":
         if (
             primary_payload != "animation_library"
             or model_files

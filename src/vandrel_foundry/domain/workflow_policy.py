@@ -46,6 +46,16 @@ ANIMATION_LIBRARY_APPROVAL_ROLES = (
     "animation_library_isolation_report",
     "animation_library_visual_matrix_report",
 )
+CLEAN_BODY_PROCESSOR = "blender_clean_meshy_body"
+CLEAN_BODY_APPROVAL_ROLES = (
+    "processed_model",
+    "processed_clean_body_buffer",
+    "processed_clean_body_albedo",
+    "clean_body_processing_report",
+    "clean_body_technical_report",
+    "clean_body_godot_monitor_report",
+    "clean_body_visual_review_report",
+)
 
 
 ALLOWED_WORKFLOW_TRANSITIONS: dict[WorkflowState, frozenset[WorkflowState]] = {
@@ -160,6 +170,8 @@ def approval_artifact_roles(manifest: AssetManifest) -> tuple[str, ...]:
     if manifest.asset.lane == ANIMATION_LIBRARY_LANE:
         return ANIMATION_LIBRARY_APPROVAL_ROLES
     processor_name = _current_processed_model_processor(manifest)
+    if processor_name == CLEAN_BODY_PROCESSOR:
+        return CLEAN_BODY_APPROVAL_ROLES
     return BASE_APPROVAL_ROLES + (
         PROVIDER_NATIVE_APPROVAL_ROLES if processor_name == PROVIDER_NATIVE_PROCESSOR else ()
     ) + (
@@ -189,6 +201,15 @@ def approval_artifact_bindings(manifest: AssetManifest) -> dict[str, str]:
         for artifact_id in reports[-1].derived_from:
             artifact = by_id.get(artifact_id)
             if artifact is not None and artifact.role == "animation_visual_evidence":
+                bindings[f"artifact:{artifact_id}"] = artifact.sha256
+    if _current_processed_model_processor(manifest) == CLEAN_BODY_PROCESSOR:
+        reports = [item for item in manifest.artifacts if item.role == "clean_body_visual_review_report"]
+        if not reports:
+            raise FoundryError("Clean-body visual review report is missing.")
+        by_id = {item.artifact_id: item for item in manifest.artifacts}
+        for artifact_id in reports[-1].derived_from:
+            artifact = by_id.get(artifact_id)
+            if artifact is not None and artifact.role == "clean_body_visual_evidence":
                 bindings[f"artifact:{artifact_id}"] = artifact.sha256
     return bindings
 
@@ -244,6 +265,24 @@ def approval_checks_pass(manifest: AssetManifest) -> bool:
             and checks["animation_library_visual_matrix"].get("failed_cells") == []
         )
     processor_name = _current_processed_model_processor(manifest)
+    if processor_name == CLEAN_BODY_PROCESSOR:
+        checks = {str(check.get("name")): check for check in manifest.validation.checks}
+        required = {"clean_body_technical_probe", "clean_body_monitored_godot", "clean_body_visual_review"}
+        processed = [item for item in manifest.artifacts if item.role == "processed_model"]
+        technical = [item for item in manifest.artifacts if item.role == "clean_body_technical_report"]
+        monitor = [item for item in manifest.artifacts if item.role == "clean_body_godot_monitor_report"]
+        visual = [item for item in manifest.artifacts if item.role == "clean_body_visual_review_report"]
+        if manifest.validation.result != "passed" or not required.issubset(checks) or not all(checks[name].get("passed") is True for name in required) or not all((processed, technical, monitor, visual)):
+            return False
+        return bool(
+            checks["clean_body_technical_probe"].get("processed_body_sha256") == processed[-1].sha256
+            and checks["clean_body_technical_probe"].get("report_sha256") == technical[-1].sha256
+            and checks["clean_body_monitored_godot"].get("processed_body_sha256") == processed[-1].sha256
+            and checks["clean_body_monitored_godot"].get("report_sha256") == monitor[-1].sha256
+            and checks["clean_body_visual_review"].get("processed_body_sha256") == processed[-1].sha256
+            and checks["clean_body_visual_review"].get("report_sha256") == visual[-1].sha256
+            and checks["clean_body_visual_review"].get("failed_cells") == []
+        )
     is_compound_creature = (
         manifest.asset.lane == "creature"
         and processor_name == "blender_compound_creature_derivation"

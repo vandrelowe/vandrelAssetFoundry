@@ -4,6 +4,13 @@
 
 ## Ratified invariants
 
+For `clean_body`, shared-animation compatibility evidence must resolve a cataloged,
+audited immutable `animation_library` descriptor and primary payload by asset ID,
+revision, descriptor SHA-256, and payload SHA-256. Arbitrary local `.res` files and
+caller-authored compatibility claims are not release evidence. Clean-body processing
+facts must be recomputed from the packaged glTF, buffer, and albedo bytes; Blender
+action/NLA diagnostics and copied `.import` policy files are not release payloads.
+
 - Approval is explicit and manual.
 - Approval binds exact artifact roles to SHA-256 hashes.
 - The neutral workflow policy owns allowed candidate-state transitions,
@@ -40,7 +47,7 @@
 - Humanoid release planning requires one ratified, hash-bound route for the
   exact approved processed model: humanoid-retarget compatibility,
   provider-native same-task playback, or Meshy-native H4 motion-assembly
-  release evidence.
+  release evidence, or `clean_body_shared_animation` evidence.
 - Provider-native humanoid evidence must prove that nonempty character
   geometry is actually bound to a resolvable imported skeleton; a static mesh
   placed beside an animated reference rig is not releasable.
@@ -88,7 +95,8 @@ authority. The plan contains:
   provider package/evidence paths, the provider-provenance fingerprint, and the
   evidence-freshness fingerprint;
 - for humanoids, mapping/donor compatibility facts, provider-native same-task
-  playback facts, or exact Meshy-native H4 assembly facts, plus explicit
+  playback facts, exact Meshy-native H4 assembly facts, or exact
+  `clean_body_shared_animation` body/immutable-library facts, plus explicit
   candidate-only/runtime-unaccepted markers and a packaged report entry bound
   by release path, source artifact ID, SHA-256, and size;
 - exact role, release path, source artifact ID, SHA-256, and size reconciliation
@@ -113,6 +121,13 @@ Meshy rigging task and pass bounded Godot playback. Its descriptor states
 `shared_animation_pool_compatible: false` and
 `vandrel_runtime_accepted: false`. No route may claim consumer-side
 runtime acceptance.
+
+The `clean_body_shared_animation` route requires a body-only processed glTF
+with no embedded animation output, exact external buffer/albedo dependencies,
+canonical humanoid BoneMap/Rest Fixer validation, complete monitored Godot
+evidence, manual fixed-view and shared-motion review, and an exact audited
+immutable shared animation-library descriptor/payload binding. Its descriptor
+remains `candidate_only: true` and `vandrel_runtime_accepted: false`.
 
 The Meshy-native assembly route applies only when the current approved model
 was produced by `blender_meshy_native_character_motion_assembly`. It requires
