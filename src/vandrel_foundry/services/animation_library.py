@@ -66,7 +66,7 @@ class AnimationPipelineRunner(Protocol):
 
 
 def _transactional_operation(function: Callable[P, R]) -> Callable[P, R]:
-    """Remove only operation-owned staging roots after success or failure."""
+    """Clean successful staging while retaining failed operation evidence."""
 
     @wraps(function)
     def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
@@ -76,15 +76,10 @@ def _transactional_operation(function: Callable[P, R]) -> Callable[P, R]:
         finally:
             primary_failure = sys.exc_info()[0] is not None
             try:
-                for root in reversed(_ACTIVE_OPERATION_ROOTS.get()):
-                    if root.is_dir():
-                        try:
+                if not primary_failure:
+                    for root in reversed(_ACTIVE_OPERATION_ROOTS.get()):
+                        if root.is_dir():
                             _remove_operation_root(root)
-                        except OSError:
-                            # Retain diagnostic evidence and never replace the
-                            # product or monitor failure currently being unwound.
-                            if not primary_failure:
-                                raise
             finally:
                 _ACTIVE_OPERATION_ROOTS.reset(token)
 

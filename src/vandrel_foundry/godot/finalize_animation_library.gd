@@ -20,32 +20,39 @@ func _init() -> void:
 		return
 	var output := AnimationLibrary.new()
 	var facts: Array[Dictionary] = []
+	var seen_semantics: Dictionary = {}
+	var failures: Array[Dictionary] = []
 	for motion in request.get("motions", []):
 		var semantic := str(motion.get("semantic", ""))
 		var source_path := str(motion.get("source_path", ""))
-		if semantic.is_empty() or output.has_animation(semantic):
-			_fail("invalid or duplicate semantic: %s" % semantic)
-			return
+		if semantic.is_empty() or seen_semantics.has(semantic):
+			failures.append({"semantic": semantic, "reason": "invalid_or_duplicate_semantic"})
+			continue
+		seen_semantics[semantic] = true
 		if FileAccess.get_sha256(source_path) != str(motion.get("source_sha256", "")):
-			_fail("source hash changed: %s" % semantic)
-			return
+			failures.append({"semantic": semantic, "reason": "source_hash_changed"})
+			continue
 		var source := load(source_path) as AnimationLibrary
 		if source == null or source.get_animation_list().size() != 1:
-			_fail("source must import as exactly one animation: %s" % semantic)
-			return
+			failures.append({"semantic": semantic, "reason": "source_animation_membership"})
+			continue
 		var animation := source.get_animation(source.get_animation_list()[0]).duplicate(true) as Animation
 		if animation == null:
-			_fail("could not deep-duplicate source animation: %s" % semantic)
-			return
+			failures.append({"semantic": semantic, "reason": "deep_duplicate_failed"})
+			continue
 		var fact := _probe(semantic, motion, animation)
+		print("FOUNDRY_ANIMATION_TRACK_FACT " + JSON.stringify(fact))
+		facts.append(fact)
 		if not bool(fact.get("passed", false)):
-			_fail("technical track contract failed: %s" % semantic)
-			return
+			failures.append({"semantic": semantic, "reason": "technical_track_contract"})
+			continue
 		animation.loop_mode = Animation.LOOP_LINEAR if str(motion.get("loop_mode")) == "linear" else Animation.LOOP_NONE
 		if output.add_animation(semantic, animation) != OK:
-			_fail("could not add animation: %s" % semantic)
-			return
-		facts.append(fact)
+			failures.append({"semantic": semantic, "reason": "output_add_failed"})
+	if not failures.is_empty():
+		print("FOUNDRY_ANIMATION_FAILURE_SUMMARY " + JSON.stringify(failures))
+		_fail("animation technical contract failed for %d selected motions" % failures.size())
+		return
 	if output.get_animation_list().size() != request.motions.size():
 		_fail("output membership count differs from request")
 		return
@@ -82,6 +89,8 @@ func _probe(semantic: String, motion: Dictionary, animation: Animation) -> Dicti
 	var non_hips_positions := 0
 	var other := 0
 	var finite_keys := true
+	var unexpected_tracks: Array[Dictionary] = []
+	var non_finite_keys: Array[Dictionary] = []
 	for track_index in animation.get_track_count():
 		var path := str(animation.track_get_path(track_index))
 		var bone := path.get_slice(":", 1)
@@ -91,18 +100,32 @@ func _probe(semantic: String, motion: Dictionary, animation: Animation) -> Dicti
 					hips_positions += 1
 				else:
 					non_hips_positions += 1
+					unexpected_tracks.append({"track_index": track_index, "path": path, "type": int(Animation.TYPE_POSITION_3D)})
 			Animation.TYPE_ROTATION_3D:
 				if bone in EXPECTED_ROTATION_BONES and path == "%GeneralSkeleton:" + bone:
 					rotations[bone] = int(rotations.get(bone, 0)) + 1
 				else:
 					other += 1
+					unexpected_tracks.append({"track_index": track_index, "path": path, "type": int(Animation.TYPE_ROTATION_3D)})
 			Animation.TYPE_SCALE_3D:
 				scales += 1
+				unexpected_tracks.append({"track_index": track_index, "path": path, "type": int(Animation.TYPE_SCALE_3D)})
 			_:
 				other += 1
+				unexpected_tracks.append({"track_index": track_index, "path": path, "type": int(animation.track_get_type(track_index))})
 		for key_index in animation.track_get_key_count(track_index):
-			finite_keys = finite_keys and _finite(animation.track_get_key_value(track_index, key_index))
-	var rotation_count := rotations.size() if rotations.values().all(func(value): return value == 1) else -1
+			if not _finite(animation.track_get_key_value(track_index, key_index)):
+				finite_keys = false
+				non_finite_keys.append({"track_index": track_index, "path": path, "key_index": key_index})
+	var missing_rotation_bones: Array[String] = []
+	var duplicate_rotation_bones: Array[String] = []
+	for expected_bone in EXPECTED_ROTATION_BONES:
+		var count := int(rotations.get(expected_bone, 0))
+		if count == 0:
+			missing_rotation_bones.append(expected_bone)
+		elif count != 1:
+			duplicate_rotation_bones.append(expected_bone)
+	var rotation_count := rotations.size() if missing_rotation_bones.is_empty() and duplicate_rotation_bones.is_empty() else -1
 	var passed := hips_positions == 1 and rotation_count == 22 and scales == 0 and non_hips_positions == 0 and other == 0 and finite_keys
 	return {
 		"semantic": semantic,
@@ -114,6 +137,10 @@ func _probe(semantic: String, motion: Dictionary, animation: Animation) -> Dicti
 		"non_hips_position_track_count": non_hips_positions,
 		"other_track_count": other,
 		"finite_keys": finite_keys,
+		"missing_rotation_bones": missing_rotation_bones,
+		"duplicate_rotation_bones": duplicate_rotation_bones,
+		"unexpected_tracks": unexpected_tracks,
+		"non_finite_keys": non_finite_keys,
 		"passed": passed,
 	}
 

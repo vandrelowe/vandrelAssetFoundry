@@ -342,7 +342,14 @@ def test_failed_monitor_is_rejected_without_partial_outputs(config, prompt, tmp_
     assert ManifestRepository(config.foundry.workspace_root).load(ASSET_ID).workflow.state.value == (
         "downloaded"
     )
-    _assert_no_active_operations(config)
+    operation_roots = list((asset_root / ".ops").iterdir())
+    assert len(operation_roots) == 1
+    assert (
+        operation_roots[0]
+        / "sandbox"
+        / "output"
+        / "animation-library-godot-monitor.json"
+    ).is_file()
 
 
 def test_finalize_script_builds_general_skeleton_paths_without_percent_formatting() -> None:
@@ -354,12 +361,26 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
 
     assert '"%GeneralSkeleton:" + bone' in script
     assert '"%GeneralSkeleton:%s" % bone' not in script
+    assert 'print("FOUNDRY_ANIMATION_TRACK_FACT " + JSON.stringify(fact))' in script
+    assert '"unexpected_tracks": unexpected_tracks' in script
+    assert '"non_finite_keys": non_finite_keys' in script
+
+    loop_start = script.index('\tfor motion in request.get("motions", []):')
+    failure_gate = script.index("\tif not failures.is_empty():", loop_start)
+    loop_body = script[loop_start:failure_gate]
+    technical_check = loop_body.index('if not bool(fact.get("passed", false)):')
+    later_probe = loop_body.index('print("FOUNDRY_ANIMATION_TRACK_FACT "')
+    assert later_probe < technical_check
+    assert "\t\t\tcontinue" in loop_body[technical_check:]
+    assert "_fail(" not in loop_body
+    assert 'print("FOUNDRY_ANIMATION_FAILURE_SUMMARY "' in script[failure_gate:]
 
 
-def test_cleanup_failure_does_not_mask_primary_operation_failure(
+def test_primary_operation_failure_retains_staging_and_restores_context(
     tmp_path, monkeypatch
 ) -> None:
     prior_roots = animation_service._ACTIVE_OPERATION_ROOTS.get()
+    cleanup_called = False
 
     @animation_service._transactional_operation
     def fail_after_staging() -> None:
@@ -367,12 +388,16 @@ def test_cleanup_failure_does_not_mask_primary_operation_failure(
         raise FoundryError("primary operation failure")
 
     def fail_cleanup(_root: Path) -> None:
+        nonlocal cleanup_called
+        cleanup_called = True
         raise OSError("seeded cleanup failure")
 
     monkeypatch.setattr(animation_service, "_remove_operation_root", fail_cleanup)
 
     with pytest.raises(FoundryError, match="primary operation failure"):
         fail_after_staging()
+    assert cleanup_called is False
+    assert len(list((tmp_path / ".ops").iterdir())) == 1
     assert animation_service._ACTIVE_OPERATION_ROOTS.get() == prior_roots
 
 
@@ -394,7 +419,7 @@ def test_cleanup_failure_after_success_remains_actionable(tmp_path, monkeypatch)
     assert animation_service._ACTIVE_OPERATION_ROOTS.get() == prior_roots
 
 
-def test_visual_import_failure_cleans_staging_and_preserves_review(
+def test_visual_import_failure_retains_staging_and_preserves_review(
     config, prompt, tmp_path
 ) -> None:
     _create_candidate(config, prompt)
@@ -412,7 +437,7 @@ def test_visual_import_failure_cleans_staging_and_preserves_review(
     asset_root = config.foundry.workspace_root / "assets" / ASSET_ID
     assert not (asset_root / "reports" / "animation-visual-matrix-001.json").exists()
     assert not (asset_root / "reports" / "animation-visual-evidence").exists()
-    _assert_no_active_operations(config)
+    assert len(list((asset_root / ".ops").iterdir())) == 1
 
 
 def test_repeated_visual_evidence_bytes_across_cells_are_rejected(
