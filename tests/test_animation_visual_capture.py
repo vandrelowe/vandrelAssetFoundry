@@ -62,17 +62,85 @@ def _inputs(config, tmp_path: Path) -> Path:
     }
     technical_path = tmp_path / "technical.json"
     technical_path.write_text(json.dumps(technical), encoding="utf-8")
+    bone_map = b'[gd_resource type="BoneMap" format=3]\n'
+    shared_bone_map_path = tmp_path / "shared_bone_map.tres"
+    canary_bone_map_path = tmp_path / "canary_bone_map.tres"
+    shared_bone_map_path.write_bytes(bone_map)
+    canary_bone_map_path.write_bytes(bone_map)
     bodies = []
     for body_id in ("female_average", "male_average", "feral_apeman"):
         payload = f"exact-body:{body_id}".encode()
         path = tmp_path / f"{body_id}.fbx"
         path.write_bytes(payload)
+        if body_id == "feral_apeman":
+            resource_root = (
+                "res://mods/CavemanMod/assets/candidates/"
+                "meshy_godot_shared_animation_canary"
+            )
+            bone_map_path = canary_bone_map_path
+        else:
+            resource_root = (
+                "res://mods/CavemanMod/assets/game/scenes/actors/rigs/caveman/"
+                "MeshyShared"
+            )
+            bone_map_path = shared_bone_map_path
+        resource_path = f"{resource_root}/bodies/{body_id}/{body_id}.fbx"
+        bone_map_resource_path = f"{resource_root}/meshy_humanoid_bone_map.tres"
+        sidecar = (
+            "[remap]\n\n"
+            'importer="scene"\n'
+            'type="PackedScene"\n'
+            f'path="res://.godot/imported/{body_id}.scn"\n\n'
+            "[deps]\n\n"
+            f'source_file="{resource_path}"\n'
+            f'dest_files=["res://.godot/imported/{body_id}.scn"]\n\n'
+            "[params]\n\n"
+            "animation/import=false\n"
+            "_subresources={\n"
+            '"nodes": {\n'
+            '"PATH:Armature/Skeleton3D": {\n'
+            '"rest_pose/external_animation_library": null,\n'
+            f'"retarget/bone_map": Resource("{bone_map_resource_path}"),\n'
+            '"retarget/bone_renamer/rename_bones": true,\n'
+            '"retarget/bone_renamer/unique_node/make_unique": true,\n'
+            '"retarget/bone_renamer/unique_node/skeleton_name": "GeneralSkeleton",\n'
+            '"retarget/remove_tracks/except_bone_transform": false,\n'
+            '"retarget/remove_tracks/unimportant_positions": true,\n'
+            '"retarget/remove_tracks/unmapped_bones": 0,\n'
+            '"retarget/rest_fixer/apply_node_transforms": true,\n'
+            '"retarget/rest_fixer/fix_silhouette/base_height_adjustment": 0.0,\n'
+            '"retarget/rest_fixer/fix_silhouette/enable": false,\n'
+            '"retarget/rest_fixer/fix_silhouette/filter": [],\n'
+            '"retarget/rest_fixer/fix_silhouette/threshold": 15.0,\n'
+            '"retarget/rest_fixer/keep_global_rest_on_leftovers": true,\n'
+            '"retarget/rest_fixer/normalize_position_tracks": true,\n'
+            '"retarget/rest_fixer/reset_all_bone_poses_after_import": true,\n'
+            '"retarget/rest_fixer/retarget_method": 1\n'
+            "}\n"
+            "}\n"
+            "}\n"
+        ).encode()
+        sidecar_path = tmp_path / f"{body_id}.fbx.import"
+        sidecar_path.write_bytes(sidecar)
         bodies.append(
             {
                 "body_id": body_id,
                 "path": path.name,
                 "sha256": _sha(payload),
                 "size_bytes": len(payload),
+                "resource_path": resource_path,
+                "import_sidecar": {
+                    "path": sidecar_path.name,
+                    "sha256": _sha(sidecar),
+                    "size_bytes": len(sidecar),
+                    "resource_path": f"{resource_path}.import",
+                },
+                "bone_map": {
+                    "path": bone_map_path.name,
+                    "sha256": _sha(bone_map),
+                    "size_bytes": len(bone_map),
+                    "resource_path": bone_map_resource_path,
+                },
             }
         )
     request = {
@@ -153,6 +221,29 @@ def _fake_runner(
                 {
                     "body_id": body["body_id"],
                     "payload_sha256": body["payload_sha256"],
+                    "payload_size_bytes": body["size_bytes"],
+                    "staged_payload_sha256": body["staged_payload_sha256"],
+                    "staged_payload_size_bytes": body["staged_payload_size_bytes"],
+                    "resource_path": body["path"],
+                    "staging_policy": body["staging_policy"],
+                    "import_sidecar_resource_path": body[
+                        "import_sidecar_resource_path"
+                    ],
+                    "import_sidecar_sha256": body["import_sidecar_sha256"],
+                    "import_sidecar_size_bytes": body["import_sidecar_size_bytes"],
+                    "staged_import_sidecar_sha256": body[
+                        "staged_import_sidecar_sha256"
+                    ],
+                    "staged_import_sidecar_size_bytes": body[
+                        "staged_import_sidecar_size_bytes"
+                    ],
+                    "bone_map_resource_path": body["bone_map_resource_path"],
+                    "bone_map_sha256": body["bone_map_sha256"],
+                    "bone_map_size_bytes": body["bone_map_size_bytes"],
+                    "staged_bone_map_sha256": body["staged_bone_map_sha256"],
+                    "staged_bone_map_size_bytes": body[
+                        "staged_bone_map_size_bytes"
+                    ],
                 }
                 for body in runtime["bodies"]
             ],
@@ -300,6 +391,190 @@ def test_capture_rejects_stale_library_before_runner(config, tmp_path) -> None:
         )
 
 
+def test_capture_stages_exact_unchanged_body_sidecars_and_bone_maps(
+    config, tmp_path
+) -> None:
+    request_path = _inputs(config, tmp_path)
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+
+    def inspect_staging(config, sandbox: Path, runtime_sha: str, script_sha: str):
+        runtime = json.loads((sandbox / "animation-visual-runtime.json").read_text())
+        assert _sha((sandbox / "animation-visual-runtime.json").read_bytes()) == runtime_sha
+        for requested, staged in zip(request["bodies"], runtime["bodies"], strict=True):
+            assert staged["path"] == requested["resource_path"]
+            assert staged["staging_policy"] == (
+                "accepted_exact_unchanged_godot_body_import_v1"
+            )
+            for requested_item, resource_key, staged_sha_key, staged_size_key in (
+                (
+                    requested,
+                    "resource_path",
+                    "staged_payload_sha256",
+                    "staged_payload_size_bytes",
+                ),
+                (
+                    requested["import_sidecar"],
+                    "resource_path",
+                    "staged_import_sidecar_sha256",
+                    "staged_import_sidecar_size_bytes",
+                ),
+                (
+                    requested["bone_map"],
+                    "resource_path",
+                    "staged_bone_map_sha256",
+                    "staged_bone_map_size_bytes",
+                ),
+            ):
+                staged_path = sandbox / requested_item[resource_key].removeprefix("res://")
+                source_path = tmp_path / requested_item["path"]
+                assert staged_path.read_bytes() == source_path.read_bytes()
+                assert _sha(staged_path.read_bytes()) == requested_item["sha256"]
+                assert staged_path.stat().st_size == requested_item["size_bytes"]
+                assert staged[staged_sha_key] == requested_item["sha256"]
+                assert staged[staged_size_key] == requested_item["size_bytes"]
+        return _fake_runner()(config, sandbox, runtime_sha, script_sha)
+
+    package = capture_animation_visual_matrix(
+        config,
+        request_path,
+        tmp_path / "visual-capture",
+        runner=inspect_staging,
+    )
+
+    report = json.loads(package.capture_report.read_text(encoding="utf-8"))
+    assert all(
+        body["staging_policy"] == "accepted_exact_unchanged_godot_body_import_v1"
+        for body in report["bodies"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("relative", "message"),
+    [
+        ("female_average.fbx.import", "import sidecar bytes"),
+        ("shared_bone_map.tres", "BoneMap bytes"),
+    ],
+)
+def test_capture_rejects_changed_sidecar_or_bone_map_before_runner(
+    config, tmp_path, relative, message
+) -> None:
+    request = _inputs(config, tmp_path)
+    (tmp_path / relative).write_bytes(b"changed accepted import policy")
+
+    with pytest.raises(FoundryError, match=message):
+        capture_animation_visual_matrix(
+            config,
+            request,
+            tmp_path / "visual-capture",
+            runner=lambda *_args: pytest.fail("runner must not execute"),
+        )
+
+
+@pytest.mark.parametrize("binding", ["body", "bone_map"])
+def test_capture_rejects_rehashed_sidecar_with_different_embedded_paths(
+    config, tmp_path, binding
+) -> None:
+    request_path = _inputs(config, tmp_path)
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    sidecar_path = tmp_path / request["bodies"][0]["import_sidecar"]["path"]
+    accepted_path = (
+        request["bodies"][0]["resource_path"]
+        if binding == "body"
+        else request["bodies"][0]["bone_map"]["resource_path"]
+    )
+    changed = sidecar_path.read_text(encoding="utf-8").replace(
+        accepted_path,
+        f"res://different/{binding}",
+    )
+    sidecar_path.write_text(changed, encoding="utf-8")
+    changed_bytes = sidecar_path.read_bytes()
+    request["bodies"][0]["import_sidecar"]["sha256"] = _sha(changed_bytes)
+    request["bodies"][0]["import_sidecar"]["size_bytes"] = len(changed_bytes)
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+
+    with pytest.raises(FoundryError, match="not the accepted body policy"):
+        capture_animation_visual_matrix(
+            config,
+            request_path,
+            tmp_path / "visual-capture",
+            runner=lambda *_args: pytest.fail("runner must not execute"),
+        )
+
+
+@pytest.mark.parametrize(
+    ("accepted", "rejected"),
+    [
+        (
+            '"PATH:Armature/Skeleton3D": {',
+            '"PATH:Armature/WrongSkeleton": {',
+        ),
+        (
+            '"retarget/rest_fixer/retarget_method": 1',
+            '"retarget/rest_fixer/retarget_method": 0',
+        ),
+        ("animation/import=false", "animation/import=true"),
+    ],
+)
+def test_capture_rejects_rehashed_sidecar_with_changed_structured_policy(
+    config, tmp_path, accepted, rejected
+) -> None:
+    request_path = _inputs(config, tmp_path)
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    sidecar_binding = request["bodies"][0]["import_sidecar"]
+    sidecar_path = tmp_path / sidecar_binding["path"]
+    value = sidecar_path.read_text(encoding="utf-8")
+    assert value.count(accepted) == 1
+    sidecar_path.write_text(value.replace(accepted, rejected), encoding="utf-8")
+    changed_bytes = sidecar_path.read_bytes()
+    sidecar_binding["sha256"] = _sha(changed_bytes)
+    sidecar_binding["size_bytes"] = len(changed_bytes)
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+
+    with pytest.raises(FoundryError, match="not the accepted body policy"):
+        capture_animation_visual_matrix(
+            config,
+            request_path,
+            tmp_path / "visual-capture",
+            runner=lambda *_args: pytest.fail("runner must not execute"),
+        )
+
+
+@pytest.mark.parametrize("mutation", ["omitted", "extra"])
+def test_capture_rejects_nonexact_skeleton_policy_dictionary(
+    config, tmp_path, mutation
+) -> None:
+    request_path = _inputs(config, tmp_path)
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    sidecar_binding = request["bodies"][0]["import_sidecar"]
+    sidecar_path = tmp_path / sidecar_binding["path"]
+    value = sidecar_path.read_text(encoding="utf-8")
+    if mutation == "omitted":
+        accepted = '"retarget/rest_fixer/fix_silhouette/filter": [],\n'
+        assert value.count(accepted) == 1
+        changed = value.replace(accepted, "")
+    else:
+        accepted = '"retarget/rest_fixer/retarget_method": 1\n'
+        assert value.count(accepted) == 1
+        changed = value.replace(
+            accepted,
+            '"retarget/rest_fixer/retarget_method": 1,\n'
+            '"foundry/unreviewed_extra": true\n',
+        )
+    sidecar_path.write_text(changed, encoding="utf-8")
+    changed_bytes = sidecar_path.read_bytes()
+    sidecar_binding["sha256"] = _sha(changed_bytes)
+    sidecar_binding["size_bytes"] = len(changed_bytes)
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+
+    with pytest.raises(FoundryError, match="not the accepted body policy"):
+        capture_animation_visual_matrix(
+            config,
+            request_path,
+            tmp_path / "visual-capture",
+            runner=lambda *_args: pytest.fail("runner must not execute"),
+        )
+
+
 def test_capture_cli_exposes_request_and_output_directory(config_data, tmp_path, monkeypatch):
     config_path = tmp_path / "foundry.toml"
     write_config(config_path, config_data)
@@ -394,6 +669,14 @@ def test_godot_capture_script_binds_python_camera_hash() -> None:
     ):
         assert f"child is {prohibited}" in script
     assert "Vector2(value.x - initial_x, value.z - initial_z).length()" in script
+    for exact_body_binding in (
+        '"staged_payload_sha256": str(body.staged_payload_sha256)',
+        '"import_sidecar_sha256": sidecar_sha',
+        '"staged_import_sidecar_sha256": str(body.staged_import_sidecar_sha256)',
+        '"bone_map_sha256": bone_map_sha',
+        '"staged_bone_map_sha256": str(body.staged_bone_map_sha256)',
+    ):
+        assert exact_body_binding in script
 
 
 def test_supervisor_preflight_failure_writes_structured_monitor(tmp_path) -> None:
@@ -714,9 +997,19 @@ def test_persistent_raw_temp_removal_failure_uses_filtered_bounded_retention(
         "sandbox/capture_animation_visual_matrix.gd",
         "sandbox/library/animation_library.res",
         "sandbox/library/technical-report.json",
-        "sandbox/bodies/female_average.fbx",
-        "sandbox/bodies/male_average.fbx",
-        "sandbox/bodies/feral_apeman.fbx",
+        (
+            "sandbox/mods/CavemanMod/assets/game/scenes/actors/rigs/caveman/"
+            "MeshyShared/bodies/female_average/female_average.fbx"
+        ),
+        (
+            "sandbox/mods/CavemanMod/assets/game/scenes/actors/rigs/caveman/"
+            "MeshyShared/bodies/male_average/male_average.fbx"
+        ),
+        (
+            "sandbox/mods/CavemanMod/assets/candidates/"
+            "meshy_godot_shared_animation_canary/bodies/feral_apeman/"
+            "feral_apeman.fbx"
+        ),
     ):
         assert (failure_directory / relative).is_file()
     failure_message = str(failure_info.value)
@@ -733,3 +1026,65 @@ def test_persistent_raw_temp_removal_failure_uses_filtered_bounded_retention(
     assert str(residual_roots[0]) in failure_message
     assert (residual_roots[0] / "sandbox" / ".foundry-capture-outer-stdout.tmp").is_file()
     assert (residual_roots[0] / "sandbox" / ".foundry-capture-outer-stderr.tmp").is_file()
+
+
+def test_filtered_retention_accepts_exact_supervisor_monitor_with_residual_raw_temps(
+    config, tmp_path
+) -> None:
+    request = _inputs(config, tmp_path)
+    observed_monitor: dict[str, object] = {}
+
+    def supervisor_monitored_nonzero(config, sandbox, runtime_sha, script_sha):
+        execution = _fake_runner()(config, sandbox, runtime_sha, script_sha)
+        monitor = json.loads(execution.monitor_report.read_text(encoding="utf-8"))
+        monitor["passed"] = False
+        monitor["failure_stage"] = "phase:capture"
+        monitor["failure_message"] = "capture phase exited nonzero"
+        monitor["phase_results"][-1]["exit_code"] = 1
+        execution.monitor_report.write_text(json.dumps(monitor), encoding="utf-8")
+        monitor_bytes = execution.monitor_report.read_bytes()
+        observed_monitor.update(sha256=_sha(monitor_bytes), size_bytes=len(monitor_bytes))
+        (sandbox / ".foundry-capture-outer-stdout.tmp").write_bytes(b"raw stdout")
+        (sandbox / ".foundry-capture-outer-stderr.tmp").write_bytes(b"raw stderr")
+        raise FoundryError("supervisor-monitored capture exited nonzero")
+
+    with pytest.raises(FoundryError, match="supervisor-monitored capture exited nonzero"):
+        capture_animation_visual_matrix(
+            config,
+            request,
+            tmp_path / "visual-capture",
+            runner=supervisor_monitored_nonzero,
+        )
+
+    failure_directory = tmp_path / "visual-capture.failed"
+    retained_monitor = (
+        failure_directory
+        / "sandbox"
+        / "output"
+        / "animation-visual-godot-monitor.json"
+    )
+    assert retained_monitor.is_file()
+    assert _sha(retained_monitor.read_bytes()) == observed_monitor["sha256"]
+    assert retained_monitor.stat().st_size == observed_monitor["size_bytes"]
+    assert not (
+        failure_directory / "sandbox" / "output" / "animation-visual-outer-watchdog.json"
+    ).exists()
+    assert not [
+        path
+        for path in failure_directory.rglob("*")
+        if path.name.startswith(".foundry-capture-outer-")
+    ]
+    residual_roots = [
+        path
+        for path in tmp_path.iterdir()
+        if path.is_dir() and path.name.startswith(".visual-capture-")
+    ]
+    assert len(residual_roots) == 1
+    source_monitor = (
+        residual_roots[0]
+        / "sandbox"
+        / "output"
+        / "animation-visual-godot-monitor.json"
+    )
+    assert source_monitor.is_file()
+    assert _sha(source_monitor.read_bytes()) == observed_monitor["sha256"]

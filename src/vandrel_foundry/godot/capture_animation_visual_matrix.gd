@@ -112,7 +112,47 @@ func _run() -> void:
 		if FileAccess.get_sha256(body_path) != body_sha:
 			_fail("body payload hash differs: %s" % body_id)
 			return
-		body_bindings.append({"body_id": body_id, "payload_sha256": body_sha})
+		var sidecar_path := str(body.get("import_sidecar_resource_path", ""))
+		var sidecar_sha := str(body.get("import_sidecar_sha256", ""))
+		var bone_map_path := str(body.get("bone_map_resource_path", ""))
+		var bone_map_sha := str(body.get("bone_map_sha256", ""))
+		if (
+			str(body.get("staging_policy", ""))
+			!= "accepted_exact_unchanged_godot_body_import_v1"
+			or str(body.get("staged_payload_sha256", "")) != body_sha
+			or int(body.get("staged_payload_size_bytes", -1))
+			!= int(body.get("size_bytes", -2))
+			or sidecar_path != body_path + ".import"
+			or FileAccess.get_sha256(sidecar_path) != sidecar_sha
+			or str(body.get("staged_import_sidecar_sha256", "")) != sidecar_sha
+			or int(body.get("staged_import_sidecar_size_bytes", -1))
+			!= int(body.get("import_sidecar_size_bytes", -2))
+			or FileAccess.get_sha256(bone_map_path) != bone_map_sha
+			or str(body.get("staged_bone_map_sha256", "")) != bone_map_sha
+			or int(body.get("staged_bone_map_size_bytes", -1))
+			!= int(body.get("bone_map_size_bytes", -2))
+		):
+			_fail("body import sidecar or BoneMap binding differs: %s" % body_id)
+			return
+		body_bindings.append({
+			"body_id": body_id,
+			"payload_sha256": body_sha,
+			"payload_size_bytes": int(body.get("size_bytes", -1)),
+			"staged_payload_sha256": str(body.staged_payload_sha256),
+			"staged_payload_size_bytes": int(body.staged_payload_size_bytes),
+			"resource_path": body_path,
+			"staging_policy": str(body.staging_policy),
+			"import_sidecar_resource_path": sidecar_path,
+			"import_sidecar_sha256": sidecar_sha,
+			"import_sidecar_size_bytes": int(body.import_sidecar_size_bytes),
+			"staged_import_sidecar_sha256": str(body.staged_import_sidecar_sha256),
+			"staged_import_sidecar_size_bytes": int(body.staged_import_sidecar_size_bytes),
+			"bone_map_resource_path": bone_map_path,
+			"bone_map_sha256": bone_map_sha,
+			"bone_map_size_bytes": int(body.bone_map_size_bytes),
+			"staged_bone_map_sha256": str(body.staged_bone_map_sha256),
+			"staged_bone_map_size_bytes": int(body.staged_bone_map_size_bytes),
+		})
 		for semantic in semantics:
 			var scene := load(body_path) as PackedScene
 			if scene == null:

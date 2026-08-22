@@ -93,10 +93,24 @@ def capture_animation_visual_matrix(
     bodies = [
         (
             body,
-            _resolve_exact_input(request_path, body, {".fbx", ".glb"}, body.body_id),
+            _resolve_exact_input(request_path, body, {".fbx"}, body.body_id),
+            _resolve_exact_input(
+                request_path,
+                body.import_sidecar,
+                {".import"},
+                f"{body.body_id} import sidecar",
+            ),
+            _resolve_exact_input(
+                request_path,
+                body.bone_map,
+                {".tres"},
+                f"{body.body_id} BoneMap",
+            ),
         )
         for body in request.bodies
     ]
+    for body, _source, sidecar, _bone_map in bodies:
+        _validate_body_import_sidecar(body, sidecar)
     technical = _load_json(technical_path, "animation technical report")
     semantics = _validate_technical_report(
         technical,
@@ -191,7 +205,7 @@ def capture_animation_visual_matrix(
         monitor_report_sha = _hash_file(monitor_destination)[0]
         body_bindings = [
             {"body_id": body.body_id, "payload_sha256": body.sha256}
-            for body, _path in bodies
+            for body, _path, _sidecar, _bone_map in bodies
         ]
         manifest_value = {
             "schema_version": "vandrel_foundry_animation_visual_capture_manifest/1.0",
@@ -357,15 +371,39 @@ def _stage_sandbox(
     _copy_new(library, sandbox / "library" / "animation_library.res")
     _copy_new(technical_report, sandbox / "library" / "technical-report.json")
     runtime_bodies = []
-    for body, source in bodies:
-        destination = sandbox / "bodies" / f"{body.body_id}{source.suffix.casefold()}"
-        _copy_new(source, destination)
+    for body, source, sidecar, bone_map in bodies:
+        destination = _sandbox_resource_path(sandbox, body.resource_path)
+        sidecar_destination = _sandbox_resource_path(
+            sandbox, body.import_sidecar.resource_path
+        )
+        bone_map_destination = _sandbox_resource_path(
+            sandbox, body.bone_map.resource_path
+        )
+        _copy_or_verify_exact(source, destination)
+        _copy_or_verify_exact(sidecar, sidecar_destination)
+        _copy_or_verify_exact(bone_map, bone_map_destination)
+        staged_payload_sha, staged_payload_size = _hash_file(destination)
+        staged_sidecar_sha, staged_sidecar_size = _hash_file(sidecar_destination)
+        staged_bone_map_sha, staged_bone_map_size = _hash_file(bone_map_destination)
         runtime_bodies.append(
             {
                 "body_id": body.body_id,
-                "path": f"res://bodies/{destination.name}",
+                "path": body.resource_path,
                 "payload_sha256": body.sha256,
                 "size_bytes": body.size_bytes,
+                "staging_policy": "accepted_exact_unchanged_godot_body_import_v1",
+                "staged_payload_sha256": staged_payload_sha,
+                "staged_payload_size_bytes": staged_payload_size,
+                "import_sidecar_resource_path": body.import_sidecar.resource_path,
+                "import_sidecar_sha256": body.import_sidecar.sha256,
+                "import_sidecar_size_bytes": body.import_sidecar.size_bytes,
+                "staged_import_sidecar_sha256": staged_sidecar_sha,
+                "staged_import_sidecar_size_bytes": staged_sidecar_size,
+                "bone_map_resource_path": body.bone_map.resource_path,
+                "bone_map_sha256": body.bone_map.sha256,
+                "bone_map_size_bytes": body.bone_map.size_bytes,
+                "staged_bone_map_sha256": staged_bone_map_sha,
+                "staged_bone_map_size_bytes": staged_bone_map_size,
             }
         )
     script = (
@@ -406,7 +444,25 @@ def _validate_capture_report(
     evidence_directory: Path,
 ) -> list[dict[str, object]]:
     expected_bodies = [
-        {"body_id": body.body_id, "payload_sha256": body.sha256}
+        {
+            "body_id": body.body_id,
+            "payload_sha256": body.sha256,
+            "payload_size_bytes": body.size_bytes,
+            "staged_payload_sha256": body.sha256,
+            "staged_payload_size_bytes": body.size_bytes,
+            "resource_path": body.resource_path,
+            "staging_policy": "accepted_exact_unchanged_godot_body_import_v1",
+            "import_sidecar_resource_path": body.import_sidecar.resource_path,
+            "import_sidecar_sha256": body.import_sidecar.sha256,
+            "import_sidecar_size_bytes": body.import_sidecar.size_bytes,
+            "staged_import_sidecar_sha256": body.import_sidecar.sha256,
+            "staged_import_sidecar_size_bytes": body.import_sidecar.size_bytes,
+            "bone_map_resource_path": body.bone_map.resource_path,
+            "bone_map_sha256": body.bone_map.sha256,
+            "bone_map_size_bytes": body.bone_map.size_bytes,
+            "staged_bone_map_sha256": body.bone_map.sha256,
+            "staged_bone_map_size_bytes": body.bone_map.size_bytes,
+        }
         for body in request.bodies
     ]
     if (
@@ -601,8 +657,21 @@ def _verify_exact_inputs(request_path, request, library, technical, bodies) -> N
     _resolve_exact_input(request_path, request.technical_report, {".json"}, "technical report")
     if library != library.resolve() or technical != technical.resolve():
         raise FoundryError("Visual capture input resolution changed.")
-    for body, _path in bodies:
-        _resolve_exact_input(request_path, body, {".fbx", ".glb"}, body.body_id)
+    for body, _path, _sidecar, _bone_map in bodies:
+        _resolve_exact_input(request_path, body, {".fbx"}, body.body_id)
+        sidecar = _resolve_exact_input(
+            request_path,
+            body.import_sidecar,
+            {".import"},
+            f"{body.body_id} import sidecar",
+        )
+        _resolve_exact_input(
+            request_path,
+            body.bone_map,
+            {".tres"},
+            f"{body.body_id} BoneMap",
+        )
+        _validate_body_import_sidecar(body, sidecar)
 
 
 def _review_template(manifest: dict[str, object]) -> dict[str, object]:
@@ -666,6 +735,85 @@ def _write_new(path: Path, value: bytes) -> None:
         raise FoundryError(f"Could not write visual capture file: {exc}") from exc
 
 
+def _validate_body_import_sidecar(body, sidecar: Path) -> None:
+    try:
+        value = sidecar.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise FoundryError(f"Could not read {body.body_id} import sidecar: {exc}") from exc
+    source_paths = re.findall(r'^source_file="([^"]+)"$', value, flags=re.MULTILINE)
+    animation_import = re.findall(
+        r"^animation/import\s*=\s*(true|false)\s*$",
+        value,
+        flags=re.MULTILINE,
+    )
+    skeleton_blocks = re.findall(
+        r'^_subresources\s*=\s*\{\s*\n'
+        r'\s*"nodes"\s*:\s*\{\s*\n'
+        r'\s*"PATH:Armature/Skeleton3D"\s*:\s*\{\s*\n'
+        r'(.*?)'
+        r'^\s*\}\s*\n\s*\}\s*\n\s*\}\s*$',
+        value,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    skeleton_policy: dict[str, str] = {}
+    if len(skeleton_blocks) == 1:
+        for line in skeleton_blocks[0].splitlines():
+            if not line.strip():
+                continue
+            match = re.fullmatch(r'\s*"([^"]+)"\s*:\s*(.*?)\s*,?\s*', line)
+            if match is None or match.group(1) in skeleton_policy:
+                skeleton_policy = {}
+                break
+            skeleton_policy[match.group(1)] = match.group(2)
+    required_policy = {
+        "rest_pose/external_animation_library": "null",
+        "retarget/bone_map": f'Resource("{body.bone_map.resource_path}")',
+        "retarget/bone_renamer/rename_bones": "true",
+        "retarget/bone_renamer/unique_node/make_unique": "true",
+        "retarget/bone_renamer/unique_node/skeleton_name": '"GeneralSkeleton"',
+        "retarget/remove_tracks/except_bone_transform": "false",
+        "retarget/remove_tracks/unimportant_positions": "true",
+        "retarget/remove_tracks/unmapped_bones": "0",
+        "retarget/rest_fixer/apply_node_transforms": "true",
+        "retarget/rest_fixer/fix_silhouette/base_height_adjustment": "0.0",
+        "retarget/rest_fixer/fix_silhouette/enable": "false",
+        "retarget/rest_fixer/fix_silhouette/filter": "[]",
+        "retarget/rest_fixer/fix_silhouette/threshold": "15.0",
+        "retarget/rest_fixer/keep_global_rest_on_leftovers": "true",
+        "retarget/rest_fixer/normalize_position_tracks": "true",
+        "retarget/rest_fixer/reset_all_bone_poses_after_import": "true",
+        "retarget/rest_fixer/retarget_method": "1",
+    }
+    if (
+        source_paths != [body.resource_path]
+        or animation_import != ["false"]
+        or len(skeleton_blocks) != 1
+        or skeleton_policy != required_policy
+    ):
+        raise FoundryError(
+            f"Visual capture {body.body_id} import sidecar is not the accepted body policy."
+        )
+
+
+def _sandbox_resource_path(sandbox: Path, resource_path: str) -> Path:
+    relative = resource_path.removeprefix("res://")
+    destination = (sandbox / Path(*relative.split("/"))).resolve()
+    sandbox_root = sandbox.resolve()
+    if destination == sandbox_root or sandbox_root not in destination.parents:
+        raise FoundryError("Visual capture resource path escapes its sandbox.")
+    return destination
+
+
+def _copy_or_verify_exact(source: Path, destination: Path) -> None:
+    if destination.exists():
+        if not destination.is_file() or _hash_file(destination) != _hash_file(source):
+            raise FoundryError(
+                f"Visual capture staged resource collision differs: {destination}"
+            )
+        return
+    _copy_new(source, destination)
+
+
 def _retain_filtered_failure(
     operation_root: Path,
     failure_directory: Path,
@@ -694,12 +842,12 @@ def _retain_filtered_failure(
                 raise OSError(f"Filtered failure retention rejects symlink: {source}")
             destination = staged / relative
             if source.is_dir():
-                destination.mkdir(exist_ok=False)
+                destination.mkdir(parents=True, exist_ok=True)
             elif source.is_file():
                 _copy_new(source, destination)
             else:
                 raise OSError(f"Durable failure evidence disappeared during retention: {source}")
-        _verify_filtered_watchdog_evidence(staged)
+        _verify_filtered_watchdog_evidence(operation_root, staged)
         os.rename(staged, failure_directory)
     except (OSError, FoundryError) as exc:
         raise OSError(
@@ -712,7 +860,7 @@ def _retain_filtered_failure(
     return None
 
 
-def _verify_filtered_watchdog_evidence(staged: Path) -> None:
+def _verify_filtered_watchdog_evidence(operation_root: Path, staged: Path) -> None:
     raw = [path for path in staged.rglob("*") if path.name in RAW_OUTER_TEMP_NAMES]
     if raw:
         raise OSError("Filtered failure retention contains raw outer temp files.")
@@ -723,8 +871,33 @@ def _verify_filtered_watchdog_evidence(staged: Path) -> None:
     ]
     if transient:
         raise OSError("Filtered failure retention contains transient Godot cache.")
+    source_output = operation_root / "sandbox" / "output"
     output = staged / "sandbox" / "output"
+    supervisor_name = "animation-visual-godot-monitor.json"
+    source_supervisor = source_output / supervisor_name
+    retained_supervisor = output / supervisor_name
+    if source_supervisor.is_file():
+        _verify_exact_retained_file(
+            source_supervisor,
+            retained_supervisor,
+            "supervisor monitor",
+        )
+        try:
+            monitor = json.loads(retained_supervisor.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise OSError(f"Filtered supervisor monitor is unreadable: {exc}") from exc
+        if (
+            not isinstance(monitor, dict)
+            or monitor.get("schema_version")
+            != "vandrel_foundry_animation_visual_capture_monitor/1.0"
+        ):
+            raise OSError("Filtered supervisor monitor schema is invalid.")
+        return
+    if retained_supervisor.exists() or retained_supervisor.is_symlink():
+        raise OSError("Filtered retention contains an unbound supervisor monitor.")
     record_path = output / "animation-visual-outer-watchdog.json"
+    source_record_path = source_output / record_path.name
+    _verify_exact_retained_file(source_record_path, record_path, "outer-watchdog record")
     try:
         record = json.loads(record_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -749,6 +922,13 @@ def _verify_filtered_watchdog_evidence(staged: Path) -> None:
         retained += size
     if retained > maximum:
         raise OSError("Filtered outer-watchdog evidence exceeds its byte bound.")
+
+
+def _verify_exact_retained_file(source: Path, retained: Path, label: str) -> None:
+    if not source.is_file() or not retained.is_file():
+        raise OSError(f"Filtered {label} is unavailable.")
+    if _hash_file(source) != _hash_file(retained):
+        raise OSError(f"Filtered {label} bytes differ from the captured attempt.")
 
 
 def _hash_file(path: Path) -> tuple[str, int]:

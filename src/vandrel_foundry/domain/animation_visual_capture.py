@@ -25,8 +25,31 @@ class ExactCaptureInput(ContractModel):
     size_bytes: int = Field(gt=0)
 
 
-class ExactCaptureBody(ExactCaptureInput):
+class ExactCaptureResource(ExactCaptureInput):
+    resource_path: str = Field(pattern=r"^res://[A-Za-z0-9_./-]+$")
+
+    @model_validator(mode="after")
+    def safe_resource_path(self) -> ExactCaptureResource:
+        relative = self.resource_path.removeprefix("res://")
+        if not relative or ".." in relative.split("/"):
+            raise ValueError("Capture resource path is not sandbox-relative.")
+        return self
+
+
+class ExactCaptureBody(ExactCaptureResource):
     body_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_]{2,63}$")
+    import_sidecar: ExactCaptureResource
+    bone_map: ExactCaptureResource
+
+    @model_validator(mode="after")
+    def exact_import_resources(self) -> ExactCaptureBody:
+        if self.import_sidecar.resource_path != f"{self.resource_path}.import":
+            raise ValueError("Body import sidecar resource path does not match its FBX.")
+        if not self.resource_path.casefold().endswith(".fbx"):
+            raise ValueError("Capture body resource path must name an FBX.")
+        if not self.bone_map.resource_path.casefold().endswith(".tres"):
+            raise ValueError("Capture BoneMap resource path must name a TRES resource.")
+        return self
 
 
 class AnimationVisualCaptureRequest(ContractModel):
@@ -42,7 +65,12 @@ class AnimationVisualCaptureRequest(ContractModel):
     def exact_three_bodies(self) -> AnimationVisualCaptureRequest:
         body_ids = [body.body_id for body in self.bodies]
         body_hashes = [body.sha256 for body in self.bodies]
-        if len(set(body_ids)) != 3 or len(set(body_hashes)) != 3:
+        body_paths = [body.resource_path for body in self.bodies]
+        if (
+            len(set(body_ids)) != 3
+            or len(set(body_hashes)) != 3
+            or len(set(body_paths)) != 3
+        ):
             raise ValueError("Visual capture requires three distinct body payloads.")
         return self
 
