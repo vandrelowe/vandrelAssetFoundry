@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+import vandrel_foundry.services.animation_library as animation_service
 import vandrel_foundry.storage.manifests as manifest_storage
 from tests.conftest import bind_documented_test_custody
 from vandrel_foundry.domain.animation_library import ANIMATION_IMPORT_POLICY, FIXED_PHASES
@@ -342,6 +343,55 @@ def test_failed_monitor_is_rejected_without_partial_outputs(config, prompt, tmp_
         "downloaded"
     )
     _assert_no_active_operations(config)
+
+
+def test_finalize_script_builds_general_skeleton_paths_without_percent_formatting() -> None:
+    script = (
+        Path(animation_service.__file__).parent.parent
+        / "godot"
+        / "finalize_animation_library.gd"
+    ).read_text(encoding="utf-8")
+
+    assert '"%GeneralSkeleton:" + bone' in script
+    assert '"%GeneralSkeleton:%s" % bone' not in script
+
+
+def test_cleanup_failure_does_not_mask_primary_operation_failure(
+    tmp_path, monkeypatch
+) -> None:
+    prior_roots = animation_service._ACTIVE_OPERATION_ROOTS.get()
+
+    @animation_service._transactional_operation
+    def fail_after_staging() -> None:
+        animation_service._new_operation_root(tmp_path, "cleanup-regression")
+        raise FoundryError("primary operation failure")
+
+    def fail_cleanup(_root: Path) -> None:
+        raise OSError("seeded cleanup failure")
+
+    monkeypatch.setattr(animation_service, "_remove_operation_root", fail_cleanup)
+
+    with pytest.raises(FoundryError, match="primary operation failure"):
+        fail_after_staging()
+    assert animation_service._ACTIVE_OPERATION_ROOTS.get() == prior_roots
+
+
+def test_cleanup_failure_after_success_remains_actionable(tmp_path, monkeypatch) -> None:
+    prior_roots = animation_service._ACTIVE_OPERATION_ROOTS.get()
+
+    @animation_service._transactional_operation
+    def succeed_after_staging() -> str:
+        animation_service._new_operation_root(tmp_path, "cleanup-regression")
+        return "complete"
+
+    def fail_cleanup(_root: Path) -> None:
+        raise OSError("seeded cleanup failure")
+
+    monkeypatch.setattr(animation_service, "_remove_operation_root", fail_cleanup)
+
+    with pytest.raises(OSError, match="seeded cleanup failure"):
+        succeed_after_staging()
+    assert animation_service._ACTIVE_OPERATION_ROOTS.get() == prior_roots
 
 
 def test_visual_import_failure_cleans_staging_and_preserves_review(

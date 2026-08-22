@@ -92,7 +92,7 @@ func _probe(semantic: String, motion: Dictionary, animation: Animation) -> Dicti
 				else:
 					non_hips_positions += 1
 			Animation.TYPE_ROTATION_3D:
-				if bone in EXPECTED_ROTATION_BONES and path == "%GeneralSkeleton:%s" % bone:
+				if bone in EXPECTED_ROTATION_BONES and path == "%GeneralSkeleton:" + bone:
 					rotations[bone] = int(rotations.get(bone, 0)) + 1
 				else:
 					other += 1

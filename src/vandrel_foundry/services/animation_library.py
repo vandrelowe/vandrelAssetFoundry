@@ -7,6 +7,8 @@ import json
 import os
 import re
 import shutil
+import sys
+import time
 import uuid
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -72,12 +74,36 @@ def _transactional_operation(function: Callable[P, R]) -> Callable[P, R]:
         try:
             return function(*args, **kwargs)
         finally:
-            for root in reversed(_ACTIVE_OPERATION_ROOTS.get()):
-                if root.is_dir():
-                    shutil.rmtree(root)
-            _ACTIVE_OPERATION_ROOTS.reset(token)
+            primary_failure = sys.exc_info()[0] is not None
+            try:
+                for root in reversed(_ACTIVE_OPERATION_ROOTS.get()):
+                    if root.is_dir():
+                        try:
+                            _remove_operation_root(root)
+                        except OSError:
+                            # Retain diagnostic evidence and never replace the
+                            # product or monitor failure currently being unwound.
+                            if not primary_failure:
+                                raise
+            finally:
+                _ACTIVE_OPERATION_ROOTS.reset(token)
 
     return wrapped
+
+
+def _remove_operation_root(root: Path) -> None:
+    last_error: OSError | None = None
+    for delay_seconds in (0.05, 0.15, 0.4):
+        try:
+            shutil.rmtree(root)
+            return
+        except FileNotFoundError:
+            return
+        except OSError as exc:
+            last_error = exc
+            time.sleep(delay_seconds)
+    assert last_error is not None
+    raise last_error
 
 
 @_transactional_operation
