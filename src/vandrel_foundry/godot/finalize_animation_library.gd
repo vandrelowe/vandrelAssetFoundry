@@ -113,8 +113,9 @@ func _complete_optimized_rest_leaf_tracks(animation: Animation) -> Dictionary:
 	var tracks_added: Array[Dictionary] = []
 	var animation_length := animation.length
 	var passed := is_finite(animation_length) and animation_length >= 0.0
-	for bone in REST_LEAF_BONES:
-		var path := "%GeneralSkeleton:" + bone
+	for bone_value in REST_LEAF_BONES:
+		var bone: String = str(bone_value)
+		var path: String = "%GeneralSkeleton:" + bone
 		var matching_tracks: Array[int] = []
 		for track_index in animation.get_track_count():
 			if (
@@ -131,7 +132,7 @@ func _complete_optimized_rest_leaf_tracks(animation: Animation) -> Dictionary:
 		if animation.length > 0.0:
 			animation.track_insert_key(track_index, animation.length, Quaternion.IDENTITY)
 		var keys: Array[Dictionary] = []
-		var track_passed := (
+		var track_passed: bool = (
 			animation.track_get_type(track_index) == Animation.TYPE_ROTATION_3D
 			and str(animation.track_get_path(track_index)) == path
 			and animation.track_get_interpolation_type(track_index) == Animation.INTERPOLATION_LINEAR
@@ -140,12 +141,12 @@ func _complete_optimized_rest_leaf_tracks(animation: Animation) -> Dictionary:
 		for key_index in animation.track_get_key_count(track_index):
 			var key_time := animation.track_get_key_time(track_index, key_index)
 			var key_value = animation.track_get_key_value(track_index, key_index)
-			var key_finite := (
+			var key_finite: bool = (
 				is_finite(key_time)
 				and key_value is Quaternion
 				and key_value.is_finite()
 			)
-			var key_identity := key_finite and key_value == Quaternion.IDENTITY
+			var key_identity: bool = key_finite and key_value == Quaternion.IDENTITY
 			keys.append({
 				"time": key_time,
 				"value_x": key_value.x if key_value is Quaternion else 0.0,
