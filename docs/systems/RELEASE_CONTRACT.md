@@ -10,8 +10,13 @@
   approval artifact/check requirements, exact approval-binding reconciliation,
   and the single complete approval-invalidation operation. Services orchestrate
   persistence and event recording but do not redefine those rules.
-- Approval requires passing GLB structure, nonempty geometry, lane
-  triangle-budget, material, skeleton, and Godot sandbox-import checks.
+- Model-primary approval requires passing GLB structure, nonempty geometry,
+  lane triangle-budget, material, skeleton, and Godot sandbox-import checks.
+- The `animation_library` lane is the sole model-free exception. Workflow
+  policy instead requires the exact processed library, technical track report,
+  isolated self-containment report, complete monitored-Godot report, exact
+  three-body fixed-camera visual matrix, and every referenced visual artifact.
+  All must be current, passing, rehashed, and approval-bound.
 - Any approved artifact change invalidates approval.
 - Approval invalidation clears the approval flag, timestamp, artifact hashes,
   custody assertion and source bindings, reviewer, and approval notes together.
@@ -289,6 +294,12 @@ offline, and does not inspect Vandrel directly.
 
 ## Scale-calibrated approval and handoff
 
-Manual asset approval requires an approved scale calibration bound to the exact current processed-model SHA-256. Approval fails closed when calibration is absent or stale. This is independent of technical validation, custody, and visual-quality approval; all gates remain required.
+Manual model-primary asset approval requires an approved scale calibration
+bound to the exact current processed-model SHA-256. Approval fails closed when
+calibration is absent or stale. The model-free `animation_library` lane has no
+geometry or physical scale and is the sole scale-calibration exception; its
+workflow-policy evidence gates remain mandatory. This is independent of
+technical validation, custody, and visual-quality approval; all applicable
+gates remain required.
 
 Release descriptor v2 carries scale calibration when present: evaluated source dimensions, target height in meters, baseline uniform scale, bounded variation multipliers, reference standard, reviewer, timestamp, notes, and the processed-model and preview-report hashes. The record is a portable recommendation. It does not assign a Vandrel runtime path, placement behavior, collision, navigation, or gameplay authority. Historical already-approved candidates without calibration remain parse-compatible, while all approvals performed after this contract revision require calibration.

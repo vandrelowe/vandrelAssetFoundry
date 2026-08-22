@@ -23,6 +23,12 @@ from vandrel_foundry.services.add_meshy_native_multi_motion_package import (
 )
 from vandrel_foundry.services.add_reference import add_reference_image
 from vandrel_foundry.services.add_source import add_external_glb, add_external_package
+from vandrel_foundry.services.animation_library import (
+    approve_animation_library,
+    import_animation_visual_matrix,
+    intake_animation_library,
+    normalize_animation_library,
+)
 from vandrel_foundry.services.apply_texture_mask import apply_texture_mask
 from vandrel_foundry.services.assemble_meshy_native_character_motion import (
     assemble_meshy_native_character_motion,
@@ -1894,6 +1900,80 @@ def render_animation_sample_sheet(
         settings = load_config(config)
         result = render_animation_samples(settings, asset_id)
         console.print(f"[green]Rendered animation sample sheet[/green] {result.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("intake-animation-library")
+def intake_selective_animation_library(
+    asset_id: str,
+    request: Annotated[Path, typer.Option("--request")],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Intake one exact, selective local-FBX animation-only request."""
+    try:
+        settings = load_config(config)
+        artifacts = intake_animation_library(settings, asset_id, request)
+        console.print(
+            f"[green]Intaken selective animation sources[/green] {len(artifacts) - 1} motions"
+        )
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("normalize-animation-library")
+def normalize_selective_animation_library(
+    asset_id: str,
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Build and technically probe one selected AnimationLibrary in monitored Godot."""
+    try:
+        settings = load_config(config)
+        result = normalize_animation_library(settings, asset_id)
+        console.print(f"[green]Normalized animation library[/green] {result.animation_library}")
+        console.print(f"Technical evidence: {result.technical_report}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("import-animation-visual-matrix")
+def import_selective_animation_visual_matrix(
+    asset_id: str,
+    request: Annotated[Path, typer.Option("--request")],
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Bind an exact fixed-phase three-body PASS/FAIL matrix to a library."""
+    try:
+        settings = load_config(config)
+        report = import_animation_visual_matrix(settings, asset_id, request)
+        console.print(f"[green]Imported animation visual matrix[/green] {report.path}")
+    except (FoundryError, OSError, ValueError) as exc:
+        fail(exc)
+
+
+@app.command("approve-animation-library")
+def approve_selective_animation_library(
+    asset_id: str,
+    reviewer: Annotated[str, typer.Option("--reviewer")],
+    all_required_checks: Annotated[
+        bool,
+        typer.Option(
+            "--all-required-checks",
+            help="Confirm all exact technical and three-body visual checks are complete.",
+        ),
+    ] = False,
+    notes: Annotated[str, typer.Option("--notes")] = "",
+    config: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Approve an animation-only library after every body-payload cell passes."""
+    if not all_required_checks:
+        fail(FoundryError("Animation-library approval requires --all-required-checks."))
+    try:
+        settings = load_config(config)
+        manifest = approve_animation_library(settings, asset_id, reviewer, notes)
+        console.print(
+            f"[green]Approved animation library[/green] {asset_id} by {manifest.approval.reviewer}"
+        )
     except (FoundryError, OSError, ValueError) as exc:
         fail(exc)
 

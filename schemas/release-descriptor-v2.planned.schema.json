@@ -175,6 +175,88 @@
       "title": "PortableCustodyPath",
       "type": "object"
     },
+    "ReleaseAnimationLibraryV2": {
+      "additionalProperties": false,
+      "properties": {
+        "import_policy": {
+          "const": "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
+          "title": "Import Policy",
+          "type": "string"
+        },
+        "selected_sources": {
+          "items": {
+            "$ref": "#/$defs/ReleaseAnimationSourceV2"
+          },
+          "maxItems": 64,
+          "minItems": 2,
+          "title": "Selected Sources",
+          "type": "array"
+        },
+        "excluded_source_sha256s": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "title": "Excluded Source Sha256S",
+          "type": "array"
+        },
+        "output_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Output Sha256",
+          "type": "string"
+        },
+        "technical_report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        },
+        "monitor_report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        },
+        "isolation_report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        },
+        "visual_matrix_report": {
+          "$ref": "#/$defs/PackagedHumanoidReportV2"
+        }
+      },
+      "required": [
+        "import_policy",
+        "selected_sources",
+        "output_sha256",
+        "technical_report",
+        "monitor_report",
+        "isolation_report",
+        "visual_matrix_report"
+      ],
+      "title": "ReleaseAnimationLibraryV2",
+      "type": "object"
+    },
+    "ReleaseAnimationSourceV2": {
+      "additionalProperties": false,
+      "properties": {
+        "semantic": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+          "title": "Semantic",
+          "type": "string"
+        },
+        "source_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "source_size_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Source Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "semantic",
+        "source_sha256",
+        "source_size_bytes"
+      ],
+      "title": "ReleaseAnimationSourceV2",
+      "type": "object"
+    },
     "ReleaseCustodyContributionV2": {
       "additionalProperties": false,
       "properties": {
@@ -471,6 +553,12 @@
         "role": {
           "enum": [
             "model",
+            "animation_library",
+            "animation_library_technical_report",
+            "animation_library_visual_matrix_report",
+            "animation_library_godot_monitor_report",
+            "animation_library_isolation_report",
+            "animation_visual_evidence",
             "godot_wrapper_scene",
             "godot_animation_loader_script",
             "animation_walk",
@@ -1008,6 +1096,22 @@
       "title": "Files",
       "type": "array"
     },
+    "primary_payload": {
+      "anyOf": [
+        {
+          "enum": [
+            "model",
+            "animation_library"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary Payload"
+    },
     "godot": {
       "$ref": "#/$defs/ReleaseGodotV2"
     },
@@ -1016,6 +1120,17 @@
     },
     "custody": {
       "$ref": "#/$defs/ReleaseCustodyV2"
+    },
+    "animation_library": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReleaseAnimationLibraryV2"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "humanoid_compatibility": {
       "anyOf": [

@@ -1,4 +1,5 @@
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,6 +48,7 @@ HUMANOID_LANE = "humanoid"
 HUMANOID_COMPATIBILITY_CHECK = "humanoid_retarget_compatibility"
 MESHY_NATIVE_ASSEMBLY_PROCESSOR = "blender_meshy_native_character_motion_assembly"
 MESHY_NATIVE_RELEASE_CHECK = "meshy_native_character_release_playback"
+ANIMATION_LIBRARY_LANE = "animation_library"
 UNSAFE_RELEASE_COMPONENT = re.compile(r"[^a-zA-Z0-9._-]+")
 PORTABLE_TECHNICAL_FIELDS = {
     "triangle_count",
@@ -102,28 +104,34 @@ def plan_release(
     format_release_revision(revision)
     asset_root = config.foundry.workspace_root / "assets" / asset_id
     files: list[dict[str, Any]] = []
-    humanoid_compatibility, humanoid_report = _humanoid_release_evidence(
-        manifest,
-        asset_root,
-    )
-    model = _approved_artifact(manifest, asset_root, "processed_model")
-    if manifest.asset.lane == "creature" and (
-        model.processor is None
-        or model.processor.name != "blender_compound_creature_derivation"
-    ):
-        raise FoundryError(
-            "Creature release requires the current compound-creature derivation model."
+    humanoid_compatibility, humanoid_report = _humanoid_release_evidence(manifest, asset_root)
+    animation_library_evidence = None
+    if manifest.asset.lane == ANIMATION_LIBRARY_LANE:
+        animation_library_evidence, animation_files = _animation_library_release_evidence(
+            manifest, asset_root
         )
-    files.append(
-        {
-            "role": "model",
-            "path": f"model.{model.format}",
-            "sha256": model.sha256,
-            "size_bytes": model.size_bytes,
-            "source_artifact_id": model.artifact_id,
-        }
-    )
+        files.extend(animation_files)
+    else:
+        model = _approved_artifact(manifest, asset_root, "processed_model")
+        if manifest.asset.lane == "creature" and (
+            model.processor is None
+            or model.processor.name != "blender_compound_creature_derivation"
+        ):
+            raise FoundryError(
+                "Creature release requires the current compound-creature derivation model."
+            )
+        files.append(
+            {
+                "role": "model",
+                "path": f"model.{model.format}",
+                "sha256": model.sha256,
+                "size_bytes": model.size_bytes,
+                "source_artifact_id": model.artifact_id,
+            }
+        )
     for source_role, (release_path, release_role) in RELEASE_ROLES.items():
+        if manifest.asset.lane == ANIMATION_LIBRARY_LANE:
+            continue
         if source_role == "creature_playback_report" and manifest.asset.lane != "creature":
             continue
         approved_hash = manifest.approval.approved_artifact_hashes.get(source_role)
@@ -203,8 +211,13 @@ def plan_release(
             "size_bytes": humanoid_report.size_bytes,
             "source_artifact_id": humanoid_report.artifact_id,
         }
+    godot_check_name = (
+        "animation_library_monitored_godot"
+        if manifest.asset.lane == ANIMATION_LIBRARY_LANE
+        else "godot_sandbox_import"
+    )
     godot_checks = [
-        check for check in manifest.validation.checks if check.get("name") == "godot_sandbox_import"
+        check for check in manifest.validation.checks if check.get("name") == godot_check_name
     ]
     if (
         manifest.custody.schema_version
@@ -226,6 +239,14 @@ def plan_release(
         "display_name": manifest.asset.display_name,
         "lane": manifest.asset.lane,
         "files": files,
+        **(
+            {
+                "primary_payload": "animation_library",
+                "animation_library": animation_library_evidence,
+            }
+            if animation_library_evidence is not None
+            else {}
+        ),
         "godot": {
             "import_validated": bool(godot_checks and godot_checks[-1].get("passed")),
             "wrapper_template": lane.wrapper_template,
@@ -456,6 +477,179 @@ def _humanoid_release_evidence(
         "direct_rest_transform_match": bool(check.get("direct_rest_transform_match")),
         "humanoid_retarget_candidate": True,
     }, report_artifact
+
+
+def _animation_library_release_evidence(
+    manifest: AssetManifest,
+    asset_root: Path,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    library = _approved_artifact(manifest, asset_root, "processed_animation_library")
+    technical = _approved_artifact(
+        manifest, asset_root, "animation_library_technical_report"
+    )
+    visual = _approved_artifact(
+        manifest, asset_root, "animation_library_visual_matrix_report"
+    )
+    monitor = _approved_artifact(
+        manifest, asset_root, "animation_library_godot_monitor_report"
+    )
+    isolation = _approved_artifact(
+        manifest, asset_root, "animation_library_isolation_report"
+    )
+    checks = {str(item.get("name")): item for item in manifest.validation.checks}
+    technical_check = checks.get("animation_library_technical_probe")
+    monitor_check = checks.get("animation_library_monitored_godot")
+    isolation_check = checks.get("animation_library_isolation")
+    visual_check = checks.get("animation_library_visual_matrix")
+    if not all(
+        isinstance(check, dict) and check.get("passed") is True
+        for check in (technical_check, monitor_check, isolation_check, visual_check)
+    ):
+        raise FoundryError("Animation-library release requires every exact evidence gate.")
+    assert (
+        technical_check is not None
+        and monitor_check is not None
+        and isolation_check is not None
+        and visual_check is not None
+    )
+    if (
+        technical_check.get("animation_library_sha256") != library.sha256
+        or technical_check.get("report_sha256") != technical.sha256
+        or monitor_check.get("animation_library_sha256") != library.sha256
+        or monitor_check.get("report_sha256") != monitor.sha256
+        or isolation_check.get("animation_library_sha256") != library.sha256
+        or isolation_check.get("report_sha256") != isolation.sha256
+        or isolation_check.get("external_dependencies") != []
+        or visual_check.get("animation_library_sha256") != library.sha256
+        or visual_check.get("technical_report_sha256") != technical.sha256
+        or visual_check.get("report_sha256") != visual.sha256
+        or visual_check.get("failed_cells") != []
+    ):
+        raise FoundryError("Animation-library release evidence is stale or contains failures.")
+    membership = manifest.vandrel_technical.get("animation_library_membership")
+    if (
+        not isinstance(membership, dict)
+        or membership.get("schema_version")
+        != "vandrel_foundry_animation_library_membership/1.0"
+        or membership.get("import_policy")
+        != "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
+    ):
+        raise FoundryError("Animation-library release membership is unavailable.")
+    selected = membership.get("selected")
+    exclusions = membership.get("explicit_exclusions")
+    if not isinstance(selected, list) or not isinstance(exclusions, list):
+        raise FoundryError("Animation-library release membership is malformed.")
+    files = [
+        {
+            "role": "animation_library",
+            "path": "animations/animation_library.res",
+            "sha256": library.sha256,
+            "size_bytes": library.size_bytes,
+            "source_artifact_id": library.artifact_id,
+        },
+        {
+            "role": "animation_library_technical_report",
+            "path": "evidence/animation/technical.json",
+            "sha256": technical.sha256,
+            "size_bytes": technical.size_bytes,
+            "source_artifact_id": technical.artifact_id,
+        },
+        {
+            "role": "animation_library_godot_monitor_report",
+            "path": "evidence/animation/godot-monitor.json",
+            "sha256": monitor.sha256,
+            "size_bytes": monitor.size_bytes,
+            "source_artifact_id": monitor.artifact_id,
+        },
+        {
+            "role": "animation_library_isolation_report",
+            "path": "evidence/animation/isolation.json",
+            "sha256": isolation.sha256,
+            "size_bytes": isolation.size_bytes,
+            "source_artifact_id": isolation.artifact_id,
+        },
+        {
+            "role": "animation_library_visual_matrix_report",
+            "path": "evidence/animation/three-body-visual-matrix.json",
+            "sha256": visual.sha256,
+            "size_bytes": visual.size_bytes,
+            "source_artifact_id": visual.artifact_id,
+        },
+    ]
+    try:
+        visual_value = json.loads(
+            contained_path(asset_root, visual.path).read_text(encoding="utf-8")
+        )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise FoundryError(f"Animation visual report is unreadable: {exc}") from exc
+    by_id = {item.artifact_id: item for item in manifest.artifacts}
+    referenced_ids = [
+        evidence.get("artifact_id")
+        for cell in visual_value.get("cells", [])
+        for evidence in cell.get("evidence", [])
+        if isinstance(cell, dict) and isinstance(evidence, dict)
+    ]
+    if not referenced_ids or len(referenced_ids) != len(set(referenced_ids)):
+        raise FoundryError("Animation visual report evidence membership is invalid.")
+    for index, artifact_id in enumerate(referenced_ids, start=1):
+        artifact = by_id.get(artifact_id)
+        if artifact is None or artifact.role != "animation_visual_evidence":
+            raise FoundryError("Animation visual report references unavailable evidence.")
+        if manifest.approval.approved_artifact_hashes.get(
+            f"artifact:{artifact_id}"
+        ) != artifact.sha256:
+            raise FoundryError("Animation visual evidence is not approval-bound.")
+        _verify_artifact(asset_root, artifact)
+        files.append(
+            {
+                "role": "animation_visual_evidence",
+                "path": (
+                    f"evidence/animation/visual/{index:04d}-{artifact.sha256[:12]}."
+                    f"{artifact.format or 'bin'}"
+                ),
+                "sha256": artifact.sha256,
+                "size_bytes": artifact.size_bytes,
+                "source_artifact_id": artifact.artifact_id,
+            }
+        )
+    packaged = {
+        "import_policy": membership["import_policy"],
+        "selected_sources": [
+            {
+                "semantic": item["semantic"],
+                "source_sha256": item["source_sha256"],
+                "source_size_bytes": item["source_size_bytes"],
+            }
+            for item in selected
+        ],
+        "excluded_source_sha256s": [item["source_sha256"] for item in exclusions],
+        "output_sha256": library.sha256,
+        "technical_report": {
+            "release_path": files[1]["path"],
+            "sha256": technical.sha256,
+            "size_bytes": technical.size_bytes,
+            "source_artifact_id": technical.artifact_id,
+        },
+        "monitor_report": {
+            "release_path": files[2]["path"],
+            "sha256": monitor.sha256,
+            "size_bytes": monitor.size_bytes,
+            "source_artifact_id": monitor.artifact_id,
+        },
+        "isolation_report": {
+            "release_path": files[3]["path"],
+            "sha256": isolation.sha256,
+            "size_bytes": isolation.size_bytes,
+            "source_artifact_id": isolation.artifact_id,
+        },
+        "visual_matrix_report": {
+            "release_path": files[4]["path"],
+            "sha256": visual.sha256,
+            "size_bytes": visual.size_bytes,
+            "source_artifact_id": visual.artifact_id,
+        },
+    }
+    return packaged, files
 
 
 def _next_revision(root: Path) -> int:

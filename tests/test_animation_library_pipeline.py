@@ -1,0 +1,442 @@
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+import vandrel_foundry.storage.manifests as manifest_storage
+from tests.conftest import bind_documented_test_custody
+from vandrel_foundry.domain.animation_library import ANIMATION_IMPORT_POLICY, FIXED_PHASES
+from vandrel_foundry.domain.errors import FoundryError
+from vandrel_foundry.domain.lanes import LaneConfiguration
+from vandrel_foundry.services.animation_library import (
+    AnimationPipelineExecution,
+    approve_animation_library,
+    import_animation_visual_matrix,
+    intake_animation_library,
+    normalize_animation_library,
+)
+from vandrel_foundry.services.create_asset import create_asset
+from vandrel_foundry.services.plan_release import plan_release
+from vandrel_foundry.storage.manifests import ManifestRepository
+
+ASSET_ID = "b2_selective_reactions_001"
+
+
+def _sha(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _lanes() -> LaneConfiguration:
+    return LaneConfiguration.model_validate(
+        {
+            "lanes": {
+                "animation_library": {
+                    "wrapper_template": "animation_library",
+                    "collision_policy": "none",
+                    "requires_materials": False,
+                    "requires_skeleton": True,
+                    "release_enabled": True,
+                }
+            }
+        }
+    )
+
+
+def _create_candidate(config, prompt: Path) -> None:
+    create_asset(
+        config,
+        _lanes(),
+        ASSET_ID,
+        "animation_library",
+        "B2 Selective Reactions",
+        prompt,
+    )
+
+
+def _configure_fake_godot(config, tmp_path: Path) -> None:
+    executable = tmp_path / "Godot_console.exe"
+    executable.write_bytes(b"fake Godot console identity")
+    config.tools.godot_executable = executable
+
+
+def _request(tmp_path: Path, *, duplicate_hash: bool = False) -> Path:
+    first = b"first exact fbx"
+    second = first if duplicate_hash else b"second exact fbx"
+    (tmp_path / "first.fbx").write_bytes(first)
+    (tmp_path / "second.fbx").write_bytes(second)
+    policy = {
+        "schema_version": "vandrel_foundry_animation_package_policy/1.0",
+        "policy_id": "b2_selective_reactions_v1",
+        "exact_selected_source_sha256s": [_sha(first), _sha(second)],
+        "exact_excluded_source_sha256s": ["a" * 64],
+        "forbidden_aggregate_payload_sha256s": ["f" * 64],
+        "superseded_route_ids": [
+            "historical_one_fbx_canary_carrier",
+            "historical_complete_reaction_bundle",
+            "historical_body_bound_motion_routes",
+        ],
+    }
+    value = {
+        "schema_version": "vandrel_foundry_animation_library_intake/1.0",
+        "asset_id": ASSET_ID,
+        "import_policy": ANIMATION_IMPORT_POLICY,
+        "motions": [
+            {
+                "semantic": "AngryStomp",
+                "source_path": "first.fbx",
+                "source_sha256": _sha(first),
+                "source_size_bytes": len(first),
+                "loop_mode": "none",
+            },
+            {
+                "semantic": "StandDodge",
+                "source_path": "second.fbx",
+                "source_sha256": _sha(second),
+                "source_size_bytes": len(second),
+                "loop_mode": "none",
+            },
+        ],
+        "explicit_exclusions": [
+            {"semantic": "FallAbdominal", "source_sha256": "a" * 64, "reason": "failed"}
+        ],
+        "package_policy": policy,
+        "package_policy_sha256": _sha(
+            (json.dumps(policy, indent=2, ensure_ascii=False) + "\n").encode()
+        ),
+    }
+    path = tmp_path / "request.json"
+    path.write_text(json.dumps(value), encoding="utf-8")
+    return path
+
+
+def _fake_pipeline(config, sandbox: Path) -> AnimationPipelineExecution:
+    library = b"selective animation library"
+    library_path = sandbox / "output" / "animation_library.res"
+    library_path.write_bytes(library)
+    runtime = json.loads((sandbox / "animation-library-runtime.json").read_text())
+    library_sha = _sha(library)
+    technical = {
+        "schema_version": "vandrel_foundry_animation_library_technical/1.0",
+        "import_policy": ANIMATION_IMPORT_POLICY,
+        "animation_library_sha256": library_sha,
+        "animation_library_size_bytes": len(library),
+        "motions": [
+            {
+                "semantic": item["semantic"],
+                "source_sha256": item["source_sha256"],
+                "source_size_bytes": item["source_size_bytes"],
+                "hips_position_track_count": 1,
+                "mapped_rotation_track_count": 22,
+                "scale_track_count": 0,
+                "non_hips_position_track_count": 0,
+                "other_track_count": 0,
+                "finite_keys": True,
+                "output_library_sha256": library_sha,
+                "passed": True,
+            }
+            for item in runtime["motions"]
+        ],
+        "passed": True,
+    }
+    technical_path = sandbox / "output" / "animation-library-technical.json"
+    technical_path.write_text(json.dumps(technical), encoding="utf-8")
+    isolation_path = sandbox / "output" / "animation-library-isolation.json"
+    isolation_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "vandrel_foundry_animation_library_isolation/1.0",
+                "animation_library_sha256": library_sha,
+                "selected_semantics": [item["semantic"] for item in runtime["motions"]],
+                "external_dependencies": [],
+                "source_fbx_directory_present": False,
+                "prior_import_cache_present": False,
+                "passed": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    supervisor = (
+        Path(__file__).parents[1]
+        / "src"
+        / "vandrel_foundry"
+        / "godot"
+        / "Invoke-FoundryAnimationLibraryMonitored.ps1"
+    )
+    monitor = {
+        "schema_version": "vandrel_foundry_animation_godot_monitor/1.0",
+        "policy": "vandrel_monitored_godot_animation_library_corridor_2026-08-21",
+        "run_started_utc": "2026-08-21T12:00:00Z",
+        "run_ended_utc": "2026-08-21T12:00:05Z",
+        "console_executable_name": "Godot_console.exe",
+        "process_zero_preflight": True,
+        "console_file_version": "4.7.2",
+        "child_environment": {"DOTNET_ROLL_FORWARD": "LatestMajor"},
+        "internal_iteration_bomb": 600,
+        "outer_timeout_seconds_per_phase": int(config.tools.godot_timeout_seconds),
+        "post_exit_poll_seconds": 5,
+        "timed_out": False,
+        "output_limited": False,
+        "cleanup_failed": False,
+        "cleanup_issue": "",
+        "application_error_windows": [],
+        "application_events": [],
+        "has_crash_evidence": False,
+        "final_godot_processes": [],
+        "wer_and_dump_paths": [],
+        "supervisor_sha256": _sha(supervisor.read_bytes()),
+        "godot_console_sha256": _sha(config.tools.godot_executable.read_bytes()),
+        "phases": [
+            "initial_import",
+            "configure_imports",
+            "retargeted_import",
+            "finalize_probe",
+            "isolated_validate",
+        ],
+        "phase_results": [
+            {
+                "phase": phase,
+                "started_utc": "2026-08-21T12:00:00Z",
+                "ended_utc": "2026-08-21T12:00:01Z",
+                "exit_code": 0,
+                "stdout_path": f"{phase}.stdout",
+                "stderr_path": f"{phase}.stderr",
+                "godot_log_path": f"{phase}.godot",
+            }
+            for phase in (
+                "initial_import",
+                "configure_imports",
+                "retargeted_import",
+                "finalize_probe",
+                "isolated_validate",
+            )
+        ],
+        "passed": True,
+    }
+    monitor_path = sandbox / "output" / "animation-library-godot-monitor.json"
+    monitor_path.parent.mkdir(parents=True, exist_ok=True)
+    monitor_path.write_text(json.dumps(monitor), encoding="utf-8")
+    return AnimationPipelineExecution(
+        library_path, technical_path, isolation_path, monitor_path
+    )
+
+
+def _fake_failed_monitor(config, sandbox: Path) -> AnimationPipelineExecution:
+    execution = _fake_pipeline(config, sandbox)
+    value = json.loads(execution.monitor_report.read_text(encoding="utf-8"))
+    value["cleanup_failed"] = True
+    value["cleanup_issue"] = "run-owned process tree did not exit"
+    value["passed"] = False
+    execution.monitor_report.write_text(json.dumps(value), encoding="utf-8")
+    return execution
+
+
+def _assert_no_active_operations(config) -> None:
+    root = config.foundry.workspace_root / "assets" / ASSET_ID / ".ops"
+    assert not root.exists() or list(root.iterdir()) == []
+
+
+def _visual_request(config, tmp_path: Path, *, failed: tuple[str, str] | None = None) -> Path:
+    manifest = ManifestRepository(config.foundry.workspace_root).load(ASSET_ID)
+    library = [item for item in manifest.artifacts if item.role == "processed_animation_library"][-1]
+    technical = [
+        item for item in manifest.artifacts if item.role == "animation_library_technical_report"
+    ][-1]
+    bodies = ["female_average", "male_average", "feral_apeman"]
+    semantics = [
+        item["semantic"]
+        for item in manifest.vandrel_technical["animation_library_membership"]["selected"]
+    ]
+    cells = []
+    for semantic in semantics:
+        for body in bodies:
+            evidence = f"fixed-phase:{semantic}:{body}".encode()
+            evidence_name = f"{semantic}-{body}.png"
+            (tmp_path / evidence_name).write_bytes(evidence)
+            cells.append(
+                {
+                    "semantic": semantic,
+                    "body_id": body,
+                    "result": "FAIL" if failed == (semantic, body) else "PASS",
+                    "observed_phases": list(FIXED_PHASES),
+                    "evidence": [
+                        {
+                            "path": evidence_name,
+                            "sha256": _sha(evidence),
+                            "size_bytes": len(evidence),
+                        }
+                    ],
+                    "notes": "fixed camera",
+                }
+            )
+    value = {
+        "schema_version": "vandrel_foundry_animation_visual_matrix/1.0",
+        "asset_id": ASSET_ID,
+        "animation_library_sha256": library.sha256,
+        "technical_report_sha256": technical.sha256,
+        "bodies": [
+            {"body_id": body, "payload_sha256": _sha(f"payload:{body}".encode())}
+            for body in bodies
+        ],
+        "camera_policy": "vandrel_fixed_animation_review_camera_v1",
+        "camera_config_sha256": _sha(b"fixed camera config"),
+        "reviewer": "Independent visual reviewer",
+        "reviewed_at": "2026-08-21T12:00:00Z",
+        "cells": cells,
+    }
+    path = tmp_path / "visual.json"
+    path.write_text(json.dumps(value), encoding="utf-8")
+    return path
+
+
+def test_intake_rejects_duplicate_bytes_and_request_policy_laundering(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    with pytest.raises(FoundryError, match="selected hashes must be unique"):
+        intake_animation_library(config, ASSET_ID, _request(tmp_path, duplicate_hash=True))
+
+    value = json.loads(_request(tmp_path).read_text())
+    value["explicit_exclusions"] = []
+    path = tmp_path / "laundered.json"
+    path.write_text(json.dumps(value), encoding="utf-8")
+    with pytest.raises(FoundryError, match="Excluded sources differ"):
+        intake_animation_library(config, ASSET_ID, path)
+
+
+def test_visual_failure_is_preserved_and_blocks_approval(config, prompt, tmp_path) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+    normalize_animation_library(config, ASSET_ID, runner=_fake_pipeline)
+    report = import_animation_visual_matrix(
+        config,
+        ASSET_ID,
+        _visual_request(config, tmp_path, failed=("StandDodge", "feral_apeman")),
+    )
+    value = json.loads(
+        (config.foundry.workspace_root / "assets" / ASSET_ID / report.path).read_text()
+    )
+    assert value["passed"] is False
+    assert next(
+        cell
+        for cell in value["cells"]
+        if cell["semantic"] == "StandDodge" and cell["body_id"] == "feral_apeman"
+    )["result"] == "FAIL"
+    with pytest.raises(FoundryError, match="every recorded validation check"):
+        approve_animation_library(config, ASSET_ID, "Reviewer")
+
+
+def test_failed_monitor_is_rejected_without_partial_outputs(config, prompt, tmp_path) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+
+    with pytest.raises(FoundryError, match="monitor evidence is incomplete or failed"):
+        normalize_animation_library(config, ASSET_ID, runner=_fake_failed_monitor)
+
+    asset_root = config.foundry.workspace_root / "assets" / ASSET_ID
+    assert not (asset_root / "processed" / "animation_library.res").exists()
+    assert not (asset_root / "reports" / "animation-library-technical-001.json").exists()
+    assert ManifestRepository(config.foundry.workspace_root).load(ASSET_ID).workflow.state.value == (
+        "downloaded"
+    )
+    _assert_no_active_operations(config)
+
+
+def test_visual_import_failure_cleans_staging_and_preserves_review(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+    normalize_animation_library(config, ASSET_ID, runner=_fake_pipeline)
+    request = _visual_request(config, tmp_path)
+    value = json.loads(request.read_text(encoding="utf-8"))
+    value["cells"][-1]["evidence"][0]["sha256"] = "0" * 64
+    request.write_text(json.dumps(value), encoding="utf-8")
+
+    with pytest.raises(FoundryError, match="Visual evidence bytes do not match"):
+        import_animation_visual_matrix(config, ASSET_ID, request)
+
+    asset_root = config.foundry.workspace_root / "assets" / ASSET_ID
+    assert not (asset_root / "reports" / "animation-visual-matrix-001.json").exists()
+    assert not (asset_root / "reports" / "animation-visual-evidence").exists()
+    _assert_no_active_operations(config)
+
+
+def test_repeated_visual_evidence_bytes_across_cells_are_rejected(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+    normalize_animation_library(config, ASSET_ID, runner=_fake_pipeline)
+    request = _visual_request(config, tmp_path)
+    value = json.loads(request.read_text(encoding="utf-8"))
+    value["cells"][-1]["evidence"] = value["cells"][0]["evidence"]
+    request.write_text(json.dumps(value), encoding="utf-8")
+
+    with pytest.raises(FoundryError, match="unique across semantic/body cells"):
+        import_animation_visual_matrix(config, ASSET_ID, request)
+
+    asset_root = config.foundry.workspace_root / "assets" / ASSET_ID
+    assert not (asset_root / "reports" / "animation-visual-matrix-001.json").exists()
+
+
+def test_post_replace_event_failure_reconciles_and_keeps_exact_outputs(
+    config, prompt, tmp_path, monkeypatch
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+
+    def fail_event_append(_path, _value) -> None:
+        raise OSError("seeded post-replace event failure")
+
+    monkeypatch.setattr(manifest_storage, "append_event_bytes", fail_event_append)
+    execution = normalize_animation_library(config, ASSET_ID, runner=_fake_pipeline)
+
+    repository = ManifestRepository(config.foundry.workspace_root)
+    live = repository.load(ASSET_ID)
+    assert live.workflow.state.value == "review"
+    assert repository.diagnose_pending_save(ASSET_ID).status == "complete"
+    for path in (
+        execution.animation_library,
+        execution.technical_report,
+        execution.isolation_report,
+        execution.monitor_report,
+    ):
+        assert path.is_file()
+    _assert_no_active_operations(config)
+
+
+def test_passing_exact_matrix_approves_and_plans_model_free_release(
+    config, prompt, tmp_path
+) -> None:
+    _create_candidate(config, prompt)
+    _configure_fake_godot(config, tmp_path)
+    intake_animation_library(config, ASSET_ID, _request(tmp_path))
+    normalize_animation_library(config, ASSET_ID, runner=_fake_pipeline)
+    import_animation_visual_matrix(config, ASSET_ID, _visual_request(config, tmp_path))
+    repository = ManifestRepository(config.foundry.workspace_root)
+    manifest = repository.load(ASSET_ID)
+    bind_documented_test_custody(
+        manifest, config.foundry.workspace_root / "assets" / ASSET_ID
+    )
+    manifest.revision += 1
+    repository.save(manifest, expected_revision=manifest.revision - 1)
+
+    approved = approve_animation_library(config, ASSET_ID, "Independent reviewer")
+    assert set(approved.approval.approved_artifact_hashes) == {
+        "processed_animation_library",
+        "animation_library_technical_report",
+        "animation_library_godot_monitor_report",
+        "animation_library_isolation_report",
+        "animation_library_visual_matrix_report",
+        *(f"artifact:animation_visual_evidence_{index:04d}" for index in range(1, 7)),
+    }
+    plan = plan_release(config, _lanes(), ASSET_ID)
+    assert plan.descriptor["primary_payload"] == "animation_library"
+    assert all(item["role"] != "model" for item in plan.descriptor["files"])
+    assert plan.descriptor["animation_library"]["selected_sources"][0]["semantic"] == "AngryStomp"

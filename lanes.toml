@@ -32,6 +32,13 @@ requires_materials = true
 requires_skeleton = true
 release_enabled = true
 
+[lanes.animation_library]
+wrapper_template = "animation_library"
+collision_policy = "none"
+requires_materials = false
+requires_skeleton = true
+release_enabled = true
+
 [lanes.creature]
 wrapper_template = "creature_candidate"
 collision_policy = "manual_review"

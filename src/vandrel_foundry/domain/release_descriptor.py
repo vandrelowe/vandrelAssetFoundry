@@ -44,6 +44,12 @@ class ReleaseDescriptorV1(HistoricalModel):
 
 ReleaseFileRole = Literal[
     "model",
+    "animation_library",
+    "animation_library_technical_report",
+    "animation_library_visual_matrix_report",
+    "animation_library_godot_monitor_report",
+    "animation_library_isolation_report",
+    "animation_visual_evidence",
     "godot_wrapper_scene",
     "godot_animation_loader_script",
     "animation_walk",
@@ -210,6 +216,35 @@ class PackagedHumanoidReportV2(ReleaseModel):
         return str(RelativeManifestPath.validate(value))
 
 
+class ReleaseAnimationSourceV2(ReleaseModel):
+    semantic: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
+    source_sha256: Sha256
+    source_size_bytes: int = Field(gt=0)
+
+
+class ReleaseAnimationLibraryV2(ReleaseModel):
+    import_policy: Literal[
+        "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1"
+    ]
+    selected_sources: list[ReleaseAnimationSourceV2] = Field(min_length=2, max_length=64)
+    excluded_source_sha256s: list[Sha256] = Field(default_factory=list)
+    output_sha256: Sha256
+    technical_report: PackagedHumanoidReportV2
+    monitor_report: PackagedHumanoidReportV2
+    isolation_report: PackagedHumanoidReportV2
+    visual_matrix_report: PackagedHumanoidReportV2
+
+    @model_validator(mode="after")
+    def exact_unique_membership(self) -> ReleaseAnimationLibraryV2:
+        semantics = [item.semantic for item in self.selected_sources]
+        source_hashes = [item.source_sha256 for item in self.selected_sources]
+        if len(semantics) != len(set(semantics)) or len(source_hashes) != len(set(source_hashes)):
+            raise ValueError("Release animation-library membership must be unique.")
+        if set(source_hashes) & set(self.excluded_source_sha256s):
+            raise ValueError("Selected and excluded animation sources overlap.")
+        return self
+
+
 class RetargetHumanoidCompatibilityV2(ReleaseModel):
     evidence_route: Literal["retarget_mapping"]
     candidate_only: Literal[True]
@@ -302,9 +337,11 @@ class ReleaseDescriptorV2(ReleaseModel):
     display_name: str = Field(min_length=1)
     lane: str = Field(min_length=1)
     files: list[ReleaseFileV2] = Field(min_length=1)
+    primary_payload: Literal["model", "animation_library"] | None = None
     godot: ReleaseGodotV2
     technical: ReleaseTechnicalV2
     custody: ReleaseCustodyV2
+    animation_library: ReleaseAnimationLibraryV2 | None = None
     humanoid_compatibility: HumanoidCompatibilityV2 | None = None
     scale_calibration: ReleaseScaleCalibrationV2 | None = None
     provenance: ReleaseProvenanceV2
@@ -314,8 +351,21 @@ class ReleaseDescriptorV2(ReleaseModel):
         paths = [item.path for item in self.files]
         if len(paths) != len(set(paths)):
             raise ValueError("Release file paths must be unique.")
-        if sum(item.role == "model" for item in self.files) != 1:
-            raise ValueError("Release descriptor requires exactly one model file.")
+        model_count = sum(item.role == "model" for item in self.files)
+        library_files = [item for item in self.files if item.role == "animation_library"]
+        effective_primary = self.primary_payload or "model"
+        if effective_primary == "model":
+            if model_count != 1 or library_files or self.animation_library is not None:
+                raise ValueError("Model-primary release requires exactly one model file.")
+        elif (
+            model_count != 0
+            or len(library_files) != 1
+            or self.animation_library is None
+            or library_files[0].sha256 != self.animation_library.output_sha256
+        ):
+            raise ValueError(
+                "Animation-library-primary release requires one exact library and no model."
+            )
         file_bindings = {
             (
                 item.role,
@@ -352,6 +402,35 @@ class ReleaseDescriptorV2(ReleaseModel):
                     "Humanoid report role and source are not bound to "
                     "the exact packaged release file."
                 )
+        if self.animation_library is not None:
+            for role, report in (
+                (
+                    "animation_library_technical_report",
+                    self.animation_library.technical_report,
+                ),
+                (
+                    "animation_library_godot_monitor_report",
+                    self.animation_library.monitor_report,
+                ),
+                (
+                    "animation_library_isolation_report",
+                    self.animation_library.isolation_report,
+                ),
+                (
+                    "animation_library_visual_matrix_report",
+                    self.animation_library.visual_matrix_report,
+                ),
+            ):
+                if (
+                    role,
+                    report.release_path,
+                    report.sha256,
+                    report.size_bytes,
+                    report.source_artifact_id,
+                ) not in file_bindings:
+                    raise ValueError(
+                        "Animation-library evidence is not bound to its exact release file."
+                    )
         return self
 
 

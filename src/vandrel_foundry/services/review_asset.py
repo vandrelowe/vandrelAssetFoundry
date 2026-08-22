@@ -10,7 +10,8 @@ from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.domain.manifest import Artifact, AssetManifest, utc_now
 from vandrel_foundry.domain.states import WorkflowState
 from vandrel_foundry.domain.workflow_policy import (
-    approval_artifact_roles,
+    ANIMATION_LIBRARY_LANE,
+    approval_artifact_bindings,
     approval_checks_pass,
     invalidate_approval,
     transition_workflow,
@@ -36,26 +37,28 @@ def approve_asset(
         raise FoundryError(
             "Approval requires evaluated, documented, fresh custody: " + ", ".join(custody_blockers)
         )
-    processed = [item for item in manifest.artifacts if item.role == "processed_model"]
-    calibration = manifest.scale_calibration
-    if (
-        not processed
-        or calibration.status != "approved"
-        or calibration.processed_model_sha256 != processed[-1].sha256
-    ):
-        raise FoundryError("Approval requires scale calibration for the current processed model.")
+    if manifest.asset.lane != ANIMATION_LIBRARY_LANE:
+        processed = [item for item in manifest.artifacts if item.role == "processed_model"]
+        calibration = manifest.scale_calibration
+        if (
+            not processed
+            or calibration.status != "approved"
+            or calibration.processed_model_sha256 != processed[-1].sha256
+        ):
+            raise FoundryError("Approval requires scale calibration for the current processed model.")
     reviewer = reviewer.strip()
     if not reviewer:
         raise FoundryError("Approval requires a reviewer name.")
-    bindings: dict[str, str] = {}
+    bindings = approval_artifact_bindings(manifest)
     asset_root = config.foundry.workspace_root / "assets" / asset_id
-    for role in approval_artifact_roles(manifest):
-        candidates = [item for item in manifest.artifacts if item.role == role]
-        if not candidates:
-            raise FoundryError(f"Approval artifact role is missing: {role}")
-        artifact = candidates[-1]
+    by_id = {item.artifact_id: item for item in manifest.artifacts}
+    for key in bindings:
+        artifact = (
+            by_id[key.removeprefix("artifact:")]
+            if key.startswith("artifact:")
+            else [item for item in manifest.artifacts if item.role == key][-1]
+        )
         _verify_artifact(asset_root, artifact)
-        bindings[role] = artifact.sha256
     assert manifest.custody is not None
     for contribution in manifest.custody.source_contributions:
         for evidence in contribution.license_evidence:

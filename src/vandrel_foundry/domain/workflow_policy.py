@@ -38,6 +38,14 @@ PROVIDER_NATIVE_PROCESSOR = "godot_provider_native_character"
 MESHY_NATIVE_ASSEMBLY_PROCESSOR = "blender_meshy_native_character_motion_assembly"
 MESHY_NATIVE_RELEASE_CHECK = "meshy_native_character_release_playback"
 MESHY_NATIVE_RELEASE_REPORT_ROLE = "meshy_native_character_release_report"
+ANIMATION_LIBRARY_LANE = "animation_library"
+ANIMATION_LIBRARY_APPROVAL_ROLES = (
+    "processed_animation_library",
+    "animation_library_technical_report",
+    "animation_library_godot_monitor_report",
+    "animation_library_isolation_report",
+    "animation_library_visual_matrix_report",
+)
 
 
 ALLOWED_WORKFLOW_TRANSITIONS: dict[WorkflowState, frozenset[WorkflowState]] = {
@@ -149,6 +157,8 @@ def invalidate_approval(manifest: AssetManifest) -> None:
 
 
 def approval_artifact_roles(manifest: AssetManifest) -> tuple[str, ...]:
+    if manifest.asset.lane == ANIMATION_LIBRARY_LANE:
+        return ANIMATION_LIBRARY_APPROVAL_ROLES
     processor_name = _current_processed_model_processor(manifest)
     return BASE_APPROVAL_ROLES + (
         PROVIDER_NATIVE_APPROVAL_ROLES if processor_name == PROVIDER_NATIVE_PROCESSOR else ()
@@ -159,10 +169,80 @@ def approval_artifact_roles(manifest: AssetManifest) -> tuple[str, ...]:
     ) + (("creature_playback_report",) if manifest.asset.lane == "creature" else ())
 
 
+def approval_artifact_bindings(manifest: AssetManifest) -> dict[str, str]:
+    """Return exact approval keys, including repeated animation evidence artifacts."""
+    bindings: dict[str, str] = {}
+    for role in approval_artifact_roles(manifest):
+        candidates = [item for item in manifest.artifacts if item.role == role]
+        if not candidates:
+            raise FoundryError(f"Approval artifact role is missing: {role}")
+        bindings[role] = candidates[-1].sha256
+    if manifest.asset.lane == ANIMATION_LIBRARY_LANE:
+        reports = [
+            item
+            for item in manifest.artifacts
+            if item.role == "animation_library_visual_matrix_report"
+        ]
+        if not reports:
+            raise FoundryError("Animation visual matrix report is missing.")
+        by_id = {item.artifact_id: item for item in manifest.artifacts}
+        for artifact_id in reports[-1].derived_from:
+            artifact = by_id.get(artifact_id)
+            if artifact is not None and artifact.role == "animation_visual_evidence":
+                bindings[f"artifact:{artifact_id}"] = artifact.sha256
+    return bindings
+
+
 def approval_checks_pass(manifest: AssetManifest) -> bool:
     checks_by_name = {
         str(check.get("name")): bool(check.get("passed")) for check in manifest.validation.checks
     }
+    if manifest.asset.lane == ANIMATION_LIBRARY_LANE:
+        checks = {str(check.get("name")): check for check in manifest.validation.checks}
+        required = {
+            "animation_library_monitored_godot",
+            "animation_library_technical_probe",
+            "animation_library_isolation",
+            "animation_library_visual_matrix",
+        }
+        if manifest.validation.result != "passed" or not required.issubset(checks):
+            return False
+        if any(checks[name].get("passed") is not True for name in required):
+            return False
+        artifacts = {item.role: item for item in manifest.artifacts}
+        library = artifacts.get("processed_animation_library")
+        technical = artifacts.get("animation_library_technical_report")
+        monitor = artifacts.get("animation_library_godot_monitor_report")
+        isolation = artifacts.get("animation_library_isolation_report")
+        visual = artifacts.get("animation_library_visual_matrix_report")
+        if any(item is None for item in (library, technical, monitor, isolation, visual)):
+            return False
+        return bool(
+            checks["animation_library_technical_probe"].get("animation_library_sha256")
+            == library.sha256
+            and checks["animation_library_technical_probe"].get("report_sha256")
+            == technical.sha256
+            and checks["animation_library_monitored_godot"].get(
+                "animation_library_sha256"
+            )
+            == library.sha256
+            and checks["animation_library_monitored_godot"].get("report_sha256")
+            == monitor.sha256
+            and checks["animation_library_isolation"].get("animation_library_sha256")
+            == library.sha256
+            and checks["animation_library_isolation"].get("report_sha256")
+            == isolation.sha256
+            and checks["animation_library_isolation"].get("external_dependencies") == []
+            and checks["animation_library_visual_matrix"].get(
+                "animation_library_sha256"
+            )
+            == library.sha256
+            and checks["animation_library_visual_matrix"].get("technical_report_sha256")
+            == technical.sha256
+            and checks["animation_library_visual_matrix"].get("report_sha256")
+            == visual.sha256
+            and checks["animation_library_visual_matrix"].get("failed_cells") == []
+        )
     processor_name = _current_processed_model_processor(manifest)
     is_compound_creature = (
         manifest.asset.lane == "creature"
@@ -238,11 +318,20 @@ def approval_bindings_resolve(manifest: AssetManifest) -> bool:
     if not manifest.approval.approved:
         return True
     bindings = manifest.approval.approved_artifact_hashes
-    required_roles = approval_artifact_roles(manifest)
-    if not set(required_roles).issubset(bindings):
+    try:
+        required_bindings = approval_artifact_bindings(manifest)
+    except FoundryError:
         return False
-    for role, expected_hash in bindings.items():
-        candidates = [artifact for artifact in manifest.artifacts if artifact.role == role]
+    if not set(required_bindings).issubset(bindings):
+        return False
+    by_id = {item.artifact_id: item for item in manifest.artifacts}
+    for key, expected_hash in bindings.items():
+        if key.startswith("artifact:"):
+            artifact = by_id.get(key.removeprefix("artifact:"))
+            if artifact is None or artifact.sha256 != expected_hash:
+                return False
+            continue
+        candidates = [artifact for artifact in manifest.artifacts if artifact.role == key]
         if not candidates or candidates[-1].sha256 != expected_hash:
             return False
     return True
