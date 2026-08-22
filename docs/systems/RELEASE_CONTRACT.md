@@ -262,6 +262,12 @@ Publication leaves asset-library changes uncommitted for inspection. Git
 commit and push are separate explicit operations. Foundry does not write to
 Vandrel, emit a `res://` destination, or claim consumer acceptance.
 
+Newly initialized Asset Library repositories pin LF only for `catalog.json`,
+release descriptors, Godot wrapper scenes, and custody-evidence JSON. This
+keeps immutable SHA-256 bindings byte-stable on Windows without globally
+normalizing unrelated JSON or text files; binary release formats retain their
+existing Git LFS rules.
+
 ## Read-only library audit
 
 `audit-library` validates the configured library without changing it. It

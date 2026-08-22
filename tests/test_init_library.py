@@ -6,6 +6,21 @@ import pytest
 from vandrel_foundry.domain.errors import FoundryError
 from vandrel_foundry.services.init_library import initialize_asset_library
 
+EXPECTED_GIT_ATTRIBUTES = """\
+*.glb filter=lfs diff=lfs merge=lfs -text
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text
+
+catalog.json text eol=lf
+assets/**/asset-release.json text eol=lf
+assets/**/godot/*.tscn text eol=lf
+assets/**/custody/evidence/*.json text eol=lf
+"""
+
 
 class FakeGit:
     def __init__(self, fail_on: tuple[str, ...] | None = None) -> None:
@@ -33,7 +48,7 @@ def test_initialize_library_creates_committed_baseline(config) -> None:
     root = result.destination
     assert root.is_dir()
     assert (root / "catalog.json").read_text().endswith("\n")
-    assert "*.glb filter=lfs" in (root / ".gitattributes").read_text()
+    assert (root / ".gitattributes").read_bytes() == EXPECTED_GIT_ATTRIBUTES.encode()
     assert ".foundry-staging/" in (root / ".gitignore").read_text()
     assert git.commands[0] == ["init", "--initial-branch=main"]
     assert git.commands[1] == ["lfs", "install", "--local"]

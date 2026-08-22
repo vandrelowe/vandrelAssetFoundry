@@ -17,6 +17,11 @@ GIT_ATTRIBUTES = """\
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.webp filter=lfs diff=lfs merge=lfs -text
+
+catalog.json text eol=lf
+assets/**/asset-release.json text eol=lf
+assets/**/godot/*.tscn text eol=lf
+assets/**/custody/evidence/*.json text eol=lf
 """
 
 GIT_IGNORE = """\
