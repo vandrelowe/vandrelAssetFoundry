@@ -22,9 +22,11 @@ func _init() -> void:
 	var expected: Array[String] = []
 	for motion in request.get("motions", []):
 		expected.append(str(motion.get("semantic", "")))
-	var actual := Array(library.get_animation_list())
+	var actual: Array[String] = []
+	for animation_name in library.get_animation_list():
+		actual.append(str(animation_name))
 	if actual != expected:
-		_fail("isolated AnimationLibrary membership differs from request")
+		_fail("isolated AnimationLibrary membership differs from request: expected=%s actual=%s" % [expected, actual])
 		return
 	var report := {
 		"schema_version": "vandrel_foundry_animation_library_isolation/1.0",

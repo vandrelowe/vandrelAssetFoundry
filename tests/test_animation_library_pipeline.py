@@ -390,6 +390,16 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
     assert "_fail(" not in loop_body
     assert 'print("FOUNDRY_ANIMATION_FAILURE_SUMMARY "' in script[failure_gate:]
 
+    isolation_script = (
+        Path(animation_service.__file__).parent.parent
+        / "godot"
+        / "validate_isolated_animation_library.gd"
+    ).read_text(encoding="utf-8")
+    assert "var actual: Array[String] = []" in isolation_script
+    assert "actual.append(str(animation_name))" in isolation_script
+    assert "if actual != expected:" in isolation_script
+    assert "Array(library.get_animation_list())" not in isolation_script
+
 
 def test_normalization_rejects_missing_known_carrier_evidence(
     config, prompt, tmp_path
