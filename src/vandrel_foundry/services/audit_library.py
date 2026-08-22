@@ -238,7 +238,7 @@ def _audit_release(
                 f"{subject}:evidence_roles",
                 evidence_roles_ok,
                 (
-                    "model, custody evidence, and humanoid report roles and sources reconcile"
+                    "primary payload, custody, and declared evidence roles reconcile"
                     if evidence_roles_ok
                     else "release evidence role or source binding is inconsistent"
                 ),
@@ -284,7 +284,45 @@ def _v2_evidence_roles_reconcile(descriptor: dict[str, Any]) -> bool:
         )
         for item in files
     }
-    if sum(item.get("role") == "model" for item in files) != 1:
+    lane = descriptor.get("lane")
+    primary_payload = descriptor.get("primary_payload") or "model"
+    model_files = [item for item in files if item.get("role") == "model"]
+    library_files = [item for item in files if item.get("role") == "animation_library"]
+    animation_library = descriptor.get("animation_library")
+    if lane == "animation_library":
+        if (
+            primary_payload != "animation_library"
+            or model_files
+            or len(library_files) != 1
+            or not isinstance(animation_library, dict)
+            or library_files[0].get("sha256") != animation_library.get("output_sha256")
+        ):
+            return False
+        for role, report_name in (
+            ("animation_library_technical_report", "technical_report"),
+            ("animation_library_godot_monitor_report", "monitor_report"),
+            ("animation_library_isolation_report", "isolation_report"),
+            ("animation_library_visual_matrix_report", "visual_matrix_report"),
+        ):
+            report = animation_library.get(report_name)
+            if (
+                not isinstance(report, dict)
+                or (
+                    role,
+                    report.get("release_path"),
+                    report.get("sha256"),
+                    report.get("size_bytes"),
+                    report.get("source_artifact_id"),
+                )
+                not in file_bindings
+            ):
+                return False
+    elif (
+        primary_payload != "model"
+        or len(model_files) != 1
+        or library_files
+        or animation_library is not None
+    ):
         return False
     custody = descriptor.get("custody")
     if not isinstance(custody, dict):
