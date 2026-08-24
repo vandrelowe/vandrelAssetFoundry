@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from vandrel_foundry.domain.errors import FoundryError
-from vandrel_foundry.services.audit_library import audit_library
+from vandrel_foundry.services.audit_library import audit_library, audit_library_asset
 
 
 def _sha256(value: bytes) -> str:
@@ -391,6 +391,32 @@ def test_live_audit_accepts_exact_v2_animation_library_release(config) -> None:
 
     result = audit_library(config)
 
+    assert result.passed
+
+
+def test_live_audit_accepts_published_v2_animation_library_without_later_processor_field(
+    config,
+) -> None:
+    _write_v2_animation_library(config.foundry.asset_library_root)
+    root = config.foundry.asset_library_root
+    descriptor_path = (
+        root
+        / "assets/meshy_shared_reactions_b2_passing_001/r001/asset-release.json"
+    )
+    descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
+    descriptor["animation_library"].pop("processor_version")
+    descriptor_bytes = (json.dumps(descriptor, indent=2) + "\n").encode("utf-8")
+    descriptor_path.write_bytes(descriptor_bytes)
+    catalog_path = root / "catalog.json"
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    catalog["assets"]["meshy_shared_reactions_b2_passing_001"]["releases"][0][
+        "descriptor_sha256"
+    ] = hashlib.sha256(descriptor_bytes).hexdigest()
+    catalog_path.write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
+
+    result = audit_library_asset(config, "meshy_shared_reactions_b2_passing_001")
+
+    assert result is not None
     assert result.passed
     evidence_check = next(
         check for check in result.checks if check.subject.endswith(":evidence_roles")

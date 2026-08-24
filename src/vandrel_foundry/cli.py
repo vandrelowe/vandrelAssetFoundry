@@ -1494,7 +1494,7 @@ def prepare_native_character(
     asset_id: str,
     config: Annotated[Path | None, typer.Option("--config", help="Configuration file.")] = None,
 ) -> None:
-    """Extract and validate same-task Meshy FBX locomotion without Blender."""
+    """Build historical same-task Meshy evidence; not current body admission."""
     try:
         settings = load_config(config)
         result = prepare_provider_native_character(settings, asset_id)
@@ -1898,7 +1898,7 @@ def assemble_meshy_native_character_motion_command(
     ] = "legacy_top4",
     config: Annotated[Path | None, typer.Option("--config")] = None,
 ) -> None:
-    """Assemble accepted Meshy-native canary actions onto one real native character."""
+    """Build a historical body-bound motion candidate for forensic comparison."""
     try:
         settings = load_config(config)
         if playback_profile not in {

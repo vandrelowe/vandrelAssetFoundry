@@ -369,7 +369,7 @@ def _v2_evidence_roles_reconcile(
                 "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2",
             }
             or animation_library.get("processor_version")
-            != expected_processor_version
+            not in {None, expected_processor_version}
             or not isinstance(technical_file, dict)
         ):
             return False

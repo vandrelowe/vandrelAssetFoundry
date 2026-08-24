@@ -187,12 +187,20 @@
           "type": "string"
         },
         "processor_version": {
-          "enum": [
-            "4",
-            "5"
+          "anyOf": [
+            {
+              "enum": [
+                "4",
+                "5"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ],
-          "title": "Processor Version",
-          "type": "string"
+          "default": null,
+          "title": "Processor Version"
         },
         "selected_sources": {
           "items": {
@@ -231,7 +239,6 @@
       },
       "required": [
         "import_policy",
-        "processor_version",
         "selected_sources",
         "output_sha256",
         "technical_report",

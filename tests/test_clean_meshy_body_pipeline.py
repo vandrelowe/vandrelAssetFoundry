@@ -1,5 +1,6 @@
 import hashlib
 import json
+import shutil
 import struct
 from pathlib import Path
 
@@ -37,10 +38,41 @@ from vandrel_foundry.services.run_animation_visual_capture import CaptureProcess
 from vandrel_foundry.services.run_clean_meshy_body_godot import run_monitored_clean_body
 from vandrel_foundry.services.validate_clean_meshy_body import (
     CleanBodyValidationExecution,
+    _remove_scratch_tree,
     _validate_monitor,
     validate_clean_meshy_body,
 )
 from vandrel_foundry.storage.manifests import ManifestRepository
+
+
+def test_scratch_cleanup_retries_a_transient_windows_cache_race(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    scratch = tmp_path / "sandbox"
+    (scratch / ".godot/editor").mkdir(parents=True)
+    (scratch / ".godot/editor/cache").write_text("transient", encoding="utf-8")
+    actual_rmtree = shutil.rmtree
+    attempts = 0
+
+    def flaky_rmtree(path: Path) -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise OSError(145, "directory is not empty")
+        actual_rmtree(path)
+
+    monkeypatch.setattr(
+        "vandrel_foundry.services.validate_clean_meshy_body.shutil.rmtree",
+        flaky_rmtree,
+    )
+    monkeypatch.setattr(
+        "vandrel_foundry.services.validate_clean_meshy_body.time.sleep", lambda _: None
+    )
+
+    _remove_scratch_tree(scratch)
+
+    assert attempts == 3
+    assert not scratch.exists()
 
 
 def _sha(value: bytes) -> str:
@@ -109,9 +141,9 @@ def test_body_only_process_validation_manual_review_and_approval_contract(config
         output=sandbox/"output"; cells=[]
         for index,label in enumerate(("front","side","back","AngryStomp","HitReaction"),start=1):
             payload=f"image-{label}".encode(); name=f"cell-{index}.png"; (output/name).write_bytes(payload); cells.append({"kind":"rest" if index<4 else "motion","label":label,"phases":[] if index<4 else [0,.125,.25,.375,.5,.625,.75,.875],"path":name,"sha256":_sha(payload),"size_bytes":len(payload),"result":None})
-        technical={"schema_version":"vandrel_foundry_clean_body_technical/1.0","processed_body_sha256":model.sha256,"bone_map_sha256":_sha(bone),"sidecar_policy_source_sha256":_sha(sidecar),"shared_animation_library_sha256":_sha(library),"shared_animation_library_descriptor_sha256":descriptor_sha,"skeleton_name":"GeneralSkeleton","mapped_bone_count":22,"skeleton_count":1,"animation_count":0,"skin_present":True,"bind_count_positive":True,"weights_present":True,"external_lit_albedo":True,"casts_shadows":True,"scale_finite_positive":True,"grounded":True,"shared_animation_pool_compatible":True,"shared_semantics":["AngryStomp","HitReaction"]}
+        technical={"schema_version":"vandrel_foundry_clean_body_technical/1.1","processed_body_sha256":model.sha256,"bone_map_sha256":_sha(bone),"sidecar_policy_source_sha256":_sha(sidecar),"shared_animation_library_sha256":_sha(library),"shared_animation_library_descriptor_sha256":descriptor_sha,"skeleton_name":"GeneralSkeleton","mapped_bone_count":22,"skeleton_count":1,"animation_count":0,"skin_present":True,"bind_count_positive":True,"weights_present":True,"rest_pose_valid":True,"import_policy_valid":True,"material_surface_count":1,"external_lit_albedo":True,"casts_shadows":True,"scale_finite_positive":True,"grounded":True,"shared_animation_pool_compatible":True,"shared_semantics":["AngryStomp","HitReaction"]}
         monitor=_passing_monitor()
-        capture={"processed_body_sha256":model.sha256,"shared_animation_library_sha256":_sha(library),"shared_animation_library_descriptor_sha256":descriptor_sha,"camera_config_sha256":CLEAN_BODY_CAMERA_CONFIG_SHA256,"review_status":"manual_review_required","manual_result":None,"cells":cells}
+        capture={"schema_version":"vandrel_foundry_clean_body_capture/1.0","processed_body_sha256":model.sha256,"shared_animation_library_sha256":_sha(library),"shared_animation_library_descriptor_sha256":descriptor_sha,"camera_config_sha256":CLEAN_BODY_CAMERA_CONFIG_SHA256,"review_status":"manual_review_required","manual_result":None,"cells":cells}
         for name,value in (("technical.json",technical),("monitor.json",monitor),("capture.json",capture)): (output/name).write_text(json.dumps(value))
         return CleanBodyValidationExecution(output/"technical.json",output/"monitor.json",output/"capture.json")
     validate_clean_meshy_body(settings,"clean_body_test_001",request,validation_runner)
@@ -153,6 +185,16 @@ def test_generated_policy_is_not_source_sidecar_and_capture_is_manual_null():
     technical=Path("src/vandrel_foundry/godot/validate_clean_meshy_body.gd").read_text()
     assert '&"Chest"' in technical and '&"UpperChest"' in technical and '&"LeftUpperArm"' in technical
     assert '&"Spine1"' not in technical and '&"LeftArm"' not in technical and '&"LeftUpLeg"' not in technical
+    assert "lit = lit and standard != null" in technical
+    assert "not standard.emission_enabled" in technical
+    assert '"rest_pose_valid": rest_pose_valid' in technical
+    assert "float(influences_per_vertex) / 65535.0" in technical
+    assert "abs(total - 1.0) > normalization_tolerance" in technical
+    assert '"animation/import", true' in technical
+    assert 'bone_map.resource_path == "res://input/bone_map.tres"' in technical
+    assert 'policy.get("retarget/rest_fixer/retarget_method") == 1' in technical
+    assert "pose.is_equal_approx(rest)" in technical
+    assert "retarget_policy_count == 1 and exact_policy_found" in technical
 
 
 def test_service_parses_real_blender_diagnostic_schema_constant():

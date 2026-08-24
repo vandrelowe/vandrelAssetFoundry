@@ -39,6 +39,12 @@ the canonical catalog entry and descriptor, validates its v2 `animation_library`
 primary payload and semantic order, rehashes every declared file through the library
 audit, and only then stages the exact payload.
 
+Schema-v2 animation-library descriptors published before the additive
+`processor_version` field remain valid dependencies. Its absence means only
+"not recorded by that immutable descriptor"; Foundry does not infer a version.
+Identity, catalog/descriptor hashes, every packaged file, import policy,
+technical-policy agreement, selected semantics, and payload bytes remain mandatory.
+
 Processing acceptance is derived from exported glTF and dependency bytes. The
 service parses accessors and proves that animations are absent; the sole external
 buffer and albedo dependencies are exact; every primitive has a lit material and skin
@@ -64,9 +70,15 @@ a final process inventory. Exit zero never overrides crash evidence.
 
 The technical report binds the body, BoneMap, sidecar-policy source, and shared
 library hashes. It requires exactly one `GeneralSkeleton`, all 22 humanoid map
-bones, skin, positive binds/weights, lit external albedo, shadow casting,
+bones in finite rests with reset import poses, skin, per-vertex finite normalized
+weights, lit external albedo on every material surface with emission disabled,
+shadow casting,
 finite positive scale, grounding, no embedded animation surfaces, exact shared
 semantic membership, and no horizontal Hips drift in the shared library.
+It also rereads the generated Godot sidecar after reimport and requires the
+accepted BoneMap, bone renamer, unique `GeneralSkeleton`, complete Rest Fixer
+settings, and `animation/import=false`; matching output bone names alone cannot
+substitute for this policy proof.
 
 Capture uses the canonical fixed camera. It produces unique rest views
 (front, side, back) and one contact sheet per exact shared semantic containing

@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -101,8 +102,9 @@ def validate_clean_meshy_body(
             source = execution.capture_manifest.parent / cell["path"]
             _verify(source, cell["sha256"], cell["size_bytes"], "capture cell")
             shutil.copyfile(source, durable / Path(cell["path"]).name)
+        _remove_scratch_tree(sandbox)
         os.replace(durable, attempt_root)
-        shutil.rmtree(operation)
+        operation.rmdir()
     except BaseException:
         if operation.exists(): os.replace(operation, attempt_root.with_name(attempt_root.name + ".failed"))
         raise
@@ -138,6 +140,23 @@ def validate_clean_meshy_body(
             shutil.rmtree(attempt_root)
         raise
     return artifacts
+
+
+def _remove_scratch_tree(path: Path) -> None:
+    """Remove run-owned Godot cache after process-zero without losing durable evidence."""
+    delays = (0.0, 0.05, 0.1, 0.2, 0.4, 0.8)
+    last_error: OSError | None = None
+    for delay in delays:
+        if delay:
+            time.sleep(delay)
+        try:
+            shutil.rmtree(path)
+            return
+        except FileNotFoundError:
+            return
+        except OSError as error:
+            last_error = error
+    raise FoundryError(f"Clean-body scratch cleanup failed after process-zero: {last_error}")
 
 
 def _run_monitored(config: FoundryConfig, sandbox: Path) -> CleanBodyValidationExecution:
@@ -178,14 +197,16 @@ def _validate_reports(request: CleanBodyValidationRequest, shared_library: Share
     technical = json.loads(execution.technical_report.read_text(encoding="utf-8"))
     monitor = json.loads(execution.monitor_report.read_text(encoding="utf-8"))
     capture = json.loads(execution.capture_manifest.read_text(encoding="utf-8"))
-    expected = {"processed_body_sha256": body_sha, "bone_map_sha256": request.accepted_bone_map.sha256, "sidecar_policy_source_sha256": request.accepted_import_sidecar_policy.sha256, "shared_animation_library_sha256": shared_library.payload_sha256, "shared_animation_library_descriptor_sha256": shared_library.descriptor_sha256, "skeleton_name": "GeneralSkeleton", "mapped_bone_count": 22, "skeleton_count": 1, "animation_count": 0, "skin_present": True, "bind_count_positive": True, "weights_present": True, "external_lit_albedo": True, "casts_shadows": True, "scale_finite_positive": True, "grounded": True, "shared_animation_pool_compatible": True}
+    expected = {"schema_version": "vandrel_foundry_clean_body_technical/1.1", "processed_body_sha256": body_sha, "bone_map_sha256": request.accepted_bone_map.sha256, "sidecar_policy_source_sha256": request.accepted_import_sidecar_policy.sha256, "shared_animation_library_sha256": shared_library.payload_sha256, "shared_animation_library_descriptor_sha256": shared_library.descriptor_sha256, "skeleton_name": "GeneralSkeleton", "mapped_bone_count": 22, "skeleton_count": 1, "animation_count": 0, "skin_present": True, "bind_count_positive": True, "weights_present": True, "rest_pose_valid": True, "import_policy_valid": True, "external_lit_albedo": True, "casts_shadows": True, "scale_finite_positive": True, "grounded": True, "shared_animation_pool_compatible": True}
     if any(technical.get(key) != value for key, value in expected.items()):
         raise FoundryError("Clean-body technical report does not prove the exact acceptance facts.")
+    if not isinstance(technical.get("material_surface_count"), int) or technical["material_surface_count"] < 1:
+        raise FoundryError("Clean-body technical report has no validated material surfaces.")
     if sorted(technical.get("shared_semantics", [])) != sorted(request.shared_semantics):
         raise FoundryError("Clean-body technical report has different shared semantics.")
     expected_phases = ["initial_import", "configure_import", "retargeted_import", "technical_validate", "visual_capture"]
     _validate_monitor(monitor, expected_phases)
-    if capture.get("processed_body_sha256") != body_sha or capture.get("shared_animation_library_sha256") != shared_library.payload_sha256 or capture.get("shared_animation_library_descriptor_sha256") != shared_library.descriptor_sha256 or capture.get("camera_config_sha256") != request.camera_config_sha256 or capture.get("review_status") != "manual_review_required" or capture.get("cells") is None:
+    if capture.get("schema_version") != "vandrel_foundry_clean_body_capture/1.0" or capture.get("processed_body_sha256") != body_sha or capture.get("shared_animation_library_sha256") != shared_library.payload_sha256 or capture.get("shared_animation_library_descriptor_sha256") != shared_library.descriptor_sha256 or capture.get("camera_config_sha256") != request.camera_config_sha256 or capture.get("review_status") != "manual_review_required" or capture.get("cells") is None:
         raise FoundryError("Clean-body capture manifest is not exact or is self-approving.")
     expected_cells = 3 + len(request.shared_semantics)
     if len(capture["cells"]) != expected_cells or len({cell["sha256"] for cell in capture["cells"]}) != expected_cells:

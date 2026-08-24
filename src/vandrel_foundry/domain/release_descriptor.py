@@ -234,7 +234,10 @@ class ReleaseAnimationLibraryV2(ReleaseModel):
         "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_v1",
         "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2",
     ]
-    processor_version: Literal["4", "5"]
+    # This field was added after schema_version 2 releases already existed.
+    # Absence therefore means "not recorded by that descriptor revision", not
+    # an inferred processor version and not an invalid immutable release.
+    processor_version: Literal["4", "5"] | None = None
     selected_sources: list[ReleaseAnimationSourceV2] = Field(min_length=1, max_length=64)
     excluded_source_sha256s: list[Sha256] = Field(default_factory=list)
     output_sha256: Sha256
@@ -257,7 +260,7 @@ class ReleaseAnimationLibraryV2(ReleaseModel):
             == "godot_skeleton_profile_humanoid_meshy_bone_map_rest_fixer_carrier_bake_v2"
             else "4"
         )
-        if self.processor_version != expected_version:
+        if self.processor_version is not None and self.processor_version != expected_version:
             raise ValueError("Animation-library processor version differs from import policy.")
         return self
 

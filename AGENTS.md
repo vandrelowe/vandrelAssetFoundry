@@ -77,3 +77,16 @@ must not copy Vandrel gameplay authority into Foundry manifests.
 
 If a cross-repository contract is missing or contradictory, stop at the
 boundary and document the required handshake instead of guessing.
+
+## Humanoid admission route
+
+New Meshy humanoid bodies intended for Vandrel must use the existing clean-body
+shared-animation route in `docs/systems/CLEAN_MESHY_BODY_RELEASE_CONTRACT.md`.
+That route disables embedded body animations, supplies an external lit albedo,
+and proves the imported Godot scene with the accepted
+`SkeletonProfileHumanoid` BoneMap, bone renaming to a unique
+`GeneralSkeleton`, Rest Fixer normalization, and an immutable shared animation
+library. Historical `prepare-native-character`, rest-pose rebake, and
+body-bound `assemble-meshy-native-character-motion` outputs may be inspected as
+forensic evidence but must not be presented as the current consumer-admission
+route or shared-animation-compatible bodies.
