@@ -146,14 +146,22 @@ def _remove_scratch_tree(path: Path) -> None:
     """Remove run-owned Godot cache after process-zero without losing durable evidence."""
     delays = (0.0, 0.05, 0.1, 0.2, 0.4, 0.8)
     last_error: OSError | None = None
+    tombstone = path.with_name(f".{path.name}-cleanup")
+    if tombstone.exists():
+        raise FoundryError(f"Clean-body scratch cleanup tombstone already exists: {tombstone}")
     for delay in delays:
         if delay:
             time.sleep(delay)
         try:
-            shutil.rmtree(path)
-            return
+            if path.exists():
+                os.replace(path, tombstone)
+            if tombstone.exists():
+                shutil.rmtree(tombstone)
+            if not path.exists() and not tombstone.exists():
+                return
         except FileNotFoundError:
-            return
+            if not path.exists() and not tombstone.exists():
+                return
         except OSError as error:
             last_error = error
     raise FoundryError(f"Clean-body scratch cleanup failed after process-zero: {last_error}")

@@ -21,6 +21,17 @@ $authorityLoaded=$true
 function Get-GodotProcesses { @((Get-Process -ErrorAction SilentlyContinue | Where-Object {Test-VandrelGodotProcessName -ProcessName $_.ProcessName} | ForEach-Object {[ordered]@{pid=$_.Id;process_name=$_.ProcessName;title=$_.MainWindowTitle}})) }
 function Get-ErrorWindows { @(Get-VandrelGodotApplicationErrorWindows) }
 function Get-Length([string]$Path) { if (Test-Path -LiteralPath $Path) {(Get-Item -LiteralPath $Path).Length} else {0} }
+function Wait-GodotProcessZero {
+ param([Parameter(Mandatory=$true)][DateTime]$Deadline)
+ $observed=[Collections.Generic.List[object]]::new(); $applicationError=$false
+ while ($true) {
+  $remaining=@(Get-GodotProcesses)
+  foreach($window in @(Get-ErrorWindows)){$observed.Add($window); $applicationError=$true}
+  if ($remaining.Count -eq 0 -or $applicationError -or [DateTime]::UtcNow -ge $Deadline){break}
+  Start-Sleep -Milliseconds 250
+ }
+ return [pscustomobject]@{timed_out=(@(Get-GodotProcesses).Count -ne 0 -and -not $applicationError);has_application_error=$applicationError;application_error_windows=@($observed)}
+}
 if (-not (Test-Path -LiteralPath $GodotExe -PathType Leaf)) {throw 'Godot console executable does not exist.'}
 $godot=(Resolve-Path -LiteralPath $GodotExe).Path
 if (-not (Test-VandrelGodotConsoleExecutableName -ExecutableName ([IO.Path]::GetFileName($godot)))) {throw 'GodotExe must be the recognized console executable.'}
@@ -42,13 +53,21 @@ $phases=@(
   $process=Start-Process -Environment $childEnvironment -FilePath $godot -ArgumentList (@($phase.args)+@('--log-file',$log)) -WorkingDirectory $sandbox -RedirectStandardOutput $stdout -RedirectStandardError $stderr -WindowStyle Hidden -PassThru
   $phaseStarted=[DateTime]::UtcNow; $crashPath=Join-Path $output ('clean-body-'+$phase.name+'-crash-evidence.json')
   $wait=Wait-VandrelGodotProcessWithCrashEvidence -Process $process -TimeoutSeconds $TimeoutSeconds -RunStartedUtc $phaseStarted -OutputPath $crashPath -RunLabel ('clean-body-'+$phase.name)
-  $phaseCrash=Get-Content -LiteralPath $crashPath -Raw | ConvertFrom-Json
+  # The Python caller assigns this supervisor and every descendant to one
+  # kill-on-close Job Object. Wait for the phase-owned Godot children to settle;
+  # on failure this script exits and that outer Job terminates only its own tree.
+  $settle=Wait-GodotProcessZero -Deadline $phaseStarted.AddSeconds($TimeoutSeconds)
+  $initialPhaseCrash=Get-Content -LiteralPath $crashPath -Raw | ConvertFrom-Json
+  $phaseWindows=@($initialPhaseCrash.application_error_windows)+@($settle.application_error_windows)
+  $phaseCrash=Write-VandrelGodotCrashEvidence -RunStartedUtc $phaseStarted -RunEndedUtc ([DateTime]::UtcNow) -OutputPath $crashPath -ObservedApplicationErrorWindows $phaseWindows -RootExitCode $wait.exit_code -RunLabel ('clean-body-'+$phase.name)
   foreach($window in @($phaseCrash.application_error_windows)) {$windows.Add($window)}
-  $timedOut=$timedOut -or [bool]$wait.timed_out; $cleanupFailed=$cleanupFailed -or [bool]$wait.cleanup_failed
+  $phaseTimedOut=[bool]$wait.timed_out -or [bool]$settle.timed_out
+  $phaseCrashEvidence=[bool]$phaseCrash.has_crash_evidence
+  $timedOut=$timedOut -or $phaseTimedOut; $cleanupFailed=$cleanupFailed -or [bool]$wait.cleanup_failed
   if ((Get-Length $stdout)+(Get-Length $stderr)+(Get-Length $log) -gt $MaximumOutputBytes) {$limited=$true}
   $exit=$wait.exit_code
-  $results.Add([ordered]@{phase=$phase.name;exit_code=$exit;timed_out=[bool]$wait.timed_out;cleanup_failed=[bool]$wait.cleanup_failed;has_crash_evidence=[bool]$wait.has_crash_evidence;crash_evidence_path=[IO.Path]::GetFileName($crashPath);stdout_path=[IO.Path]::GetFileName($stdout);stderr_path=[IO.Path]::GetFileName($stderr);godot_log_path=[IO.Path]::GetFileName($log)})
-  if ($exit -ne 0 -or $wait.timed_out -or $wait.cleanup_failed -or $wait.has_crash_evidence -or $limited) {throw "Clean-body Godot phase failed: $($phase.name)"}
+  $results.Add([ordered]@{phase=$phase.name;exit_code=$exit;timed_out=$phaseTimedOut;cleanup_failed=[bool]$wait.cleanup_failed;has_crash_evidence=$phaseCrashEvidence;crash_evidence_path=[IO.Path]::GetFileName($crashPath);stdout_path=[IO.Path]::GetFileName($stdout);stderr_path=[IO.Path]::GetFileName($stderr);godot_log_path=[IO.Path]::GetFileName($log)})
+  if ($exit -ne 0 -or $phaseTimedOut -or $wait.cleanup_failed -or $phaseCrashEvidence -or $limited) {throw "Clean-body Godot phase failed: $($phase.name)"}
  }
 } catch {$failed=$_.Exception.Message}
 finally {

@@ -174,6 +174,14 @@ def test_generated_policy_is_not_source_sidecar_and_capture_is_manual_null():
     configure=Path("src/vandrel_foundry/godot/configure_clean_meshy_body_import.gd").read_text()
     capture=Path("src/vandrel_foundry/godot/capture_clean_meshy_body.gd").read_text()
     wrapper=Path("src/vandrel_foundry/godot/Invoke-FoundryCleanMeshyBodyMonitored.ps1").read_text()
+    assert "function Wait-GodotProcessZero" in wrapper
+    assert "Wait-GodotProcessZero -Deadline $phaseStarted.AddSeconds($TimeoutSeconds)" in wrapper
+    assert "assigns this supervisor and every descendant to one" in wrapper
+    assert "outer Job terminates only its own tree" in wrapper
+    assert "Stop-Process" not in wrapper
+    assert "$phaseWindows=@($initialPhaseCrash.application_error_windows)+@($settle.application_error_windows)" in wrapper
+    assert "-ObservedApplicationErrorWindows $phaseWindows" in wrapper
+    assert "$phaseCrashEvidence=[bool]$phaseCrash.has_crash_evidence" in wrapper
     assert 'config.set_value("params", "animation/import", false)' in configure
     assert "accepted.fbx.import" not in configure
     assert '"manual_result":null' in capture
