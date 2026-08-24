@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import tempfile
 import time
@@ -33,8 +34,35 @@ from vandrel_foundry.services.audit_library import audit_library_asset
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
-PROCESSOR = Processor(name="godot_clean_body_shared_animation_validation", version="2")
-CLEAN_BODY_VALIDATION_REVISION = 2
+PROCESSOR = Processor(name="godot_clean_body_shared_animation_validation", version="3")
+CLEAN_BODY_VALIDATION_REVISION = 3
+
+_MONITOR_TOP_KEYS = {
+    "schema_version", "policy", "run_started_utc", "run_ended_utc",
+    "console_executable_name", "console_file_version", "godot_console_sha256",
+    "supervisor_sha256", "runtime_guard_sha256", "crash_evidence_authority_sha256",
+    "process_zero_preflight", "child_environment", "phase_results",
+    "outer_timeout_seconds_per_phase", "maximum_output_bytes", "internal_iteration_bomb",
+    "post_exit_poll_seconds", "timed_out", "output_limited", "cleanup_failed", "failure",
+    "application_error_windows", "application_events", "wer_and_dump_paths",
+    "final_godot_processes", "has_crash_evidence", "passed",
+}
+_MONITOR_HASH_KEYS = (
+    "godot_console_sha256", "supervisor_sha256", "runtime_guard_sha256",
+    "crash_evidence_authority_sha256",
+)
+_MONITOR_PHASE_KEYS = {
+    "phase", "exit_code", "timed_out", "cleanup_failed", "has_crash_evidence",
+    "crash_evidence_path", "stdout_path", "stderr_path", "godot_log_path",
+}
+_GODOT_PROCESS_NAME = re.compile(
+    r"^godot(?:_console)?(?:_v[0-9a-z._-]+)?(?:_console)?$",
+    re.IGNORECASE,
+)
+_GODOT_EXECUTABLE_NAME = re.compile(
+    r"^godot(?:_console)?(?:_v[0-9a-z._-]+)?(?:_console)?[.]exe$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -88,6 +116,7 @@ def validate_clean_meshy_body(
     shared_library = _resolve_shared_animation_library(config, request)
     attempt_name = f"clean_body_validation_{CLEAN_BODY_VALIDATION_REVISION:03d}"
     attempt_root = asset_root / "reports" / attempt_name
+    preflight_blocked_root = attempt_root.with_name(attempt_root.name + ".preflight-blocked")
     if attempt_root.exists() or attempt_root.with_name(attempt_root.name + ".failed").exists():
         raise FoundryError("Clean-body validation attempt already exists; unchanged-input retry is forbidden.")
     operation = Path(tempfile.mkdtemp(prefix=".clean-body-validation-", dir=asset_root / "reports"))
@@ -108,7 +137,11 @@ def validate_clean_meshy_body(
         os.replace(durable, attempt_root)
         operation.rmdir()
     except BaseException:
-        if operation.exists(): os.replace(operation, attempt_root.with_name(attempt_root.name + ".failed"))
+        if operation.exists():
+            if _is_process_zero_preflight_block(operation) and not preflight_blocked_root.exists():
+                os.replace(operation, preflight_blocked_root)
+            else:
+                os.replace(operation, attempt_root.with_name(attempt_root.name + ".failed"))
         raise
     specs = [
         ("clean_body_technical_report_001", "clean_body_technical_report", "json", "technical.json"),
@@ -143,6 +176,75 @@ def validate_clean_meshy_body(
             shutil.rmtree(attempt_root)
         raise
     return artifacts
+
+
+def _is_process_zero_preflight_block(operation: Path) -> bool:
+    """Recognize the one environment-only case where no product phase launched."""
+    monitor_path = operation / "sandbox/output/clean-body-godot-monitor.json"
+    try:
+        monitor = json.loads(monitor_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(monitor, dict):
+        return False
+    inventory = monitor.get("final_godot_processes")
+    exact_inventory = (
+        isinstance(inventory, list)
+        and len(inventory) > 0
+        and all(
+            isinstance(item, dict)
+            and set(item) == {"pid", "process_name", "title"}
+            and isinstance(item["pid"], int)
+            and item["pid"] > 0
+            and isinstance(item["process_name"], str)
+            and _GODOT_PROCESS_NAME.fullmatch(item["process_name"]) is not None
+            and isinstance(item["title"], str)
+            for item in inventory
+        )
+    )
+    return (
+        set(monitor) == _MONITOR_TOP_KEYS
+        and monitor.get("schema_version") == "vandrel_foundry_clean_body_godot_monitor/1.0"
+        and monitor.get("policy") == "vandrel_monitored_godot_clean_body_corridor_2026-08-21"
+        and all(_is_sha256(monitor.get(key)) for key in _MONITOR_HASH_KEYS)
+        and isinstance(monitor.get("run_started_utc"), str)
+        and bool(monitor["run_started_utc"])
+        and isinstance(monitor.get("run_ended_utc"), str)
+        and bool(monitor["run_ended_utc"])
+        and isinstance(monitor.get("console_executable_name"), str)
+        and _GODOT_EXECUTABLE_NAME.fullmatch(monitor["console_executable_name"]) is not None
+        and "console" in monitor["console_executable_name"].casefold()
+        and isinstance(monitor.get("console_file_version"), str)
+        and bool(monitor["console_file_version"])
+        and monitor.get("process_zero_preflight") is False
+        and monitor.get("child_environment") == {"DOTNET_ROLL_FORWARD": "LatestMajor"}
+        and monitor.get("phase_results") == []
+        and isinstance(monitor.get("outer_timeout_seconds_per_phase"), int)
+        and 1 <= monitor["outer_timeout_seconds_per_phase"] <= 900
+        and isinstance(monitor.get("maximum_output_bytes"), int)
+        and 1 <= monitor["maximum_output_bytes"] <= 50_000_000
+        and monitor.get("internal_iteration_bomb") == 600
+        and isinstance(monitor.get("post_exit_poll_seconds"), int)
+        and monitor["post_exit_poll_seconds"] >= 5
+        and monitor.get("failure") == "Clean-body validation requires Godot process-zero."
+        and monitor.get("passed") is False
+        and monitor.get("has_crash_evidence") is False
+        and monitor.get("timed_out") is False
+        and monitor.get("output_limited") is False
+        and monitor.get("cleanup_failed") is False
+        and monitor.get("application_error_windows") == []
+        and monitor.get("application_events") == []
+        and monitor.get("wer_and_dump_paths") == []
+        and exact_inventory
+    )
+
+
+def _is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
 
 
 def _remove_scratch_tree(path: Path) -> None:
@@ -236,20 +338,9 @@ def _validate_reports(request: CleanBodyValidationRequest, shared_library: Share
 
 
 def _validate_monitor(monitor: object, expected_phases: list[str]) -> None:
-    top_keys = {
-        "schema_version", "policy", "run_started_utc", "run_ended_utc",
-        "console_executable_name", "console_file_version", "godot_console_sha256",
-        "supervisor_sha256", "runtime_guard_sha256", "crash_evidence_authority_sha256",
-        "process_zero_preflight", "child_environment", "phase_results",
-        "outer_timeout_seconds_per_phase", "maximum_output_bytes", "internal_iteration_bomb",
-        "post_exit_poll_seconds", "timed_out", "output_limited", "cleanup_failed", "failure",
-        "application_error_windows", "application_events", "wer_and_dump_paths",
-        "final_godot_processes", "has_crash_evidence", "passed",
-    }
-    if not isinstance(monitor, dict) or set(monitor) != top_keys:
+    if not isinstance(monitor, dict) or set(monitor) != _MONITOR_TOP_KEYS:
         raise FoundryError("Clean-body monitor does not use the exact closed schema.")
-    hashes = ("godot_console_sha256", "supervisor_sha256", "runtime_guard_sha256", "crash_evidence_authority_sha256")
-    if any(not isinstance(monitor[key], str) or len(monitor[key]) != 64 or any(character not in "0123456789abcdef" for character in monitor[key]) for key in hashes):
+    if any(not _is_sha256(monitor[key]) for key in _MONITOR_HASH_KEYS):
         raise FoundryError("Clean-body monitor authority hashes are incomplete.")
     if (
         monitor["schema_version"] != "vandrel_foundry_clean_body_godot_monitor/1.0"
@@ -279,12 +370,11 @@ def _validate_monitor(monitor: object, expected_phases: list[str]) -> None:
         or monitor["wer_and_dump_paths"] != []
     ):
         raise FoundryError("Clean-body monitored Godot evidence did not pass.")
-    phase_keys = {"phase", "exit_code", "timed_out", "cleanup_failed", "has_crash_evidence", "crash_evidence_path", "stdout_path", "stderr_path", "godot_log_path"}
     phases = monitor["phase_results"]
     if not isinstance(phases, list) or [item.get("phase") for item in phases if isinstance(item, dict)] != expected_phases:
         raise FoundryError("Clean-body monitor phase membership differs.")
     for item in phases:
-        if set(item) != phase_keys or item["exit_code"] != 0 or item["timed_out"] is not False or item["cleanup_failed"] is not False or item["has_crash_evidence"] is not False:
+        if set(item) != _MONITOR_PHASE_KEYS or item["exit_code"] != 0 or item["timed_out"] is not False or item["cleanup_failed"] is not False or item["has_crash_evidence"] is not False:
             raise FoundryError("Clean-body monitor contains a failed or incomplete phase.")
         for key in ("crash_evidence_path", "stdout_path", "stderr_path", "godot_log_path"):
             path = Path(item[key])

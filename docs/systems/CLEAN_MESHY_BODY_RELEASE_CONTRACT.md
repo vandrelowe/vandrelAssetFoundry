@@ -89,7 +89,10 @@ the body enters the fixed world. Capture output is
 anatomy. A manual import must rehash every unique cell, cover the exact rest
 and motion memberships, and retain explicit PASS/FAIL. Any failed cell blocks
 approval. Unchanged-input attempts use stable owned attempt identities and do
-not overwrite retained evidence.
+not overwrite retained evidence. A process-zero rejection before any Godot
+phase launches is environment evidence, not a product-validation attempt. The
+first exact preflight-only block is retained separately and permits one retry;
+a repeated preflight block consumes the attempt and stops unchanged retries.
 
 ## Approval and immutable release
 

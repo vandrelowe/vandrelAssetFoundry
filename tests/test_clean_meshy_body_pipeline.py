@@ -78,7 +78,7 @@ def test_scratch_cleanup_retries_a_transient_windows_cache_race(
 
 
 def test_clean_body_validation_revision_matches_processor_evidence_namespace():
-    assert CLEAN_BODY_VALIDATION_REVISION == 2
+    assert CLEAN_BODY_VALIDATION_REVISION == 3
     assert PROCESSOR.version == str(CLEAN_BODY_VALIDATION_REVISION)
 
 
@@ -139,6 +139,89 @@ def _passing_monitor() -> dict:
     for name in ("initial_import","configure_import","retargeted_import","technical_validate","visual_capture"):
         phases.append({"phase":name,"exit_code":0,"timed_out":False,"cleanup_failed":False,"has_crash_evidence":False,"crash_evidence_path":f"{name}-crash.json","stdout_path":f"{name}-stdout.log","stderr_path":f"{name}-stderr.log","godot_log_path":f"{name}-godot.log"})
     return {"schema_version":"vandrel_foundry_clean_body_godot_monitor/1.0","policy":"vandrel_monitored_godot_clean_body_corridor_2026-08-21","run_started_utc":"2026-08-22T00:00:00Z","run_ended_utc":"2026-08-22T00:01:00Z","console_executable_name":"Godot_v4.7-stable_mono_win64_console.exe","console_file_version":"4.7","godot_console_sha256":"1"*64,"supervisor_sha256":"2"*64,"runtime_guard_sha256":"3"*64,"crash_evidence_authority_sha256":"4"*64,"process_zero_preflight":True,"child_environment":{"DOTNET_ROLL_FORWARD":"LatestMajor"},"phase_results":phases,"outer_timeout_seconds_per_phase":120,"maximum_output_bytes":1_000_000,"internal_iteration_bomb":600,"post_exit_poll_seconds":5,"timed_out":False,"output_limited":False,"cleanup_failed":False,"failure":"","application_error_windows":[],"application_events":[],"wer_and_dump_paths":[],"final_godot_processes":[],"has_crash_evidence":False,"passed":True}
+
+
+def _preflight_blocked_monitor(process_name: str = "Godot_console") -> dict:
+    monitor = _passing_monitor()
+    monitor.update({
+        "process_zero_preflight": False,
+        "phase_results": [],
+        "failure": "Clean-body validation requires Godot process-zero.",
+        "passed": False,
+        "final_godot_processes": [
+            {"pid": 1234, "process_name": process_name, "title": ""}
+        ],
+    })
+    return monitor
+
+
+@pytest.mark.parametrize(
+    "process_name",
+    ("Godot", "Godot_console", "Godot_v4.7-stable_mono_win64_console"),
+)
+def test_process_zero_preflight_block_does_not_consume_first_product_attempt(
+    config, humanoid_lanes, prompt, tmp_path, process_name
+):
+    settings = _processed(config, humanoid_lanes, prompt, tmp_path)
+    request, *_ = _validation_request(settings, tmp_path)
+    repository = ManifestRepository(settings.foundry.workspace_root)
+    reports = repository.asset_directory("clean_body_test_001") / "reports"
+
+    def blocked_runner(_config, sandbox):
+        output = sandbox / "output"
+        (output / "clean-body-godot-monitor.json").write_text(
+            json.dumps(_preflight_blocked_monitor(process_name)), encoding="utf-8"
+        )
+        raise FoundryError("Monitored clean-body Godot validation failed.")
+
+    with pytest.raises(FoundryError, match="Monitored clean-body"):
+        validate_clean_meshy_body(settings, "clean_body_test_001", request, blocked_runner)
+    assert (reports / "clean_body_validation_003.preflight-blocked").is_dir()
+    assert not (reports / "clean_body_validation_003.failed").exists()
+
+    with pytest.raises(FoundryError, match="Monitored clean-body"):
+        validate_clean_meshy_body(settings, "clean_body_test_001", request, blocked_runner)
+    assert (reports / "clean_body_validation_003.failed").is_dir()
+
+    with pytest.raises(FoundryError, match="attempt already exists"):
+        validate_clean_meshy_body(settings, "clean_body_test_001", request, blocked_runner)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("supervisor_sha256", None),
+        ("phase_results", [{"phase": "initial_import"}]),
+        ("has_crash_evidence", True),
+        ("timed_out", True),
+        ("cleanup_failed", True),
+        ("final_godot_processes", [{"pid": 1234, "name": "Godot_console"}]),
+        ("final_godot_processes", [{"pid": 1234, "process_name": "notepad.exe", "title": ""}]),
+    ],
+)
+def test_process_zero_preflight_classifier_rejects_near_misses(
+    config, humanoid_lanes, prompt, tmp_path, field, value
+):
+    settings = _processed(config, humanoid_lanes, prompt, tmp_path)
+    request, *_ = _validation_request(settings, tmp_path)
+    repository = ManifestRepository(settings.foundry.workspace_root)
+    reports = repository.asset_directory("clean_body_test_001") / "reports"
+
+    def malformed_runner(_config, sandbox):
+        monitor = _preflight_blocked_monitor()
+        if value is None:
+            monitor.pop(field)
+        else:
+            monitor[field] = value
+        (sandbox / "output/clean-body-godot-monitor.json").write_text(
+            json.dumps(monitor), encoding="utf-8"
+        )
+        raise FoundryError("Monitored clean-body Godot validation failed.")
+
+    with pytest.raises(FoundryError, match="Monitored clean-body"):
+        validate_clean_meshy_body(settings, "clean_body_test_001", request, malformed_runner)
+    assert (reports / "clean_body_validation_003.failed").is_dir()
+    assert not (reports / "clean_body_validation_003.preflight-blocked").exists()
 
 
 def test_body_only_process_validation_manual_review_and_approval_contract(config, humanoid_lanes, prompt, tmp_path):
