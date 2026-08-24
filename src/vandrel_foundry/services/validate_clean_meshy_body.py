@@ -33,7 +33,8 @@ from vandrel_foundry.services.audit_library import audit_library_asset
 from vandrel_foundry.storage.manifests import ManifestRepository
 from vandrel_foundry.storage.paths import RelativeManifestPath, contained_path
 
-PROCESSOR = Processor(name="godot_clean_body_shared_animation_validation", version="1")
+PROCESSOR = Processor(name="godot_clean_body_shared_animation_validation", version="2")
+CLEAN_BODY_VALIDATION_REVISION = 2
 
 
 @dataclass(frozen=True)
@@ -85,7 +86,8 @@ def validate_clean_meshy_body(
     for path, binding, label in resolved:
         _verify(path, binding.sha256, binding.size_bytes, label)
     shared_library = _resolve_shared_animation_library(config, request)
-    attempt_root = asset_root / "reports" / "clean_body_validation_001"
+    attempt_name = f"clean_body_validation_{CLEAN_BODY_VALIDATION_REVISION:03d}"
+    attempt_root = asset_root / "reports" / attempt_name
     if attempt_root.exists() or attempt_root.with_name(attempt_root.name + ".failed").exists():
         raise FoundryError("Clean-body validation attempt already exists; unchanged-input retry is forbidden.")
     operation = Path(tempfile.mkdtemp(prefix=".clean-body-validation-", dir=asset_root / "reports"))
@@ -116,10 +118,11 @@ def validate_clean_meshy_body(
     artifacts: list[Artifact] = []
     for artifact_id, role, fmt, name in specs:
         digest, size = _hash(attempt_root / name)
-        artifacts.append(Artifact(artifact_id=artifact_id, role=role, stage="validation", format=fmt, path=RelativeManifestPath(f"reports/clean_body_validation_001/{name}"), sha256=digest, size_bytes=size, derived_from=[model.artifact_id], processor=PROCESSOR))
+        artifact_id = artifact_id.rsplit("_", 1)[0] + f"_{CLEAN_BODY_VALIDATION_REVISION:03d}"
+        artifacts.append(Artifact(artifact_id=artifact_id, role=role, stage="validation", format=fmt, path=RelativeManifestPath(f"reports/{attempt_name}/{name}"), sha256=digest, size_bytes=size, derived_from=[model.artifact_id], processor=PROCESSOR))
     for index, cell in enumerate(facts["cells"], start=1):
         name = Path(cell["path"]).name
-        artifacts.append(Artifact(artifact_id=f"clean_body_capture_evidence_{index:03d}", role="clean_body_capture_evidence", stage="validation", format=Path(name).suffix.removeprefix("."), path=RelativeManifestPath(f"reports/clean_body_validation_001/{name}"), sha256=cell["sha256"], size_bytes=cell["size_bytes"], derived_from=[model.artifact_id], processor=PROCESSOR))
+        artifacts.append(Artifact(artifact_id=f"clean_body_capture_evidence_v{CLEAN_BODY_VALIDATION_REVISION}_{index:03d}", role="clean_body_capture_evidence", stage="validation", format=Path(name).suffix.removeprefix("."), path=RelativeManifestPath(f"reports/{attempt_name}/{name}"), sha256=cell["sha256"], size_bytes=cell["size_bytes"], derived_from=[model.artifact_id], processor=PROCESSOR))
     revision = manifest.revision
     manifest.artifacts.extend(artifacts)
     manifest.validation.result = "not_run"

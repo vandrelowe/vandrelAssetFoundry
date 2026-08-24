@@ -37,6 +37,8 @@ from vandrel_foundry.services.process_clean_meshy_body import (
 from vandrel_foundry.services.run_animation_visual_capture import CaptureProcessResult
 from vandrel_foundry.services.run_clean_meshy_body_godot import run_monitored_clean_body
 from vandrel_foundry.services.validate_clean_meshy_body import (
+    CLEAN_BODY_VALIDATION_REVISION,
+    PROCESSOR,
     CleanBodyValidationExecution,
     _remove_scratch_tree,
     _validate_monitor,
@@ -73,6 +75,11 @@ def test_scratch_cleanup_retries_a_transient_windows_cache_race(
 
     assert attempts == 8
     assert not scratch.exists()
+
+
+def test_clean_body_validation_revision_matches_processor_evidence_namespace():
+    assert CLEAN_BODY_VALIDATION_REVISION == 2
+    assert PROCESSOR.version == str(CLEAN_BODY_VALIDATION_REVISION)
 
 
 def _sha(value: bytes) -> str:
