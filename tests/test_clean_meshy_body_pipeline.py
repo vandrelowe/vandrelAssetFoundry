@@ -165,6 +165,10 @@ def test_body_only_process_validation_manual_review_and_approval_contract(config
     repository.save(manifest,"test.clean_body_approved",expected_revision=manifest.revision-1)
     plan=plan_release(settings,humanoid_lanes,"clean_body_test_001")
     assert plan.descriptor["primary_payload"]=="clean_body"
+    release_paths = {item["role"]: item["path"] for item in plan.descriptor["files"]}
+    assert release_paths["model"] == "model.gltf"
+    assert release_paths["clean_body_buffer"] == "body.bin"
+    assert release_paths["clean_body_albedo"] == "albedo.png"
     assert plan.descriptor["clean_body"]["candidate_only"] is True
     assert plan.descriptor["clean_body"]["vandrel_runtime_accepted"] is False
     assert not ({"godot_wrapper_scene","animation_walk","animation_run","animation_library"} & {item["role"] for item in plan.descriptor["files"]})
@@ -261,12 +265,13 @@ def test_clean_body_release_descriptor_is_isolated_and_exact():
     for index,(role,name) in enumerate((("clean_body_processing_report","processing_report"),("clean_body_technical_report","technical_report"),("clean_body_godot_monitor_report","monitor_report"),("clean_body_visual_review_report","visual_review_report")),start=10):
         item={"role":role,"path":f"evidence/clean-body/{name}.json","sha256":str(index%10)*64,"size_bytes":index,"source_artifact_id":f"{role}-001"}; value["files"].append(item); reports[name]={"release_path":item["path"],"sha256":item["sha256"],"size_bytes":item["size_bytes"],"source_artifact_id":item["source_artifact_id"]}
     dependencies=[]
-    for role,path,digest in (("clean_body_buffer","model/body.bin","a"*64),("clean_body_albedo","model/albedo.png","b"*64)):
+    for role,path,digest in (("clean_body_buffer","body.bin","a"*64),("clean_body_albedo","albedo.png","b"*64)):
         value["files"].append({"role":role,"path":path,"sha256":digest,"size_bytes":4,"source_artifact_id":role+"-001"}); dependencies.append(digest)
     for index in range(4):
         value["files"].append({"role":"clean_body_visual_evidence","path":f"evidence/clean-body/cells/{index}.png","sha256":f"{index+3:x}"*64,"size_bytes":10+index,"source_artifact_id":f"visual-{index}"})
     value["clean_body"]={"evidence_route":"clean_body_shared_animation","candidate_only":True,"vandrel_runtime_accepted":False,"shared_animation_pool_compatible":True,"embedded_animations_disabled":True,"import_policy":"godot_clean_body_humanoid_bone_map_rest_fixer_v1","material_policy":"external_lit_principled_albedo_v1","output_sha256":value["files"][0]["sha256"],"dependency_sha256s":dependencies,"shared_animation_library":{"asset_id":"shared_library_001","release_revision":1,"output_sha256":"c"*64},**reports}
     descriptor=ReleaseDescriptorV2.model_validate(value); assert descriptor.clean_body is not None
+    assert {item.path for item in descriptor.files if item.role in {"model", "clean_body_buffer", "clean_body_albedo"}} == {"model.glb", "body.bin", "albedo.png"}
     invalid=json.loads(json.dumps(value)); invalid["files"].append({"role":"animation_library","path":"forbidden.res","sha256":"f"*64,"size_bytes":1,"source_artifact_id":"forbidden"})
     with pytest.raises(ValueError,match="one exact body model"): ReleaseDescriptorV2.model_validate(invalid)
 

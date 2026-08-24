@@ -381,8 +381,8 @@ def _clean_body_release_evidence(
     manifest: AssetManifest, asset_root: Path, model: Artifact
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     specs = (
-        ("processed_clean_body_buffer", "clean_body_buffer", "model/body.bin"),
-        ("processed_clean_body_albedo", "clean_body_albedo", "model/albedo.png"),
+        ("processed_clean_body_buffer", "clean_body_buffer", "body.bin"),
+        ("processed_clean_body_albedo", "clean_body_albedo", "albedo.png"),
         ("clean_body_processing_report", "clean_body_processing_report", "evidence/clean-body/processing.json"),
         ("clean_body_technical_report", "clean_body_technical_report", "evidence/clean-body/technical.json"),
         ("clean_body_godot_monitor_report", "clean_body_godot_monitor_report", "evidence/clean-body/monitor.json"),

@@ -124,6 +124,8 @@ runtime acceptance.
 
 The `clean_body_shared_animation` route requires a body-only processed glTF
 with no embedded animation output, exact external buffer/albedo dependencies,
+and packages those dependencies beside the glTF so its authored relative URIs
+remain directly importable,
 canonical humanoid BoneMap/Rest Fixer validation, complete monitored Godot
 evidence, manual fixed-view and shared-motion review, and an exact audited
 immutable shared animation-library descriptor/payload binding. Its descriptor
