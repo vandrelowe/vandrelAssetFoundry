@@ -57,7 +57,7 @@ def test_scratch_cleanup_retries_a_transient_windows_cache_race(
     def flaky_rmtree(path: Path) -> None:
         nonlocal attempts
         attempts += 1
-        if attempts < 3:
+        if attempts < 8:
             raise OSError(145, "directory is not empty")
         actual_rmtree(path)
 
@@ -71,7 +71,7 @@ def test_scratch_cleanup_retries_a_transient_windows_cache_race(
 
     _remove_scratch_tree(scratch)
 
-    assert attempts == 3
+    assert attempts == 8
     assert not scratch.exists()
 
 

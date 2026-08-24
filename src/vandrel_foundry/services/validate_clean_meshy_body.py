@@ -144,7 +144,7 @@ def validate_clean_meshy_body(
 
 def _remove_scratch_tree(path: Path) -> None:
     """Remove run-owned Godot cache after process-zero without losing durable evidence."""
-    delays = (0.0, 0.05, 0.1, 0.2, 0.4, 0.8)
+    delays = (0.0, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2)
     last_error: OSError | None = None
     tombstone = path.with_name(f".{path.name}-cleanup")
     if tombstone.exists():
