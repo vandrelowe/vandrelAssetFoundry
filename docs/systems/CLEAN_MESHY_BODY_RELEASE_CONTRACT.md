@@ -93,6 +93,10 @@ not overwrite retained evidence. A process-zero rejection before any Godot
 phase launches is environment evidence, not a product-validation attempt. The
 first exact preflight-only block is retained separately and permits one retry;
 a repeated preflight block consumes the attempt and stops unchanged retries.
+If every product phase and exact report passes but post-process scratch deletion
+fails, a later invocation may promote the already copied durable evidence after
+rehashing and revalidating it; it must not relaunch Godot or relabel failed
+product evidence.
 
 ## Approval and immutable release
 

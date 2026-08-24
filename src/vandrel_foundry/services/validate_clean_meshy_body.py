@@ -116,33 +116,42 @@ def validate_clean_meshy_body(
     shared_library = _resolve_shared_animation_library(config, request)
     attempt_name = f"clean_body_validation_{CLEAN_BODY_VALIDATION_REVISION:03d}"
     attempt_root = asset_root / "reports" / attempt_name
+    failed_attempt_root = attempt_root.with_name(attempt_root.name + ".failed")
     preflight_blocked_root = attempt_root.with_name(attempt_root.name + ".preflight-blocked")
-    if attempt_root.exists() or attempt_root.with_name(attempt_root.name + ".failed").exists():
+    if attempt_root.exists():
         raise FoundryError("Clean-body validation attempt already exists; unchanged-input retry is forbidden.")
-    operation = Path(tempfile.mkdtemp(prefix=".clean-body-validation-", dir=asset_root / "reports"))
-    try:
-        sandbox = operation / "sandbox"
-        _stage_sandbox(asset_root, model, buffer, albedo, request, resolved, shared_library, sandbox)
-        execution = (runner or _run_monitored)(config, sandbox)
-        facts = _validate_reports(request, shared_library, model.sha256, execution)
-        durable = operation / "durable"
-        durable.mkdir()
-        for source, name in ((execution.technical_report, "technical.json"), (execution.monitor_report, "monitor.json"), (execution.capture_manifest, "capture-manifest.json")):
-            shutil.copyfile(source, durable / name)
-        for cell in facts["cells"]:
-            source = execution.capture_manifest.parent / cell["path"]
-            _verify(source, cell["sha256"], cell["size_bytes"], "capture cell")
-            shutil.copyfile(source, durable / Path(cell["path"]).name)
-        _remove_scratch_tree(sandbox)
-        os.replace(durable, attempt_root)
-        operation.rmdir()
-    except BaseException:
-        if operation.exists():
-            if _is_process_zero_preflight_block(operation) and not preflight_blocked_root.exists():
-                os.replace(operation, preflight_blocked_root)
-            else:
-                os.replace(operation, attempt_root.with_name(attempt_root.name + ".failed"))
-        raise
+    facts = _recover_durable_attempt(
+        failed_attempt_root, attempt_root, request, shared_library, model.sha256
+    )
+    if facts is None:
+        if failed_attempt_root.exists():
+            raise FoundryError(
+                "Clean-body validation attempt already exists; unchanged-input retry is forbidden."
+            )
+        operation = Path(tempfile.mkdtemp(prefix=".clean-body-validation-", dir=asset_root / "reports"))
+        try:
+            sandbox = operation / "sandbox"
+            _stage_sandbox(asset_root, model, buffer, albedo, request, resolved, shared_library, sandbox)
+            execution = (runner or _run_monitored)(config, sandbox)
+            facts = _validate_reports(request, shared_library, model.sha256, execution)
+            durable = operation / "durable"
+            durable.mkdir()
+            for source, name in ((execution.technical_report, "technical.json"), (execution.monitor_report, "monitor.json"), (execution.capture_manifest, "capture-manifest.json")):
+                shutil.copyfile(source, durable / name)
+            for cell in facts["cells"]:
+                source = execution.capture_manifest.parent / cell["path"]
+                _verify(source, cell["sha256"], cell["size_bytes"], "capture cell")
+                shutil.copyfile(source, durable / Path(cell["path"]).name)
+            _remove_scratch_tree(sandbox)
+            os.replace(durable, attempt_root)
+            operation.rmdir()
+        except BaseException:
+            if operation.exists():
+                if _is_process_zero_preflight_block(operation) and not preflight_blocked_root.exists():
+                    os.replace(operation, preflight_blocked_root)
+                else:
+                    os.replace(operation, failed_attempt_root)
+            raise
     specs = [
         ("clean_body_technical_report_001", "clean_body_technical_report", "json", "technical.json"),
         ("clean_body_godot_monitor_report_001", "clean_body_godot_monitor_report", "json", "monitor.json"),
@@ -176,6 +185,41 @@ def validate_clean_meshy_body(
             shutil.rmtree(attempt_root)
         raise
     return artifacts
+
+
+def _recover_durable_attempt(
+    failed_root: Path,
+    attempt_root: Path,
+    request: CleanBodyValidationRequest,
+    shared_library: SharedAnimationLibraryBinding,
+    body_sha256: str,
+) -> dict | None:
+    """Promote exact durable PASS evidence without relaunching Godot after scratch cleanup failed."""
+    durable = failed_root / "durable"
+    if not failed_root.is_dir() or not durable.is_dir():
+        return None
+    execution = CleanBodyValidationExecution(
+        durable / "technical.json",
+        durable / "monitor.json",
+        durable / "capture-manifest.json",
+    )
+    try:
+        facts = _validate_reports(request, shared_library, body_sha256, execution)
+        for cell in facts["cells"]:
+            path = durable / Path(cell["path"]).name
+            _verify(path, cell["sha256"], cell["size_bytes"], "durable capture cell")
+    except (FoundryError, OSError, json.JSONDecodeError, ValidationError):
+        return None
+    recovering = attempt_root.with_name(attempt_root.name + ".recovering")
+    if recovering.exists():
+        raise FoundryError("Clean-body durable recovery staging already exists.")
+    shutil.copytree(durable, recovering)
+    try:
+        os.replace(recovering, attempt_root)
+    except BaseException:
+        shutil.rmtree(recovering, ignore_errors=True)
+        raise
+    return facts
 
 
 def _is_process_zero_preflight_block(operation: Path) -> bool:

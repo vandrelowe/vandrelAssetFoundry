@@ -224,6 +224,54 @@ def test_process_zero_preflight_classifier_rejects_near_misses(
     assert not (reports / "clean_body_validation_003.preflight-blocked").exists()
 
 
+def test_complete_durable_evidence_recovers_without_relaunching_godot(
+    config, humanoid_lanes, prompt, tmp_path, monkeypatch
+):
+    settings = _processed(config, humanoid_lanes, prompt, tmp_path)
+    request, bone, sidecar, library, descriptor_sha = _validation_request(settings, tmp_path)
+    repository = ManifestRepository(settings.foundry.workspace_root)
+    manifest = repository.load("clean_body_test_001")
+    model = [item for item in manifest.artifacts if item.role == "processed_model"][-1]
+
+    def passing_runner(_config, sandbox):
+        output = sandbox / "output"
+        cells = []
+        labels = ("front", "side", "back", "AngryStomp", "HitReaction")
+        for index, label in enumerate(labels, start=1):
+            payload = f"image-{label}".encode()
+            name = f"cell-{index}.png"
+            (output / name).write_bytes(payload)
+            cells.append({"kind":"rest" if index < 4 else "motion","label":label,"phases":[] if index < 4 else [0,.125,.25,.375,.5,.625,.75,.875],"path":name,"sha256":_sha(payload),"size_bytes":len(payload),"result":None})
+        technical = {"schema_version":"vandrel_foundry_clean_body_technical/1.1","processed_body_sha256":model.sha256,"bone_map_sha256":_sha(bone),"sidecar_policy_source_sha256":_sha(sidecar),"shared_animation_library_sha256":_sha(library),"shared_animation_library_descriptor_sha256":descriptor_sha,"skeleton_name":"GeneralSkeleton","mapped_bone_count":22,"skeleton_count":1,"animation_count":0,"skin_present":True,"bind_count_positive":True,"weights_present":True,"rest_pose_valid":True,"import_policy_valid":True,"material_surface_count":1,"external_lit_albedo":True,"casts_shadows":True,"scale_finite_positive":True,"grounded":True,"shared_animation_pool_compatible":True,"shared_semantics":["AngryStomp","HitReaction"]}
+        capture = {"schema_version":"vandrel_foundry_clean_body_capture/1.0","processed_body_sha256":model.sha256,"shared_animation_library_sha256":_sha(library),"shared_animation_library_descriptor_sha256":descriptor_sha,"camera_config_sha256":CLEAN_BODY_CAMERA_CONFIG_SHA256,"review_status":"manual_review_required","manual_result":None,"cells":cells}
+        for name, value in (("technical.json", technical), ("monitor.json", _passing_monitor()), ("capture.json", capture)):
+            (output / name).write_text(json.dumps(value), encoding="utf-8")
+        return CleanBodyValidationExecution(
+            output / "technical.json", output / "monitor.json", output / "capture.json"
+        )
+
+    monkeypatch.setattr(
+        "vandrel_foundry.services.validate_clean_meshy_body._remove_scratch_tree",
+        lambda _path: (_ for _ in ()).throw(FoundryError("scratch cleanup failed")),
+    )
+    with pytest.raises(FoundryError, match="scratch cleanup"):
+        validate_clean_meshy_body(settings, "clean_body_test_001", request, passing_runner)
+
+    reports = repository.asset_directory("clean_body_test_001") / "reports"
+    assert (reports / "clean_body_validation_003.failed/durable").is_dir()
+
+    def must_not_run(_config, _sandbox):
+        raise AssertionError("durable recovery must not relaunch Godot")
+
+    artifacts = validate_clean_meshy_body(
+        settings, "clean_body_test_001", request, must_not_run
+    )
+    assert (reports / "clean_body_validation_003").is_dir()
+    assert (reports / "clean_body_validation_003.failed").is_dir()
+    assert repository.load("clean_body_test_001").workflow.state == WorkflowState.REVIEW
+    assert all(item.processor == PROCESSOR for item in artifacts)
+
+
 def test_body_only_process_validation_manual_review_and_approval_contract(config, humanoid_lanes, prompt, tmp_path):
     settings=_processed(config,humanoid_lanes,prompt,tmp_path); request,bone,sidecar,library,descriptor_sha=_validation_request(settings,tmp_path)
     repository=ManifestRepository(settings.foundry.workspace_root); model=[item for item in repository.load("clean_body_test_001").artifacts if item.role=="processed_model"][-1]
