@@ -400,14 +400,22 @@ def _clean_body_release_evidence(
             reports[source_role] = {"release_path": path, "sha256": artifact.sha256, "size_bytes": artifact.size_bytes, "source_artifact_id": artifact.artifact_id}
     review = _approved_artifact(manifest, asset_root, "clean_body_visual_review_report")
     by_id = {item.artifact_id: item for item in manifest.artifacts}
+    visual_paths: list[str] = []
     for index, artifact_id in enumerate(review.derived_from, start=1):
         artifact = by_id.get(artifact_id)
         if artifact is None or artifact.role != "clean_body_visual_evidence":
-            continue
+            raise FoundryError("Clean-body visual review references invalid evidence.")
         if manifest.approval.approved_artifact_hashes.get(f"artifact:{artifact_id}") != artifact.sha256:
             raise FoundryError("Clean-body visual evidence is not approval-bound.")
         _verify_artifact(asset_root, artifact)
-        files.append({"role": "clean_body_visual_evidence", "path": f"evidence/clean-body/cells/{index:03d}.{artifact.format}", "sha256": artifact.sha256, "size_bytes": artifact.size_bytes, "source_artifact_id": artifact.artifact_id})
+        release_path = f"evidence/clean-body/cells/{index:03d}.{artifact.format}"
+        visual_paths.append(release_path)
+        files.append({"role": "clean_body_visual_evidence", "path": release_path, "sha256": artifact.sha256, "size_bytes": artifact.size_bytes, "source_artifact_id": artifact.artifact_id})
+    try:
+        review_value = json.loads(contained_path(asset_root, review.path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise FoundryError(f"Clean-body visual review report is invalid: {exc}") from exc
+    _require_portable_clean_body_visual_paths(review_value, visual_paths)
     checks = {str(item.get("name")): item for item in manifest.validation.checks}
     technical = checks.get("clean_body_technical_probe", {})
     library_asset_id = technical.get("shared_animation_library_asset_id")
@@ -431,6 +439,22 @@ def _clean_body_release_evidence(
         "monitor_report": reports["clean_body_godot_monitor_report"],
         "visual_review_report": reports["clean_body_visual_review_report"],
     }, files)
+
+
+def _require_portable_clean_body_visual_paths(
+    review_value: object, expected_paths: list[str]
+) -> None:
+    try:
+        if not isinstance(review_value, dict):
+            raise TypeError("review is not an object")
+        review_cells = [*review_value["rest_cells"], *review_value["motion_cells"]]
+        recorded_paths = [cell["evidence"]["path"] for cell in review_cells]
+    except (KeyError, TypeError) as exc:
+        raise FoundryError(f"Clean-body visual review report is invalid: {exc}") from exc
+    if recorded_paths != expected_paths:
+        raise FoundryError(
+            "Clean-body visual review must reference the exact portable packaged cell paths."
+        )
 
 
 def _humanoid_release_evidence(

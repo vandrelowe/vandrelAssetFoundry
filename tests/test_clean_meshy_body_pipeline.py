@@ -157,6 +157,13 @@ def test_body_only_process_validation_manual_review_and_approval_contract(config
     review={"schema_version":"vandrel_foundry_clean_meshy_body_visual_review/1.0","asset_id":"clean_body_test_001","processed_body_sha256":model.sha256,"technical_report_sha256":technical.sha256,"monitor_report_sha256":monitor.sha256,"shared_animation_library_sha256":_sha(library),"camera_policy":"vandrel_fixed_clean_body_review_camera_v1","camera_config_sha256":CLEAN_BODY_CAMERA_CONFIG_SHA256,"reviewer":"Independent reviewer","reviewed_at":"2026-08-22T00:00:00Z","rest_cells":rest,"motion_cells":motion}
     review_path=tmp_path/"review.json"; review_path.write_text(json.dumps(review)); import_clean_meshy_body_visual_review(settings,"clean_body_test_001",review_path)
     manifest=repository.load("clean_body_test_001")
+    review_artifact=[item for item in manifest.artifacts if item.role=="clean_body_visual_review_report"][-1]
+    stored_review=json.loads((root/review_artifact.path).read_text())
+    stored_cells=[*stored_review["rest_cells"],*stored_review["motion_cells"]]
+    assert [item["evidence"]["path"] for item in stored_cells] == [
+        f"evidence/clean-body/cells/{index:03d}.png" for index in range(1,6)
+    ]
+    assert not any(str(root) in item["evidence"]["path"] for item in stored_cells)
     assert approval_checks_pass(manifest)
     assert approval_artifact_roles(manifest)[0:4] == ("processed_model","processed_clean_body_buffer","processed_clean_body_albedo","clean_body_processing_report")
     bindings=approval_artifact_bindings(manifest); assert len([key for key in bindings if key.startswith("artifact:")]) == 5
@@ -172,6 +179,33 @@ def test_body_only_process_validation_manual_review_and_approval_contract(config
     assert plan.descriptor["clean_body"]["candidate_only"] is True
     assert plan.descriptor["clean_body"]["vandrel_runtime_accepted"] is False
     assert not ({"godot_wrapper_scene","animation_walk","animation_run","animation_library"} & {item["role"] for item in plan.descriptor["files"]})
+
+
+def test_clean_body_release_rejects_nonportable_visual_review_paths(config, humanoid_lanes, prompt, tmp_path):
+    settings=_processed(config,humanoid_lanes,prompt,tmp_path); request,bone,sidecar,library,descriptor_sha=_validation_request(settings,tmp_path)
+    repository=ManifestRepository(settings.foundry.workspace_root); manifest=repository.load("clean_body_test_001"); root=repository.asset_directory("clean_body_test_001")
+    model=[item for item in manifest.artifacts if item.role=="processed_model"][-1]
+    def validation_runner(_config,sandbox):
+        output=sandbox/"output"; cells=[]
+        for index,label in enumerate(("front","side","back","AngryStomp","HitReaction"),start=1):
+            payload=f"image-{label}".encode(); name=f"cell-{index}.png"; (output/name).write_bytes(payload); cells.append({"kind":"rest" if index<4 else "motion","label":label,"phases":[] if index<4 else [0,.125,.25,.375,.5,.625,.75,.875],"path":name,"sha256":_sha(payload),"size_bytes":len(payload),"result":None})
+        technical={"schema_version":"vandrel_foundry_clean_body_technical/1.1","processed_body_sha256":model.sha256,"bone_map_sha256":_sha(bone),"sidecar_policy_source_sha256":_sha(sidecar),"shared_animation_library_sha256":_sha(library),"shared_animation_library_descriptor_sha256":descriptor_sha,"skeleton_name":"GeneralSkeleton","mapped_bone_count":22,"skeleton_count":1,"animation_count":0,"skin_present":True,"bind_count_positive":True,"weights_present":True,"rest_pose_valid":True,"import_policy_valid":True,"material_surface_count":1,"external_lit_albedo":True,"casts_shadows":True,"scale_finite_positive":True,"grounded":True,"shared_animation_pool_compatible":True,"shared_semantics":["AngryStomp","HitReaction"]}
+        for name,value in (("technical.json",technical),("monitor.json",_passing_monitor()),("capture.json",{"schema_version":"vandrel_foundry_clean_body_capture/1.0","processed_body_sha256":model.sha256,"shared_animation_library_sha256":_sha(library),"shared_animation_library_descriptor_sha256":descriptor_sha,"camera_config_sha256":CLEAN_BODY_CAMERA_CONFIG_SHA256,"review_status":"manual_review_required","manual_result":None,"cells":cells})): (output/name).write_text(json.dumps(value))
+        return CleanBodyValidationExecution(output/"technical.json",output/"monitor.json",output/"capture.json")
+    validate_clean_meshy_body(settings,"clean_body_test_001",request,validation_runner)
+    manifest=repository.load("clean_body_test_001"); technical=[item for item in manifest.artifacts if item.role=="clean_body_technical_report"][-1]; monitor=[item for item in manifest.artifacts if item.role=="clean_body_godot_monitor_report"][-1]; capture=[item for item in manifest.artifacts if item.role=="clean_body_capture_evidence"]
+    rest=[]; motion=[]
+    for index,item in enumerate(capture):
+        cell={"evidence":{"path":str(root/item.path),"sha256":item.sha256,"size_bytes":item.size_bytes},"result":"PASS","notes":"reviewed"}
+        (rest if index<3 else motion).append(cell|({"view":("front","side","back")[index]} if index<3 else {"semantic":("AngryStomp","HitReaction")[index-3],"observed_phases":[0,.125,.25,.375,.5,.625,.75,.875]}))
+    review={"schema_version":"vandrel_foundry_clean_meshy_body_visual_review/1.0","asset_id":"clean_body_test_001","processed_body_sha256":model.sha256,"technical_report_sha256":technical.sha256,"monitor_report_sha256":monitor.sha256,"shared_animation_library_sha256":_sha(library),"camera_policy":"vandrel_fixed_clean_body_review_camera_v1","camera_config_sha256":CLEAN_BODY_CAMERA_CONFIG_SHA256,"reviewer":"Independent reviewer","reviewed_at":"2026-08-22T00:00:00Z","rest_cells":rest,"motion_cells":motion}
+    path=tmp_path/"review.json"; path.write_text(json.dumps(review)); import_clean_meshy_body_visual_review(settings,"clean_body_test_001",path)
+    manifest=repository.load("clean_body_test_001"); review_artifact=[item for item in manifest.artifacts if item.role=="clean_body_visual_review_report"][-1]; stored_path=root/review_artifact.path; stored=json.loads(stored_path.read_text()); stored["rest_cells"][0]["evidence"]["path"]=str(root/capture[0].path); stored_path.write_text(json.dumps(stored))
+    review_artifact.sha256,review_artifact.size_bytes=_sha(stored_path.read_bytes()),stored_path.stat().st_size
+    manifest.approval.approved=True; manifest.approval.approved_at=utc_now(); manifest.approval.reviewer="Independent reviewer"; manifest.approval.approved_artifact_hashes=approval_artifact_bindings(manifest); manifest.workflow.state=WorkflowState.APPROVED; manifest.revision+=1
+    bind_documented_test_custody(manifest,root); bind_approved_test_scale(manifest); repository.save(manifest,"test.nonportable_review",expected_revision=manifest.revision-1)
+    with pytest.raises(FoundryError,match="portable packaged cell paths"):
+        plan_release(settings,humanoid_lanes,"clean_body_test_001")
 
 
 def test_generated_policy_is_not_source_sidecar_and_capture_is_manual_null():

@@ -47,7 +47,13 @@ def import_clean_meshy_body_visual_review(config: FoundryConfig, asset_id: str, 
             source = Path(cell.evidence.path); source = source if source.is_absolute() else request_path.parent / source
             if _hash(source) != (cell.evidence.sha256, cell.evidence.size_bytes): raise FoundryError("Clean-body visual evidence bytes differ from review request.")
             shutil.copyfile(source, operation / f"cell-{index:03d}{source.suffix.casefold()}")
-        report = request.model_dump(mode="json"); report["result"] = "PASS" if all(cell.result == "PASS" for cell in cells) else "FAIL"; report["failed_cells"] = [getattr(cell, "view", getattr(cell, "semantic", "unknown")) for cell in cells if cell.result == "FAIL"]
+        report = request.model_dump(mode="json")
+        report_cells = [*report["rest_cells"], *report["motion_cells"]]
+        for index, (cell, report_cell) in enumerate(zip(cells, report_cells, strict=True), start=1):
+            suffix = Path(cell.evidence.path).suffix.casefold()
+            report_cell["evidence"]["path"] = f"evidence/clean-body/cells/{index:03d}{suffix}"
+        report["result"] = "PASS" if all(cell.result == "PASS" for cell in cells) else "FAIL"
+        report["failed_cells"] = [getattr(cell, "view", getattr(cell, "semantic", "unknown")) for cell in cells if cell.result == "FAIL"]
         (operation / "review.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         if destination.exists(): raise FoundryError("Clean-body visual review destination already exists.")
         os.replace(operation, destination)

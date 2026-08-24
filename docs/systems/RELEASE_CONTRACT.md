@@ -130,6 +130,10 @@ canonical humanoid BoneMap/Rest Fixer validation, complete monitored Godot
 evidence, manual fixed-view and shared-motion review, and an exact audited
 immutable shared animation-library descriptor/payload binding. Its descriptor
 remains `candidate_only: true` and `vandrel_runtime_accepted: false`.
+The imported clean-body visual-review report rewrites reviewer-local source
+locations to the exact release-root-relative `evidence/clean-body/cells/...`
+paths used by publication. Release planning fails closed if those ordered
+portable paths do not exactly match the approval-bound evidence artifacts.
 
 The Meshy-native assembly route applies only when the current approved model
 was produced by `blender_meshy_native_character_motion_assembly`. It requires
