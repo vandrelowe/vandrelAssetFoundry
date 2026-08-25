@@ -88,6 +88,17 @@ status; Python accepts no other bone, path, value, timing, or duplicate. This
 is completion of optimized-away rest data, not permission to omit core-chain
 motion.
 
+Some exact Meshy FBXs contain one meaningful action plus a generated one-frame
+dummy action. Policy `select_unique_meaningful_with_trivial_fallbacks_v1`
+accepts such a source only when the longest action is at least `0.25` seconds
+and every other action is at most `0.1` seconds. A source with two meaningful
+actions, a nonfinite duration, or any other ambiguous membership still fails
+closed. Single-action sources remain accepted. The technical report records
+the complete unique source-action name set, count, selected name and duration,
+and every ignored trivial action and duration; Python revalidates those facts
+and their equality to the processed animation length before the candidate can
+advance. This selector does not trim, merge, or relabel actions.
+
 Every semantic must still have exactly one Hips position track, exactly 22
 unique mapped rotation tracks after that bounded completion, no scale tracks, no non-Hips
 position tracks, no other tracks after the one exact known-carrier operation,

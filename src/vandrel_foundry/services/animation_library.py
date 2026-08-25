@@ -44,6 +44,9 @@ PROCESSOR_CARRIER_BAKE_VERSION = "5"
 TECHNICAL_SCHEMA = "vandrel_foundry_animation_library_technical/1.0"
 HIPS_HORIZONTAL_POLICY = "hold_hips_xz_at_first_key_preserve_y_time_interpolation_v1"
 REST_LEAF_COMPLETION_POLICY = "restore_optimized_identity_hand_rotation_tracks_v1"
+SOURCE_ANIMATION_SELECTION_POLICY = "select_unique_meaningful_with_trivial_fallbacks_v1"
+MIN_MEANINGFUL_SOURCE_ANIMATION_SECONDS = 0.25
+MAX_IGNORABLE_SOURCE_ANIMATION_SECONDS = 0.1
 HORIZONTAL_ROOT_TOLERANCE = 0.0001
 MONITOR_SCHEMA = "vandrel_foundry_animation_godot_monitor/1.0"
 VISUAL_REPORT_SCHEMA = "vandrel_foundry_animation_visual_matrix_result/1.0"
@@ -703,6 +706,7 @@ def _validate_technical_report(
             or item.get("hips_horizontal_transform_applied") is not True
             or item.get("hips_vertical_time_interpolation_preserved") is not True
             or not _valid_horizontal_transform_facts(item)
+            or not valid_source_animation_selection_facts(item)
             or not valid_rest_leaf_completion_facts(item)
             or type(recognized_carriers) is not int
             or recognized_carriers not in (0, 1)
@@ -753,6 +757,64 @@ def _validate_technical_report(
             raise FoundryError(
                 f"Animation ordinary carrier policy changed: {item.get('semantic')}"
             )
+
+
+def valid_source_animation_selection_facts(item: dict[str, object]) -> bool:
+    count = item.get("source_animation_count")
+    names = item.get("source_animation_names")
+    selected_name = item.get("selected_source_animation_name")
+    selected_length = item.get("selected_source_animation_length")
+    ignored = item.get("ignored_trivial_source_animations")
+    if (
+        item.get("source_animation_selection_policy")
+        != SOURCE_ANIMATION_SELECTION_POLICY
+        or type(count) is not int
+        or count < 1
+        or not isinstance(names, list)
+        or len(names) != count
+        or any(not isinstance(name, str) or not name for name in names)
+        or len(set(names)) != count
+        or not isinstance(selected_name, str)
+        or selected_name not in names
+        or isinstance(selected_length, bool)
+        or not isinstance(selected_length, (int, float))
+        or not math.isfinite(float(selected_length))
+        or float(selected_length) < 0.0
+        or not isinstance(ignored, list)
+        or len(ignored) != count - 1
+    ):
+        return False
+    ignored_names: set[str] = set()
+    for entry in ignored:
+        if not isinstance(entry, dict) or set(entry) != {"name", "length"}:
+            return False
+        name = entry.get("name")
+        length = entry.get("length")
+        if (
+            not isinstance(name, str)
+            or not name
+            or name == selected_name
+            or name not in names
+            or name in ignored_names
+            or isinstance(length, bool)
+            or not isinstance(length, (int, float))
+            or not math.isfinite(float(length))
+            or float(length) < 0.0
+            or float(length) > MAX_IGNORABLE_SOURCE_ANIMATION_SECONDS
+        ):
+            return False
+        ignored_names.add(name)
+    if ignored_names != set(names) - {selected_name}:
+        return False
+    if count > 1 and float(selected_length) < MIN_MEANINGFUL_SOURCE_ANIMATION_SECONDS:
+        return False
+    animation_length = item.get("optimized_rest_leaf_animation_length")
+    return (
+        not isinstance(animation_length, bool)
+        and isinstance(animation_length, (int, float))
+        and math.isfinite(float(animation_length))
+        and float(animation_length) == float(selected_length)
+    )
 
 
 def valid_rest_leaf_completion_facts(item: dict[str, object]) -> bool:

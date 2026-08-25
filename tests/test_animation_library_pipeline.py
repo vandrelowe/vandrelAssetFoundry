@@ -351,6 +351,14 @@ def _fake_pipeline(config, sandbox: Path) -> AnimationPipelineExecution:
                 "optimized_rest_leaf_completion_policy": (
                     animation_service.REST_LEAF_COMPLETION_POLICY
                 ),
+                "source_animation_selection_policy": (
+                    animation_service.SOURCE_ANIMATION_SELECTION_POLICY
+                ),
+                "source_animation_count": 1,
+                "source_animation_names": ["default"],
+                "selected_source_animation_name": "default",
+                "selected_source_animation_length": 1.0,
+                "ignored_trivial_source_animations": [],
                 "optimized_rest_leaf_animation_length": 1.0,
                 "optimized_rest_leaf_tracks_added": [],
                 "optimized_rest_leaf_completion_passed": True,
@@ -874,6 +882,13 @@ def test_finalize_script_builds_general_skeleton_paths_without_percent_formattin
     assert "Vector2(value.x - first_value.x, value.z - first_value.z).length()" in script
     assert 'fact["hips_horizontal_pre_transform"]' in script
     assert 'fact["hips_horizontal_post_transform"]' in script
+    assert "_select_source_animation(source)" in script
+    assert "MIN_MEANINGFUL_SOURCE_ANIMATION_SECONDS := 0.25" in script
+    assert "MAX_IGNORABLE_SOURCE_ANIMATION_SECONDS := 0.1" in script
+    assert 'float(entries[1].length) > MAX_IGNORABLE_SOURCE_ANIMATION_SECONDS' in script
+    assert 'fact["selected_source_animation_name"]' in script
+    assert 'fact["ignored_trivial_source_animations"]' in script
+    assert animation_service.SOURCE_ANIMATION_SELECTION_POLICY in script
 
     loop_start = script.index('\tfor motion in request.get("motions", []):')
     failure_gate = script.index("\tif not failures.is_empty():", loop_start)
@@ -915,6 +930,60 @@ def test_isolation_script_accepts_unsorted_exact_string_membership() -> None:
     assert "actual_sorted.sort()" in script
     assert "if actual_sorted != expected_sorted:" in script
     assert '"selected_semantics": expected' in script
+
+
+def _multi_action_selection_fact() -> dict[str, object]:
+    return {
+        "source_animation_selection_policy": (
+            animation_service.SOURCE_ANIMATION_SELECTION_POLICY
+        ),
+        "source_animation_count": 2,
+        "source_animation_names": ["dummy", "meaningful"],
+        "selected_source_animation_name": "meaningful",
+        "selected_source_animation_length": 2.9666667,
+        "ignored_trivial_source_animations": [
+            {"name": "dummy", "length": 0.0333333}
+        ],
+        "optimized_rest_leaf_animation_length": 2.9666667,
+    }
+
+
+def test_source_animation_selection_accepts_one_meaningful_plus_trivial_action() -> None:
+    assert animation_service.valid_source_animation_selection_facts(
+        _multi_action_selection_fact()
+    )
+
+
+@pytest.mark.parametrize(
+    "malformation",
+    [
+        "second_meaningful",
+        "nonfinite_selected",
+        "missing_policy",
+        "duplicate_name",
+        "wrong_count",
+        "unknown_ignored_name",
+    ],
+)
+def test_source_animation_selection_rejects_ambiguous_or_malformed_evidence(
+    malformation: str,
+) -> None:
+    fact = _multi_action_selection_fact()
+    ignored = fact["ignored_trivial_source_animations"]
+    assert isinstance(ignored, list)
+    if malformation == "second_meaningful":
+        ignored[0]["length"] = 0.100001
+    elif malformation == "nonfinite_selected":
+        fact["selected_source_animation_length"] = float("nan")
+    elif malformation == "missing_policy":
+        fact.pop("source_animation_selection_policy")
+    elif malformation == "duplicate_name":
+        fact["source_animation_names"] = ["meaningful", "meaningful"]
+    elif malformation == "wrong_count":
+        fact["source_animation_count"] = 3
+    elif malformation == "unknown_ignored_name":
+        ignored[0]["name"] = "not-in-membership"
+    assert not animation_service.valid_source_animation_selection_facts(fact)
 
 
 def test_isolation_script_rejects_missing_extra_and_duplicate_membership() -> None:

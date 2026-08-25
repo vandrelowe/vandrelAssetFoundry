@@ -12,6 +12,9 @@ const CARRIER_REMOVE_POLICY := "remove_single_armature_rotation_carrier_v1"
 const CARRIER_BAKE_POLICY := "bake_single_armature_rotation_into_hips_skeleton_space_v1"
 const QUATERNION_TOLERANCE := 0.00001
 const HORIZONTAL_TOLERANCE := 0.0001
+const MIN_MEANINGFUL_SOURCE_ANIMATION_SECONDS := 0.25
+const MAX_IGNORABLE_SOURCE_ANIMATION_SECONDS := 0.1
+const SOURCE_ANIMATION_SELECTION_POLICY := "select_unique_meaningful_with_trivial_fallbacks_v1"
 const REST_LEAF_BONES := ["LeftHand", "RightHand"]
 const EXPECTED_ROTATION_BONES := [
 	"Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
@@ -46,10 +49,12 @@ func _init() -> void:
 			failures.append({"semantic": semantic, "reason": "source_hash_changed"})
 			continue
 		var source := load(source_path) as AnimationLibrary
-		if source == null or source.get_animation_list().size() != 1:
+		var source_selection := _select_source_animation(source)
+		if not bool(source_selection.get("passed", false)):
 			failures.append({"semantic": semantic, "reason": "source_animation_membership"})
 			continue
-		var animation := source.get_animation(source.get_animation_list()[0]).duplicate(true) as Animation
+		var selected_source_animation := source_selection.get("animation") as Animation
+		var animation := selected_source_animation.duplicate(true) as Animation
 		if animation == null:
 			failures.append({"semantic": semantic, "reason": "deep_duplicate_failed"})
 			continue
@@ -68,6 +73,12 @@ func _init() -> void:
 		var rest_leaf_completion := _complete_optimized_rest_leaf_tracks(animation)
 		var horizontal_transform := _hold_hips_horizontal_at_first_key(animation)
 		var fact := _probe(semantic, motion, animation)
+		fact["source_animation_selection_policy"] = SOURCE_ANIMATION_SELECTION_POLICY
+		fact["source_animation_count"] = source_selection.source_animation_count
+		fact["source_animation_names"] = source_selection.source_animation_names
+		fact["selected_source_animation_name"] = source_selection.selected_source_animation_name
+		fact["selected_source_animation_length"] = source_selection.selected_source_animation_length
+		fact["ignored_trivial_source_animations"] = source_selection.ignored_trivial_source_animations
 		fact["known_carrier_track_recognized_count"] = carrier.recognized_count
 		fact["known_carrier_track_removed_count"] = carrier.removed_count
 		fact["known_carrier_tracks"] = carrier.tracks
@@ -131,6 +142,42 @@ func _init() -> void:
 	report_file.close()
 	print("FOUNDRY_ANIMATION_LIBRARY_OK animations=%d sha256=%s" % [facts.size(), output_sha])
 	quit(0)
+
+
+func _select_source_animation(source: AnimationLibrary) -> Dictionary:
+	if source == null:
+		return {"passed": false}
+	var names := source.get_animation_list()
+	if names.is_empty():
+		return {"passed": false}
+	var entries: Array[Dictionary] = []
+	for name_value in names:
+		var name := str(name_value)
+		var candidate := source.get_animation(name_value)
+		if candidate == null or not is_finite(candidate.length) or candidate.length < 0.0:
+			return {"passed": false}
+		entries.append({"name": name, "length": candidate.length, "animation": candidate})
+	entries.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:
+		return float(left.length) > float(right.length)
+	)
+	var selected := entries[0]
+	if entries.size() > 1:
+		if float(selected.length) < MIN_MEANINGFUL_SOURCE_ANIMATION_SECONDS:
+			return {"passed": false}
+		if float(entries[1].length) > MAX_IGNORABLE_SOURCE_ANIMATION_SECONDS:
+			return {"passed": false}
+	var ignored: Array[Dictionary] = []
+	for index in range(1, entries.size()):
+		ignored.append({"name": entries[index].name, "length": entries[index].length})
+	return {
+		"passed": true,
+		"animation": selected.animation,
+		"source_animation_count": entries.size(),
+		"source_animation_names": Array(names),
+		"selected_source_animation_name": selected.name,
+		"selected_source_animation_length": selected.length,
+		"ignored_trivial_source_animations": ignored,
+	}
 
 
 func _complete_optimized_rest_leaf_tracks(animation: Animation) -> Dictionary:
